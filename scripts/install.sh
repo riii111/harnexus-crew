@@ -55,7 +55,12 @@ command -v git >/dev/null 2>&1 || fail "git is not available"
 
 here=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d "${TMPDIR:-/tmp}/taskctl-install.XXXXXX")
-cleanup() { rm -rf "$work"; [[ -z ${staged:-} ]] || rm -f "$staged"; }
+cleanup() {
+  rm -rf "$work"
+  [[ -z ${staged:-} ]] || rm -f "$staged"
+  [[ -z ${link:-} ]] || rm -f "$link"
+  [[ -z ${previous:-} ]] || rm -f "$previous"
+}
 trap cleanup EXIT
 
 # The source is a clean checkout of one commit, so uncommitted edits never reach the installed binary.
@@ -79,28 +84,51 @@ bun_dir=$(dirname "$(command -v "$bun_bin")")
   "$bun_bin" build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig src/cli/task.ts --outfile "$work/taskctl" >/dev/null
 )
 
-# A binary that cannot show its usage is never installed.
+# A binary that cannot start, or cannot fill the worker and reviewer templates task.json names, is never installed, so the set in use stays whole.
 "$work/taskctl" --help | head -n 1 | grep -qx 'usage:' || fail "the built taskctl did not start; nothing was replaced"
+checked=$("$work/taskctl" check 2>&1) || fail "the built taskctl cannot use the configured templates; nothing was replaced: $checked"
 
+# Everything is staged beside its target first, so each switch is one rename, and a failed switch puts back what was there.
 mkdir -p "$prefix"
 staged=$(mktemp "$prefix/.taskctl.XXXXXX")
 install -m 0755 "$work/taskctl" "$staged"
-mv -f "$staged" "$prefix/taskctl"
-staged=
-echo "installed $prefix/taskctl from $wanted"
+link=
+if [[ $compat != no ]] && ! ours_legacy; then
+  link=$(mktemp -u "$prefix/.harnexus-task.XXXXXX")
+  ln -s taskctl "$link"
+fi
+previous=
+if [[ -e $prefix/taskctl ]]; then
+  previous=$(mktemp -u "$prefix/.taskctl.previous.XXXXXX")
+  ln "$prefix/taskctl" "$previous"
+fi
+moved_aside=no
 
-if [[ $compat != no ]]; then
-  if ours_legacy; then
-    echo "$legacy already runs taskctl"
-  else
-    if [[ -e $legacy || -L $legacy ]]; then
-      mv "$legacy" "$legacy.pre-taskctl"
-      echo "moved the earlier harnexus-task to $legacy.pre-taskctl"
-    fi
-    link=$(mktemp -u "$prefix/.harnexus-task.XXXXXX")
-    ln -s taskctl "$link"
-    mv -f "$link" "$legacy"
-    echo "linked $legacy to taskctl"
+# For tests only: fails the named step, to show what a failed switch leaves.
+fault() { [[ ${TASKCTL_INSTALL_FAULT:-} == "$1" ]] && return 1; return 0; }
+
+rollback() {
+  if [[ $moved_aside == yes ]]; then mv -f "$legacy.pre-taskctl" "$legacy"; fi
+  if [[ -n $previous ]]; then mv -f "$previous" "$prefix/taskctl"; else rm -f "$prefix/taskctl"; fi
+  previous=
+  fail "$1; the earlier taskctl and harnexus-task were put back"
+}
+
+mv -f "$staged" "$prefix/taskctl" || rollback "cannot place taskctl"
+staged=
+if [[ -n $link ]]; then
+  if [[ -e $legacy || -L $legacy ]]; then
+    { fault aside && mv "$legacy" "$legacy.pre-taskctl"; } || rollback "cannot move $legacy aside"
+    moved_aside=yes
   fi
+  { fault link && mv -f "$link" "$legacy"; } || rollback "cannot link $legacy"
+  link=
+fi
+[[ -z $previous ]] || rm -f "$previous"
+previous=
+echo "installed $prefix/taskctl from $wanted"
+if [[ $compat != no ]]; then
+  [[ $moved_aside == no ]] || echo "moved the earlier harnexus-task to $legacy.pre-taskctl"
+  echo "$legacy runs taskctl"
 fi
 echo "nothing was added to PATH"

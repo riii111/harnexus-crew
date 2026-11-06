@@ -1229,6 +1229,64 @@ const projectsListed = (...projects: Record<string, unknown>[]) => ({
   },
 });
 
+describe("harnexus-task state", () => {
+  test("lists only the records taskctl keeps, leaving pr-wake's watch unread", async () => {
+    const { env, invoke, launch } = await launchFixture();
+    const sent = await launch([], [created("w1", "claude-sonnet-5-5", "high")]);
+    const watch = join(env.XDG_STATE_HOME ?? "", "taskctl/watch/abc");
+    await mkdir(watch, { recursive: true });
+    await writeFile(join(watch, "state.json"), "{");
+
+    const listed = await invoke(["state"]);
+
+    expect([listed.code, Object.keys(listed.out)]).toEqual([
+      0,
+      [sent.out.state],
+    ]);
+  });
+});
+
+describe("taskctl check", () => {
+  test("renders every configured template, for each way a reviewer replies", async () => {
+    const { invoke, codex } = await fixture();
+
+    const checked = await invoke(["check"]);
+
+    expect(checked.out).toEqual({
+      templates: {
+        worker: join(codex, "skills/task-session-launch/references/worker.md"),
+        reviewer: join(
+          codex,
+          "skills/task-review-cycle/references/reviewer.md",
+        ),
+      },
+    });
+  });
+
+  test("fails on a template whose link leads nowhere, and passes without task.json", async () => {
+    const { invoke, root, env } = await fixture();
+    await writeFile(
+      join(root, "reviewer.md"),
+      "[reply](reply-{reply_to}.md)\n",
+    );
+    await writeTemplateConfig(join(root, "config"), {
+      templates: { reviewer: join(root, "reviewer.md") },
+    });
+
+    const broken = await invoke(["check"]);
+    env.XDG_CONFIG_HOME = join(root, "nowhere");
+    const unset = await invoke(["check"]);
+
+    expect([broken.code, broken.err]).toEqual([
+      1,
+      expect.stringContaining(
+        `the reviewer template ${join(root, "reviewer.md")}: links to`,
+      ),
+    ]);
+    expect(unset.out).toEqual({ templates: { worker: null, reviewer: null } });
+  });
+});
+
 describe("harnexus-task review", () => {
   test.each([
     {

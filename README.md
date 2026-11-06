@@ -15,7 +15,7 @@ scripts/install.sh --replace-harnexus-task          # same, moving an existing h
 ```
 
 `TASKCTL_PREFIX`, `TASKCTL_REPO` and `TASKCTL_REV` set the same defaults.
-The binary is built and checked in a temporary directory first; when that fails, the installed binary stays as it was.
+The binary is built in a temporary directory and must start and fill the worker and reviewer templates that `task.json` names (`taskctl check`) before it replaces anything; when a step fails, the installed `taskctl` and `harnexus-task` stay as they were.
 `--compat` refuses to touch a `harnexus-task` that is not already the link, so an existing one is replaced only with `--replace-harnexus-task`.
 
 ## What it calls

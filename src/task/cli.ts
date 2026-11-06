@@ -45,7 +45,7 @@ import {
   reviewProject,
   reviewSession,
 } from "./session.ts";
-import { taskPrompt } from "./templates.ts";
+import { checkTemplates, taskPrompt } from "./templates.ts";
 
 export type TaskDeps = {
   env: Env;
@@ -617,6 +617,16 @@ const COMMANDS = {
     options: {},
     args: () => Result.ok({}),
     run: (_args, deps) => environment(deps),
+  }),
+  // Not a harnexus-task command: the installer runs it with a new binary before switching to it.
+  check: subcommand({
+    usage: "check",
+    options: {},
+    args: () => Result.ok({}),
+    run: async (_args, deps) =>
+      (await checkTemplates(deps.env)).map((templates): Fields => ({
+        templates,
+      })),
   }),
   cloud: subcommand({
     usage:

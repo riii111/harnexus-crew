@@ -367,12 +367,15 @@ export const reviewSession = (data: Fields, deps: SessionDeps) =>
     deps,
   );
 
+const OWNED_KINDS = ["cloud-review", "launch", "review"];
+
 export const listState = (env: Env) =>
   Result.gen(async function* () {
     const root = stateRoot(env);
     const paths: string[] = [];
     if (await isDirectory(root)) {
-      for (const kind of yield* Result.await(namesIn(root))) {
+      // Only the kinds taskctl keeps; the watch beside them belongs to pr-wake and is never read here.
+      for (const kind of OWNED_KINDS) {
         const kindPath = join(root, kind);
         if (!(await isDirectory(kindPath))) continue;
         for (const key of yield* Result.await(namesIn(kindPath))) {

@@ -169,3 +169,56 @@ export const taskPrompt = (
         }),
     );
   });
+
+// Sample values for every field, so a check renders each link a template can reach without any real task.
+const SAMPLE = {
+  task_id: "check",
+  document_refs: "- https://example.com/task",
+  completion_target: "draft_pr",
+  worker_ai: "Codex",
+  worker_chat_id: "check",
+  checkout: "/",
+  pr_url: "null",
+  base: "0000000000000000000000000000000000000000",
+  head: "0000000000000000000000000000000000000000",
+};
+
+// The replies a reviewer template is rendered for: a worker in the app of either AI, and a Claude Code cloud session.
+const REPLIES = ["Codex", "Claude", "Cloud"];
+
+// Renders every configured template as launch and review would, so an update can tell before it is switched to that it cannot fill them; a template not configured is only named.
+export const checkTemplates = (env: Env) =>
+  Result.gen(async function* () {
+    const config = templateConfigPath(env);
+    if (!(await pathExists(config)))
+      return Result.ok<Record<string, string | null>>({
+        worker: null,
+        reviewer: null,
+      });
+    const parsed = CONFIG.safeParse(yield* Result.await(readJson(config)));
+    if (!parsed.success)
+      return fail(`${config} is invalid: ${z.prettifyError(parsed.error)}`);
+    const { worker, reviewer } = parsed.data.templates;
+    const checked = async (
+      kind: TemplateKind,
+      path: string,
+      fields: Record<string, string>,
+    ) =>
+      (await render(path, fields)).mapError(
+        (error) =>
+          new TaskFailed({
+            message: `the ${kind} template ${path}: ${error.message}`,
+          }),
+      );
+    if (worker !== undefined)
+      yield* Result.await(checked("worker", worker, SAMPLE));
+    if (reviewer !== undefined)
+      for (const reply of REPLIES)
+        yield* Result.await(
+          checked("reviewer", reviewer, { ...SAMPLE, reply_to: reply }),
+        );
+    return Result.ok<Record<string, string | null>>({
+      worker: worker ?? null,
+      reviewer: reviewer ?? null,
+    });
+  });

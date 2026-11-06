@@ -3,6 +3,7 @@ import {
   lstat,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   readlink,
   rm,
@@ -31,7 +32,12 @@ const scratch = async () => {
 
 const run = (args: readonly string[], env: Record<string, string> = {}) => {
   const ran = Bun.spawnSync(["bash", SCRIPT, ...args], {
-    env: { PATH: `${BUN_DIR}:/usr/bin:/bin`, HOME: "/nonexistent", ...env },
+    env: {
+      PATH: `${BUN_DIR}:/usr/bin:/bin`,
+      HOME: "/nonexistent",
+      XDG_CONFIG_HOME: "/nonexistent/config",
+      ...env,
+    },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -134,6 +140,54 @@ describe("scripts/install.sh", () => {
       expect(
         (await lstat(join(prefix, "harnexus-task"))).isSymbolicLink(),
       ).toBe(true);
+    },
+    { timeout: 180_000 },
+  );
+
+  test(
+    "puts back the earlier taskctl and harnexus-task when the switch fails, and never installs a binary that cannot fill the templates",
+    async () => {
+      const root = await scratch();
+      const prefix = join(root, "bin");
+      await mkdir(prefix);
+      const installed = run(["--prefix", prefix]);
+      const before = await stat(join(prefix, "taskctl"));
+      await writeFile(join(prefix, "harnexus-task"), "old");
+      const config = join(root, "config");
+      await mkdir(join(config, "harnexus"), { recursive: true });
+      await writeFile(join(root, "worker.md"), "[skill](missing/SKILL.md)\n");
+      await writeFile(
+        join(config, "harnexus/task.json"),
+        JSON.stringify({ templates: { worker: join(root, "worker.md") } }),
+      );
+
+      const linkFailed = run(["--prefix", prefix, "--replace-harnexus-task"], {
+        TASKCTL_INSTALL_FAULT: "link",
+      });
+      const afterLink = await stat(join(prefix, "taskctl"));
+      const unfilled = run(["--prefix", prefix], { XDG_CONFIG_HOME: config });
+      const afterCheck = await stat(join(prefix, "taskctl"));
+
+      expect(installed.status).toBe(0);
+      expect([linkFailed.status, linkFailed.stderr]).toEqual([
+        1,
+        expect.stringContaining(
+          "the earlier taskctl and harnexus-task were put back",
+        ),
+      ]);
+      expect(await readFile(join(prefix, "harnexus-task"), "utf8")).toBe("old");
+      expect(
+        await Bun.file(join(prefix, "harnexus-task.pre-taskctl")).exists(),
+      ).toBe(false);
+      expect(afterLink.ino).toBe(before.ino);
+      expect([unfilled.status, unfilled.stderr]).toEqual([
+        1,
+        expect.stringContaining("cannot use the configured templates"),
+      ]);
+      expect(afterCheck.ino).toBe(before.ino);
+      expect(
+        (await readdir(prefix)).filter((name) => name.startsWith(".")),
+      ).toEqual([]);
     },
     { timeout: 180_000 },
   );
