@@ -749,6 +749,110 @@ describe("an adapter's records under failure and sharing", () => {
   });
 });
 
+describe("a writing adapter's chats the bridge knows first", () => {
+  test("records a binding only the bridge kept, and posts the next review to that chat", async () => {
+    const at = await place();
+    const bridge = connect(at);
+    await bridge.say({
+      type: "hello",
+      bridgeId: "b1",
+      adapterId: "taskctl",
+      mode: "write",
+      versions: [1],
+    });
+    await bridge.say({
+      type: "ready",
+      bridgeId: "b1",
+      bindings: [{ conversationId: "R1", threadId: "chat-r1" }],
+      pending: [],
+      conflicts: [],
+    });
+
+    await bridge.records({ phase: "linked", linkedAt: null, records: [] });
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+
+    expect(
+      JSON.parse(await readFile(join(at.reviews, "chats.json"), "utf8")),
+    ).toEqual({ R1: { threadId: "chat-r1", session: SESSION } });
+    expect(bridge.requests("post")).toEqual([
+      expect.objectContaining({ conversationId: "R1" }),
+    ]);
+    expect(bridge.requests("create_conversation")).toEqual([]);
+  });
+
+  test("posts the review when a create answers with a conversation the bridge already shows", async () => {
+    const at = await place();
+    const bridge = connect(at, (request) => {
+      if (request.op === "list_projects") return projects(at.reviewHome);
+      if (request.op === "create_conversation")
+        return { outcome: "done", threadId: "chat-r1", existing: true };
+      return { outcome: "done", threadId: "chat-r1" };
+    });
+    await bridge.start("write");
+    const [review] = reviewsIn(judged("aaa1111"));
+
+    await bridge.records({ phase: "linked", linkedAt: null, records: [] });
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+
+    expect(bridge.requests("post")).toEqual([
+      expect.objectContaining({
+        conversationId: "R1",
+        text: reviewText(review!),
+      }),
+    ]);
+    expect(
+      JSON.parse(
+        await readFile(join(at.reviews, `${review!.key}.json`), "utf8"),
+      ),
+    ).toMatchObject({ sent: true, threadId: "chat-r1" });
+  });
+
+  test("shows the review in a chat whose create was unknown once its first turn arrives, without creating it again", async () => {
+    const at = await place();
+    const bridge = connect(at, (request) =>
+      request.op === "list_projects"
+        ? projects(at.reviewHome)
+        : { outcome: "unknown", reason: "pending_create" },
+    );
+    await bridge.start("write");
+    const [review] = reviewsIn(judged("aaa1111"));
+
+    await bridge.records({ phase: "linked", linkedAt: null, records: [] });
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+    await bridge.say({
+      type: "event",
+      event: "conversation_bound",
+      conversationId: "R1",
+      threadId: "chat-r1",
+    });
+    await bridge.say({
+      type: "event",
+      event: "turn",
+      turnId: "t1",
+      threadId: "chat-r1",
+      conversationId: "R1",
+      kind: "opened",
+      text: "",
+    });
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+
+    expect(bridge.requests("create_conversation")).toHaveLength(1);
+    expect(bridge.sent.filter((line) => line.turnId === "t1")).toEqual([
+      {
+        v: 1,
+        type: "turn_output",
+        turnId: "t1",
+        text: reviewText(review!),
+        phase: "final",
+      },
+      { v: 1, type: "turn_end", turnId: "t1", status: "completed" },
+    ]);
+    expect(
+      JSON.parse(await readFile(join(at.reviews, "chats.json"), "utf8")),
+    ).toEqual({ R1: { threadId: "chat-r1", session: SESSION } });
+  });
+});
+
 describe("handOver", () => {
   test("moves the journaled reviews nobody sent into the waiting list, which a writing adapter then shows", async () => {
     const at = await place();

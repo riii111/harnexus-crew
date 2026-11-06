@@ -184,12 +184,24 @@ export const createAdapter = (deps: AdapterDeps) => {
     });
     const threadId =
       typeof created.threadId === "string" ? created.threadId : null;
-    if (created.outcome !== "done") openingTexts.delete(review.reviewer);
+    // An unknown create may still bind the chat and open its first turn later, so its text is kept for that turn; only a create surely not carried out lets it go.
+    if (created.outcome !== "done" && created.outcome !== "unknown")
+      openingTexts.delete(review.reviewer);
     if (threadId !== null)
       await store.keepChat(review.reviewer, {
         threadId,
         session: entry.sessionId,
       });
+    // A conversation the bridge already binds opens no turn, so the review is posted to its chat instead.
+    if (created.outcome === "done" && created.existing === true) {
+      openingTexts.delete(review.reviewer);
+      const posted = await request("post", {
+        conversationId: review.reviewer,
+        text,
+      });
+      return { outcome: posted.outcome, threadId };
+    }
+
     return { outcome: created.outcome, threadId };
   };
 
@@ -519,6 +531,37 @@ export const createAdapter = (deps: AdapterDeps) => {
     });
   };
 
+  // A binding the bridge saved while this adapter stopped before recording it is written to the chats file, which stays the record of which chat shows which reviewer.
+  const adoptBridgeBindings = async (bindings: unknown) => {
+    if (mode !== "write" || !Array.isArray(bindings)) return;
+    const chats = await store.chats();
+    if (chats.isErr()) return;
+    for (const binding of bindings) {
+      if (
+        !isObject(binding) ||
+        typeof binding.conversationId !== "string" ||
+        typeof binding.threadId !== "string"
+      )
+        continue;
+      const kept = chats.value.get(binding.conversationId);
+      if (kept?.threadId === binding.threadId) continue;
+      if (kept !== undefined) {
+        deps.log({
+          step: "binding_differs",
+          conversationId: binding.conversationId,
+        });
+        continue;
+      }
+
+      const saved = await store.keepChat(binding.conversationId, {
+        threadId: binding.threadId,
+        session: sessionsOfReviewer.get(binding.conversationId) ?? null,
+      });
+      if (saved.isErr())
+        deps.log({ step: "chat_unwritable", message: saved.error.message });
+    }
+  };
+
   const answerHistory = async (line: Line) => {
     const threadId = typeof line.threadId === "string" ? line.threadId : "";
     sendLine({
@@ -543,6 +586,7 @@ export const createAdapter = (deps: AdapterDeps) => {
         return;
       case "ready":
         ready = true;
+        await adoptBridgeBindings(line.bindings);
         if (Array.isArray(line.conflicts) && line.conflicts.length > 0)
           deps.log({ step: "binding_conflicts", threads: line.conflicts });
         await inOrder(drain);
