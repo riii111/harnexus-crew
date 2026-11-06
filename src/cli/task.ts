@@ -1,5 +1,6 @@
 import { basename } from "node:path";
 
+import { runAdapterCommand } from "../integrations/harnexus/command.ts";
 import { runTask, TASK_DEPS } from "../task/cli.ts";
 import { reportCrash } from "../task/crash.boundary.ts";
 
@@ -7,13 +8,17 @@ import { reportCrash } from "../task/crash.boundary.ts";
 const name =
   basename(process.argv0) === "harnexus-task" ? "harnexus-task" : "taskctl";
 
+const [command, ...rest] = process.argv.slice(2);
+// The harnexus adapter runs as long as its bridge keeps it, so it is apart from the task commands, which answer once.
 const run = await reportCrash(
   () =>
-    runTask(process.argv.slice(2), {
-      ...TASK_DEPS,
-      env: process.env,
-      name,
-    }),
+    command === "adapter"
+      ? runAdapterCommand(rest, process.env, name)
+      : runTask(process.argv.slice(2), {
+          ...TASK_DEPS,
+          env: process.env,
+          name,
+        }),
   name,
 );
 process.stdout.write(run.stdout);

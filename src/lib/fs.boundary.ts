@@ -240,3 +240,30 @@ const isNotDirectory = (cause: unknown) =>
 const OWNER_ONLY = 0o600;
 
 const OWNER_ONLY_DIRECTORY = 0o700;
+
+class FileAppendFailed extends TaggedError("FileAppendFailed")<{
+  path: string;
+  cause: unknown;
+  message: string;
+}> {}
+
+// Appends one line to a log kept by one writer at a time, synced so a record of what was seen survives a crash.
+export const appendLine = (path: string, line: string) =>
+  Result.tryPromise({
+    try: async () => {
+      await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+      const file = await open(path, "a", OWNER_ONLY);
+      try {
+        await file.appendFile(`${line}\n`, "utf8");
+        await file.sync();
+      } finally {
+        await file.close();
+      }
+    },
+    catch: (cause) =>
+      new FileAppendFailed({
+        path,
+        cause,
+        message: `cannot append to ${path}`,
+      }),
+  });
