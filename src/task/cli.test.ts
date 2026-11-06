@@ -1263,7 +1263,7 @@ describe("taskctl check", () => {
     });
   });
 
-  test("fails on a template whose link leads nowhere, and passes without task.json", async () => {
+  test("fails on a template whose link leads nowhere or that names a field its command does not give, and passes without task.json", async () => {
     const { invoke, root, env } = await fixture();
     await writeFile(
       join(root, "reviewer.md"),
@@ -1274,6 +1274,19 @@ describe("taskctl check", () => {
     });
 
     const broken = await invoke(["check"]);
+    await writeFile(join(root, "worker.md"), "{task_id} {worker_ai}\n");
+    await writeFile(
+      join(root, "reviewer.md"),
+      "{task_id} {completion_target}\n",
+    );
+    await writeTemplateConfig(join(root, "config"), {
+      templates: { worker: join(root, "worker.md") },
+    });
+    const workerField = await invoke(["check"]);
+    await writeTemplateConfig(join(root, "config"), {
+      templates: { reviewer: join(root, "reviewer.md") },
+    });
+    const reviewerField = await invoke(["check"]);
     env.XDG_CONFIG_HOME = join(root, "nowhere");
     const unset = await invoke(["check"]);
 
@@ -1282,6 +1295,14 @@ describe("taskctl check", () => {
       expect.stringContaining(
         `the reviewer template ${join(root, "reviewer.md")}: links to`,
       ),
+    ]);
+    expect([workerField.code, workerField.err]).toEqual([
+      1,
+      expect.stringContaining("the worker template"),
+    ]);
+    expect([reviewerField.code, reviewerField.err]).toEqual([
+      1,
+      expect.stringContaining("the reviewer template"),
     ]);
     expect(unset.out).toEqual({ templates: { worker: null, reviewer: null } });
   });

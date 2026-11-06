@@ -5,7 +5,14 @@ import { z } from "zod";
 
 import { isFile, pathExists, realPathOrSelf } from "../lib/fs.boundary.ts";
 import { fail, formatTemplate, TaskFailed } from "./format.ts";
-import { configHome, type Env, readJson, readText } from "./request.ts";
+import {
+  configHome,
+  type Env,
+  readJson,
+  readText,
+  reviewFields,
+  workerFields,
+} from "./request.ts";
 
 type TemplateKind = "worker" | "reviewer";
 
@@ -170,15 +177,15 @@ export const taskPrompt = (
     );
   });
 
-// Sample values for every field, so a check renders each link a template can reach without any real task.
-const SAMPLE = {
-  task_id: "check",
-  document_refs: "- https://example.com/task",
-  completion_target: "draft_pr",
-  worker_ai: "Codex",
-  worker_chat_id: "check",
+// A sample task, whose fields are built as launch and review build them, so a check sees exactly the fields each template is given.
+const SAMPLE_TASK = {
+  taskId: "check",
+  documentRefs: ["https://example.com/task"],
+  completionTarget: "draft_pr",
+  workerAI: "Codex",
+  workerChatId: "check",
   checkout: "/",
-  pr_url: "null",
+  prUrl: null,
   base: "0000000000000000000000000000000000000000",
   head: "0000000000000000000000000000000000000000",
 };
@@ -211,11 +218,21 @@ export const checkTemplates = (env: Env) =>
           }),
       );
     if (worker !== undefined)
-      yield* Result.await(checked("worker", worker, SAMPLE));
+      yield* Result.await(
+        checked(
+          "worker",
+          worker,
+          yield* Result.await(workerFields(SAMPLE_TASK)),
+        ),
+      );
     if (reviewer !== undefined)
       for (const reply of REPLIES)
         yield* Result.await(
-          checked("reviewer", reviewer, { ...SAMPLE, reply_to: reply }),
+          checked(
+            "reviewer",
+            reviewer,
+            yield* Result.await(reviewFields(SAMPLE_TASK, reply)),
+          ),
         );
     return Result.ok<Record<string, string | null>>({
       worker: worker ?? null,
