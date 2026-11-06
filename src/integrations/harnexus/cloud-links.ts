@@ -8,31 +8,38 @@ import { fail } from "../../task/format.ts";
 import { load, type SaveJson, stateRoot } from "../../task/records.ts";
 import { type Env, io } from "../../task/request.ts";
 
-// One Cloud session's chat in a form any version can read: a null threadId is a chat whose opening never reported back, so it is never opened again.
+// One Cloud session's chat as harnexus state export-cloud-links and import-cloud-links carry it: a null threadId is a chat whose opening never reported back, so it is never opened again.
 export type CloudLink = {
   sessionId: string;
   threadId: string | null;
-  at: string | null;
+  reservedAt: string;
 };
 
 export type CloudLinks = { version: 1; links: CloudLink[] };
 
 const SESSION_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
+const LINK_KEYS = new Set(["sessionId", "threadId", "reservedAt"]);
+
+const SHAPE =
+  'expected {"version":1,"links":[{"sessionId","threadId","reservedAt"}]} with each session once';
+
 // harnexus-task cloud kept one file per session, which only taskctl reads.
 const chatsDirectory = (env: Env) => join(stateRoot(env), "cloud-chats");
 
+// A file harnexus-task cloud wrote: startedAt while the chat was being opened, openedAt once it was; a file naming neither time is dated now, since the reservation stands either way.
 const linkOf = (sessionId: string, kept: unknown): CloudLink | null => {
   if (!isObject(kept) || !("threadId" in kept)) return null;
   const { threadId } = kept;
-  if (threadId !== null && typeof threadId !== "string") return null;
-  const at =
+  if (threadId !== null && (typeof threadId !== "string" || threadId === ""))
+    return null;
+  const reservedAt =
     typeof kept.openedAt === "string"
       ? kept.openedAt
       : typeof kept.startedAt === "string"
         ? kept.startedAt
-        : null;
-  return { sessionId, threadId, at };
+        : new Date().toISOString();
+  return { sessionId, threadId, reservedAt };
 };
 
 // Every session harnexus-task cloud opened or began to open, refusing a file it cannot read rather than leaving it out.
@@ -61,18 +68,24 @@ const linksIn = (value: unknown) => {
   if (!isObject(value) || value.version !== 1 || !Array.isArray(value.links))
     return null;
   const links: CloudLink[] = [];
+  const sessions = new Set<string>();
   for (const item of value.links) {
     if (
       !isObject(item) ||
+      Object.keys(item).some((key) => !LINK_KEYS.has(key)) ||
       typeof item.sessionId !== "string" ||
-      !SESSION_ID.test(item.sessionId)
+      !SESSION_ID.test(item.sessionId) ||
+      sessions.has(item.sessionId) ||
+      typeof item.reservedAt !== "string" ||
+      item.reservedAt === ""
     )
       return null;
     const link = linkOf(item.sessionId, {
       threadId: item.threadId,
-      openedAt: item.at,
+      startedAt: item.reservedAt,
     });
     if (link === null) return null;
+    sessions.add(item.sessionId);
     links.push(link);
   }
 
@@ -83,10 +96,7 @@ const linksIn = (value: unknown) => {
 export const importLinks = (env: Env, value: unknown, save: SaveJson) =>
   Result.gen(async function* () {
     const links = linksIn(value);
-    if (links === null)
-      return fail(
-        'expected {"version":1,"links":[{"sessionId","threadId","at"}]}',
-      );
+    if (links === null) return fail(SHAPE);
     const dir = chatsDirectory(env);
     const conflicts: string[] = [];
     let written = 0;
@@ -113,13 +123,12 @@ export const importLinks = (env: Env, value: unknown, save: SaveJson) =>
         continue;
       }
 
-      const at = link.at ?? new Date().toISOString();
       yield* Result.await(
         save(
           path,
           link.threadId === null
-            ? { threadId: null, startedAt: at }
-            : { threadId: link.threadId, openedAt: at },
+            ? { threadId: null, startedAt: link.reservedAt }
+            : { threadId: link.threadId, openedAt: link.reservedAt },
           { exclusive: false },
         ),
       );

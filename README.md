@@ -32,4 +32,5 @@ Register `taskctl adapter serve --id taskctl` as harnexus's `externalConversatio
 - `write` shows each review once in its reviewer's chat, in the same `cloud-reviews` folder harnexus used, and passes a message written in that chat to the Cloud session that ran the reviewer.
 
 To switch from `observe` to `write`, stop the app, run `taskctl adapter handover` to queue the recorded reviews that harnexus did not send, then set `mode` to `write` and start the app.
-`taskctl adapter export-links` prints the chats `harnexus-task cloud` opened as `{"version":1,"links":[...]}`, and `taskctl adapter import-links FILE` writes such a file back without replacing a chat already recorded.
+`taskctl adapter export-links` prints the chats `harnexus-task cloud` opened as `{"version":1,"links":[{"sessionId","threadId","reservedAt"}]}`, the form `harnexus state import-cloud-links` reads; a `threadId` of `null` is a chat whose opening never reported back, which is never opened again.
+`taskctl adapter import-links FILE` writes such a file, as `harnexus state export-cloud-links` prints it, back to `harnexus-task cloud`'s records without replacing a chat already recorded. To go back to a harnexus from before the split, run it before starting that version.
