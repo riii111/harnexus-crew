@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -932,6 +933,102 @@ describe("a writing adapter's later reviews of a reviewer whose chat is being op
       reviewText(second!),
     ]);
     expect((await after.observations.pending()).unwrap()).toEqual([]);
+  });
+});
+
+describe("a chat's first review shown after a restart", () => {
+  const openingFile = (at: Place, reviewer: string) =>
+    join(
+      at.observe,
+      "opening",
+      `${createHash("sha256").update(reviewer).digest("hex").slice(0, 16)}.json`,
+    );
+
+  const reconnect = async (bridge: ReturnType<typeof connect>) => {
+    await bridge.say({
+      type: "hello",
+      bridgeId: "b1",
+      adapterId: "taskctl",
+      mode: "write",
+      versions: [1],
+    });
+    await bridge.say({
+      type: "ready",
+      bridgeId: "b1",
+      bindings: [{ conversationId: "R1", threadId: "chat-r1" }],
+      pending: [],
+      conflicts: [],
+    });
+  };
+
+  test("is posted by one of two adapters reconnecting at once", async () => {
+    const at = await place();
+    await mkdir(join(at.observe, "opening"), { recursive: true });
+    await writeFile(
+      openingFile(at, "R1"),
+      JSON.stringify({
+        key: "k1",
+        text: "first review",
+        sessionId: SESSION,
+        showing: false,
+      }),
+    );
+    const one = connect(at);
+    const two = connect(at);
+
+    await Promise.all([reconnect(one), reconnect(two)]);
+
+    expect(
+      [...one.requests("post"), ...two.requests("post")].map(
+        (line) => line.text,
+      ),
+    ).toEqual(["first review"]);
+    expect(await Bun.file(openingFile(at, "R1")).exists()).toBe(false);
+  });
+
+  test("is never posted again when an earlier adapter stopped after it may have shown it", async () => {
+    const at = await place();
+    await mkdir(join(at.observe, "opening"), { recursive: true });
+    await writeFile(
+      openingFile(at, "R1"),
+      JSON.stringify({
+        key: "k1",
+        text: "first review",
+        sessionId: SESSION,
+        showing: true,
+      }),
+    );
+    const bridge = connect(at);
+
+    await reconnect(bridge);
+
+    expect(bridge.requests("post")).toEqual([]);
+    expect(
+      (await journal(at)).filter((line) => line.kind === "opening_maybe_shown"),
+    ).toEqual([expect.objectContaining({ reviewer: "R1", key: "k1" })]);
+    expect(await Bun.file(openingFile(at, "R1")).exists()).toBe(false);
+  });
+
+  test("stays for the next connection when the bridge surely did not post it", async () => {
+    const at = await place();
+    await mkdir(join(at.observe, "opening"), { recursive: true });
+    await writeFile(
+      openingFile(at, "R1"),
+      JSON.stringify({
+        key: "k1",
+        text: "first review",
+        sessionId: SESSION,
+        showing: false,
+      }),
+    );
+    const bridge = connect(at, () => ({ outcome: "not_sent", reason: "busy" }));
+
+    await reconnect(bridge);
+
+    expect(bridge.requests("post")).toHaveLength(1);
+    expect(
+      JSON.parse(await readFile(openingFile(at, "R1"), "utf8")),
+    ).toMatchObject({ showing: false });
   });
 });
 

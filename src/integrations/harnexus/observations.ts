@@ -38,7 +38,13 @@ export type PendingReview = {
 };
 
 // A reviewer's chat asked for and not yet seen open: the review it opens with and the session that ran it, kept on disk so a restart neither asks again nor loses the text.
-export type Opening = { key: string; text: string; sessionId: string | null };
+// showing is set before the text is shown, so a stop between showing it and removing the record never shows it twice.
+export type Opening = {
+  key: string;
+  text: string;
+  sessionId: string | null;
+  showing: boolean;
+};
 
 const SESSION_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
@@ -154,6 +160,7 @@ export const createObservations = (root: string) => {
         text: loaded.text,
         sessionId:
           typeof loaded.sessionId === "string" ? loaded.sessionId : null,
+        showing: loaded.showing === true,
       });
     });
 

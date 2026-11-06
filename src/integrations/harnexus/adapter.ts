@@ -175,6 +175,7 @@ export const createAdapter = (deps: AdapterDeps) => {
       key: review.key,
       text,
       sessionId: entry.sessionId,
+      showing: false,
     });
     if (recorded.isErr()) return { outcome: "not_kept", threadId: null };
     const created = await request("create_conversation", {
@@ -519,10 +520,13 @@ export const createAdapter = (deps: AdapterDeps) => {
     }
 
     if (event.kind === "opened") {
-      const asked = await observations.opening(conversation);
-      const text = asked.isOk() ? (asked.value?.text ?? null) : null;
-      endTurn(turnId, text);
-      if (text !== null) await observations.dropOpening(conversation);
+      let ended = false;
+      await showOpening(conversation, async (text) => {
+        endTurn(turnId, text);
+        ended = true;
+        return true;
+      });
+      if (!ended) endTurn(turnId, null);
       // Reviews of the same reviewer waited for this chat's first review to be shown.
       void inOrder(drain);
       return;
@@ -560,16 +564,46 @@ export const createAdapter = (deps: AdapterDeps) => {
     for (const binding of bindings) {
       if (!isObject(binding) || typeof binding.conversationId !== "string")
         continue;
-      const asked = await observations.opening(binding.conversationId);
-      if (asked.isErr() || asked.value === null) continue;
-      const posted = await request("post", {
-        conversationId: binding.conversationId,
-        text: asked.value.text,
+      const reviewer = binding.conversationId;
+      await showOpening(reviewer, async (text) => {
+        const posted = await request("post", {
+          conversationId: reviewer,
+          text,
+        });
+        return posted.outcome === "done" || posted.outcome === "unknown";
       });
-      if (posted.outcome === "done" || posted.outcome === "unknown")
-        await observations.dropOpening(binding.conversationId);
     }
   };
+
+  // Shows a chat's first review at most once across adapters and restarts: under a lock of its own, it is marked as being shown before it is, and one already marked is never shown again, since it may have been; show answers whether it may have been shown.
+  const showOpening = (
+    reviewer: string,
+    show: (text: string) => Promise<boolean>,
+  ) =>
+    withLock(deps.locks, `opening-${lockName(reviewer)}`, async () => {
+      const asked = await observations.opening(reviewer);
+      if (asked.isErr() || asked.value === null) return Result.ok(false);
+      if (asked.value.showing) {
+        await noted({
+          kind: "opening_maybe_shown",
+          reviewer,
+          key: asked.value.key,
+        });
+        await observations.dropOpening(reviewer);
+        return Result.ok(false);
+      }
+
+      const marked = await observations.keepOpening(reviewer, {
+        ...asked.value,
+        showing: true,
+      });
+      if (marked.isErr()) return Result.ok(false);
+      const shown = await show(asked.value.text);
+      // A post surely not carried out leaves the record as it was, for the next connection.
+      if (shown) await observations.dropOpening(reviewer);
+      else await observations.keepOpening(reviewer, asked.value);
+      return Result.ok(shown);
+    });
 
   // A binding the bridge saved while this adapter stopped before recording it is written to the chats file, which stays the record of which chat shows which reviewer.
   const adoptBridgeBindings = async (bindings: unknown) => {
