@@ -52,6 +52,7 @@ const WRITE_OPS = new Set([
 // rejected and invalid are refusals of a request that was not carried out, so the review waits until their cause, such as a binding conflict, is cleared.
 const RETRIED = new Set([
   "not_sent",
+  "awaiting_chat",
   "rejected",
   "invalid",
   "no_project",
@@ -85,8 +86,6 @@ export const createAdapter = (deps: AdapterDeps) => {
   let nextId = 0;
   const asks = new Map<string, (answer: Answer) => void>();
   // The text a reviewer's new chat opens with, kept until its first turn asks for it.
-  const openingTexts = new Map<string, string>();
-  const sessionsOfReviewer = new Map<string, string | null>();
   // Events change the shared records one at a time, in the order they came.
   let chain: Promise<unknown> = Promise.resolve();
   const inOrder = (work: () => Promise<unknown>) => {
@@ -162,6 +161,7 @@ export const createAdapter = (deps: AdapterDeps) => {
     return null;
   };
 
+  // Opens a reviewer's first chat, recording the review it opens with before asking, so a create of unknown outcome is never asked again and its first turn still shows that review.
   const openChat = async (entry: PendingReview, text: string) => {
     const { review, parentThreadId } = entry;
     const listed = await request("list_projects", {
@@ -171,8 +171,12 @@ export const createAdapter = (deps: AdapterDeps) => {
       return { outcome: "not_sent", threadId: null };
     const projectId = await reviewProject(listed.result);
     if (projectId === null) return { outcome: "no_project", threadId: null };
-    openingTexts.set(review.reviewer, text);
-    sessionsOfReviewer.set(review.reviewer, entry.sessionId);
+    const recorded = await observations.keepOpening(review.reviewer, {
+      key: review.key,
+      text,
+      sessionId: entry.sessionId,
+    });
+    if (recorded.isErr()) return { outcome: "not_kept", threadId: null };
     const created = await request("create_conversation", {
       conversationId: review.reviewer,
       callerThreadId: parentThreadId,
@@ -184,9 +188,9 @@ export const createAdapter = (deps: AdapterDeps) => {
     });
     const threadId =
       typeof created.threadId === "string" ? created.threadId : null;
-    // An unknown create may still bind the chat and open its first turn later, so its text is kept for that turn; only a create surely not carried out lets it go.
+    // Only a create surely not carried out lets the record go; an unknown one may still bind the chat and open its first turn later.
     if (created.outcome !== "done" && created.outcome !== "unknown")
-      openingTexts.delete(review.reviewer);
+      await observations.dropOpening(review.reviewer);
     if (threadId !== null)
       await store.keepChat(review.reviewer, {
         threadId,
@@ -194,7 +198,7 @@ export const createAdapter = (deps: AdapterDeps) => {
       });
     // A conversation the bridge already binds opens no turn, so the review is posted to its chat instead.
     if (created.outcome === "done" && created.existing === true) {
-      openingTexts.delete(review.reviewer);
+      await observations.dropOpening(review.reviewer);
       const posted = await request("post", {
         conversationId: review.reviewer,
         text,
@@ -226,6 +230,16 @@ export const createAdapter = (deps: AdapterDeps) => {
       }
 
       const text = reviewText(review);
+      // While a chat's first review waits for its first turn, a later review of the same reviewer waits too, so it is neither shown first nor opens another chat.
+      const asked = await observations.opening(review.reviewer);
+      if (
+        asked.isErr() ||
+        (asked.value !== null && asked.value.key !== review.key)
+      ) {
+        await store.unclaim(review.key);
+        return Result.ok("awaiting_chat");
+      }
+
       const chat = chats.value.get(review.reviewer);
       let shown: { outcome: string; threadId: string | null } | null = null;
       if (chat !== undefined) {
@@ -505,9 +519,12 @@ export const createAdapter = (deps: AdapterDeps) => {
     }
 
     if (event.kind === "opened") {
-      const text = openingTexts.get(conversation) ?? null;
-      openingTexts.delete(conversation);
+      const asked = await observations.opening(conversation);
+      const text = asked.isOk() ? (asked.value?.text ?? null) : null;
       endTurn(turnId, text);
+      if (text !== null) await observations.dropOpening(conversation);
+      // Reviews of the same reviewer waited for this chat's first review to be shown.
+      void inOrder(drain);
       return;
     }
 
@@ -525,10 +542,33 @@ export const createAdapter = (deps: AdapterDeps) => {
     const chats = await store.chats();
     if (chats.isErr() || chats.value.get(reviewer)?.threadId === threadId)
       return;
+    const asked = await observations.opening(reviewer);
     await store.keepChat(reviewer, {
       threadId,
-      session: sessionsOfReviewer.get(reviewer) ?? null,
+      session: asked.isOk() ? (asked.value?.sessionId ?? null) : null,
     });
+  };
+
+  const openingSession = async (reviewer: string) => {
+    const asked = await observations.opening(reviewer);
+    return asked.isOk() ? (asked.value?.sessionId ?? null) : null;
+  };
+
+  // A chat bound while this adapter was away opened its first turn without it, so the review it was to open with is posted now.
+  const postMissedOpenings = async (bindings: unknown) => {
+    if (mode !== "write" || !Array.isArray(bindings)) return;
+    for (const binding of bindings) {
+      if (!isObject(binding) || typeof binding.conversationId !== "string")
+        continue;
+      const asked = await observations.opening(binding.conversationId);
+      if (asked.isErr() || asked.value === null) continue;
+      const posted = await request("post", {
+        conversationId: binding.conversationId,
+        text: asked.value.text,
+      });
+      if (posted.outcome === "done" || posted.outcome === "unknown")
+        await observations.dropOpening(binding.conversationId);
+    }
   };
 
   // A binding the bridge saved while this adapter stopped before recording it is written to the chats file, which stays the record of which chat shows which reviewer.
@@ -555,7 +595,7 @@ export const createAdapter = (deps: AdapterDeps) => {
 
       const saved = await store.keepChat(binding.conversationId, {
         threadId: binding.threadId,
-        session: sessionsOfReviewer.get(binding.conversationId) ?? null,
+        session: await openingSession(binding.conversationId),
       });
       if (saved.isErr())
         deps.log({ step: "chat_unwritable", message: saved.error.message });
@@ -587,6 +627,7 @@ export const createAdapter = (deps: AdapterDeps) => {
       case "ready":
         ready = true;
         await adoptBridgeBindings(line.bindings);
+        await inOrder(() => postMissedOpenings(line.bindings));
         if (Array.isArray(line.conflicts) && line.conflicts.length > 0)
           deps.log({ step: "binding_conflicts", threads: line.conflicts });
         await inOrder(drain);

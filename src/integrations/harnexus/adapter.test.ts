@@ -853,6 +853,88 @@ describe("a writing adapter's chats the bridge knows first", () => {
   });
 });
 
+describe("a writing adapter's later reviews of a reviewer whose chat is being opened", () => {
+  const twoReviews = () => [...judged("aaa1111"), ...judged("bbb2222")];
+
+  test("shows the first review when the chat's first turn comes, then the next, opening one chat", async () => {
+    const at = await place();
+    const bridge = connect(at, (request) => {
+      if (request.op === "list_projects") return projects(at.reviewHome);
+      if (request.op === "create_conversation")
+        return { outcome: "unknown", reason: "pending_create" };
+      return { outcome: "done", threadId: "chat-r1" };
+    });
+    await bridge.start("write");
+    const [first, second] = reviewsIn(twoReviews());
+
+    await bridge.records({ phase: "linked", linkedAt: null, records: [] });
+    await bridge.records({ phase: "continued", records: twoReviews() });
+    const postsBeforeTurn = bridge.requests("post").length;
+    await bridge.say({
+      type: "event",
+      event: "conversation_bound",
+      conversationId: "R1",
+      threadId: "chat-r1",
+    });
+    await bridge.say({
+      type: "event",
+      event: "turn",
+      turnId: "t1",
+      threadId: "chat-r1",
+      conversationId: "R1",
+      kind: "opened",
+      text: "",
+    });
+    await settle();
+
+    expect(bridge.requests("create_conversation")).toHaveLength(1);
+    expect(postsBeforeTurn).toBe(0);
+    expect(bridge.sent.find((line) => line.type === "turn_output")?.text).toBe(
+      reviewText(first!),
+    );
+    expect(bridge.requests("post").map((line) => line.text)).toEqual([
+      reviewText(second!),
+    ]);
+    expect((await bridge.observations.pending()).unwrap()).toEqual([]);
+  });
+
+  test("posts the first review after a restart when the bridge bound its chat while the adapter was away, then the next", async () => {
+    const at = await place();
+    const before = connect(at, (request) =>
+      request.op === "list_projects"
+        ? projects(at.reviewHome)
+        : { outcome: "unknown", reason: "pending_create" },
+    );
+    await before.start("write");
+    const [first, second] = reviewsIn(twoReviews());
+    await before.records({ phase: "linked", linkedAt: null, records: [] });
+    await before.records({ phase: "continued", records: twoReviews() });
+
+    const after = connect(at, () => ({ outcome: "done", threadId: "chat-r1" }));
+    await after.say({
+      type: "hello",
+      bridgeId: "b1",
+      adapterId: "taskctl",
+      mode: "write",
+      versions: [1],
+    });
+    await after.say({
+      type: "ready",
+      bridgeId: "b1",
+      bindings: [{ conversationId: "R1", threadId: "chat-r1" }],
+      pending: [],
+      conflicts: [],
+    });
+
+    expect(after.requests("create_conversation")).toEqual([]);
+    expect(after.requests("post").map((line) => line.text)).toEqual([
+      reviewText(first!),
+      reviewText(second!),
+    ]);
+    expect((await after.observations.pending()).unwrap()).toEqual([]);
+  });
+});
+
 describe("handOver", () => {
   test("moves the journaled reviews nobody sent into the waiting list, which a writing adapter then shows", async () => {
     const at = await place();

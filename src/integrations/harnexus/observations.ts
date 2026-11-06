@@ -1,8 +1,9 @@
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 import { Result } from "better-result";
 
-import { appendLine } from "../../lib/fs.boundary.ts";
+import { appendLine, removeFile } from "../../lib/fs.boundary.ts";
 import { isObject } from "../../lib/object.ts";
 import { fail, type TaskFailed } from "../../task/format.ts";
 import { load, saveJson, stateRoot } from "../../task/records.ts";
@@ -35,6 +36,9 @@ export type PendingReview = {
   sessionId: string | null;
   review: CloudReview;
 };
+
+// A reviewer's chat asked for and not yet seen open: the review it opens with and the session that ran it, kept on disk so a restart neither asks again nor loses the text.
+export type Opening = { key: string; text: string; sessionId: string | null };
 
 const SESSION_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
@@ -128,6 +132,37 @@ export const createObservations = (root: string) => {
   const keepPosition = (next: SessionPosition) =>
     saveJson(sessionPath(next.sessionId), next, { exclusive: false });
 
+  const openingPath = (reviewer: string) =>
+    join(
+      root,
+      "opening",
+      `${createHash("sha256").update(reviewer).digest("hex").slice(0, 16)}.json`,
+    );
+
+  const opening = (reviewer: string) =>
+    Result.gen(async function* () {
+      const loaded = yield* Result.await(load(openingPath(reviewer)));
+      if (loaded === null) return Result.ok<Opening | null>(null);
+      if (
+        !isObject(loaded) ||
+        typeof loaded.key !== "string" ||
+        typeof loaded.text !== "string"
+      )
+        return fail(`${openingPath(reviewer)} is not an opening record`);
+      return Result.ok<Opening | null>({
+        key: loaded.key,
+        text: loaded.text,
+        sessionId:
+          typeof loaded.sessionId === "string" ? loaded.sessionId : null,
+      });
+    });
+
+  const keepOpening = (reviewer: string, value: Opening) =>
+    saveJson(openingPath(reviewer), value, { exclusive: false });
+
+  const dropOpening = (reviewer: string) =>
+    io(removeFile(openingPath(reviewer)));
+
   const pending = () =>
     Result.gen(async function* () {
       const loaded = yield* Result.await(load(pendingPath));
@@ -183,6 +218,9 @@ export const createObservations = (root: string) => {
     keepPending,
     addPending,
     removePending,
+    opening,
+    keepOpening,
+    dropOpening,
     note,
     journalPath,
     pendingPath,
