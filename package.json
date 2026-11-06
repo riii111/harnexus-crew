@@ -8,7 +8,9 @@
     "check": "oxfmt --check && oxlint --deny-warnings",
     "format": "oxfmt && oxlint --fix",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "bun test"
+    "test": "bun test",
+    "task": "bun --no-env-file --config=/dev/null src/cli/task.ts",
+    "build": "bun --no-env-file --config=/dev/null src/cli/check-bun.ts && bun build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig src/cli/task.ts --outfile dist/taskctl"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "5.10.0",
