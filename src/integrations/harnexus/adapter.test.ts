@@ -593,6 +593,162 @@ describe("a writing adapter", () => {
   });
 });
 
+describe("an adapter's records under failure and sharing", () => {
+  test("moves its position only once a review is journaled, so a review it could not journal is taken when the records come again", async () => {
+    const at = await place();
+    const bridge = connect(at);
+    await bridge.start("observe");
+    await bridge.records({ phase: "linked", linkedAt: null, records: [] });
+    await mkdir(join(at.observe, "journal.jsonl"));
+
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+    const observedWhileFailing = bridge.sent.filter(
+      (line) => line.type === "observed",
+    ).length;
+    await rm(join(at.observe, "journal.jsonl"), { recursive: true });
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+
+    expect(observedWhileFailing).toBe(1);
+    expect(
+      bridge.sent
+        .filter((line) => line.type === "observed")
+        .map((line) => line.eventId),
+    ).toEqual(["e1", "e3"]);
+    expect(
+      (await journal(at)).filter((line) => line.kind === "observed_review"),
+    ).toHaveLength(1);
+  });
+
+  test("records the session that ran a review shown in a chat kept from before, so a message from the chat reaches it", async () => {
+    const at = await place();
+    await mkdir(at.reviews, { recursive: true });
+    await writeFile(
+      join(at.reviews, "chats.json"),
+      JSON.stringify({ R1: "chat-r1" }),
+    );
+    const bridge = connect(at);
+    await bridge.start("write");
+
+    await bridge.records({ phase: "linked", linkedAt: null, records: [] });
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+    await bridge.say({
+      type: "event",
+      event: "turn",
+      turnId: "t1",
+      threadId: "chat-r1",
+      conversationId: "R1",
+      kind: "input",
+      text: "B1 は？",
+    });
+
+    expect(
+      JSON.parse(await readFile(join(at.reviews, "chats.json"), "utf8")),
+    ).toEqual({ R1: { threadId: "chat-r1", session: SESSION } });
+    expect(bridge.requests("cloud_send")).toEqual([
+      expect.objectContaining({ sessionId: SESSION }),
+    ]);
+  });
+
+  test("keeps the reviews two adapters queue at once, and shows each", async () => {
+    const at = await place();
+    await mkdir(at.reviews, { recursive: true });
+    await writeFile(
+      join(at.reviews, "chats.json"),
+      JSON.stringify({ R1: "chat-r1", R2: "chat-r2" }),
+    );
+    const one = connect(at);
+    const two = connect(at);
+    await Promise.all([one.start("write"), two.start("write")]);
+    await one.say({
+      type: "event",
+      event: "session_records",
+      eventId: "a0",
+      sessionId: "session_A",
+      parentThreadId: PARENT,
+      link: PARENT,
+      phase: "linked",
+      linkedAt: null,
+      shownBefore: null,
+      records: [],
+    });
+    await two.say({
+      type: "event",
+      event: "session_records",
+      eventId: "b0",
+      sessionId: "session_B",
+      parentThreadId: PARENT,
+      link: PARENT,
+      phase: "linked",
+      linkedAt: null,
+      shownBefore: null,
+      records: [],
+    });
+
+    await Promise.all([
+      one.say({
+        type: "event",
+        event: "session_records",
+        eventId: "a1",
+        sessionId: "session_A",
+        parentThreadId: PARENT,
+        link: PARENT,
+        phase: "continued",
+        shownBefore: null,
+        records: judged("aaa1111"),
+      }),
+      two.say({
+        type: "event",
+        event: "session_records",
+        eventId: "b1",
+        sessionId: "session_B",
+        parentThreadId: PARENT,
+        link: PARENT,
+        phase: "continued",
+        shownBefore: null,
+        records: judged("bbb2222", "R2"),
+      }),
+    ]);
+    await settle();
+
+    const posted = [...one.requests("post"), ...two.requests("post")]
+      .map((line) => line.conversationId)
+      .sort();
+    expect(posted).toEqual(["R1", "R2"]);
+    expect((await one.observations.pending()).unwrap()).toEqual([]);
+  });
+
+  test("keeps a review the bridge refused, such as for a binding conflict, until it can be shown", async () => {
+    const at = await place();
+    await mkdir(at.reviews, { recursive: true });
+    await writeFile(
+      join(at.reviews, "chats.json"),
+      JSON.stringify({ R1: "chat-r1" }),
+    );
+    const answers = [
+      { outcome: "rejected", reason: "binding_conflict" },
+      { outcome: "invalid" },
+    ];
+    const bridge = connect(at, () => answers.shift() ?? { outcome: "done" });
+    await bridge.start("write");
+    const [review] = reviewsIn(judged("aaa1111"));
+
+    await bridge.records({ phase: "linked", linkedAt: null, records: [] });
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+    const waiting = (await bridge.observations.pending()).unwrap();
+    await bridge.records({ phase: "continued", records: judged("aaa1111") });
+
+    expect(waiting.map((entry) => entry.review.key)).toEqual([review!.key]);
+    expect(bridge.requests("post")).toHaveLength(3);
+    expect((await bridge.observations.pending()).unwrap()).toEqual([]);
+    expect(
+      JSON.parse(
+        await readFile(join(at.reviews, `${review!.key}.json`), "utf8"),
+      ),
+    ).toMatchObject({ sent: true });
+  });
+});
+
 describe("handOver", () => {
   test("moves the journaled reviews nobody sent into the waiting list, which a writing adapter then shows", async () => {
     const at = await place();

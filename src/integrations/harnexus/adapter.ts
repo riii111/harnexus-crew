@@ -49,7 +49,15 @@ const WRITE_OPS = new Set([
 ]);
 
 // Outcomes after which a review was surely not shown, so it stays waiting for the next try.
-const RETRIED = new Set(["not_sent", "no_project", "not_kept", "held"]);
+// rejected and invalid are refusals of a request that was not carried out, so the review waits until their cause, such as a binding conflict, is cleared.
+const RETRIED = new Set([
+  "not_sent",
+  "rejected",
+  "invalid",
+  "no_project",
+  "not_kept",
+  "held",
+]);
 
 const REVIEW_CHAT_MODEL = "claude-sonnet-5-5";
 
@@ -88,6 +96,14 @@ export const createAdapter = (deps: AdapterDeps) => {
 
   const sendLine = (line: Line) =>
     deps.send(JSON.stringify({ v: ADAPTER_PROTOCOL_VERSION, ...line }));
+
+  // Journals the entry, saying in the log when it could not be kept.
+  const noted = async (entry: Line) => {
+    const kept = await observations.note(entry);
+    if (kept.isErr())
+      deps.log({ step: "journal_unwritable", message: kept.error.message });
+    return kept.isOk();
+  };
 
   const request = (op: string, fields: Line): Promise<Answer> => {
     // Checked here as well as by the bridge, so an observing adapter writes nothing even to a bridge that would take it.
@@ -208,6 +224,19 @@ export const createAdapter = (deps: AdapterDeps) => {
         // Only a chat the bridge no longer binds is replaced by a new one.
         if (!(posted.outcome === "rejected" && posted.reason === "unbound"))
           shown = { outcome: posted.outcome, threadId: chat.threadId };
+        // A message from the chat goes to the session that ran this review, which a chat kept from before may not name yet.
+        if (
+          (posted.outcome === "done" || posted.outcome === "unknown") &&
+          entry.sessionId !== null &&
+          chat.session !== entry.sessionId
+        ) {
+          const kept = await store.keepChat(review.reviewer, {
+            threadId: chat.threadId,
+            session: entry.sessionId,
+          });
+          if (kept.isErr())
+            deps.log({ step: "chat_unwritable", message: kept.error.message });
+        }
       }
 
       shown ??= await openChat(entry, text);
@@ -231,7 +260,7 @@ export const createAdapter = (deps: AdapterDeps) => {
       return;
     }
 
-    const left: PendingReview[] = [];
+    const settled = new Set<string>();
     for (const entry of waiting.value) {
       const delivered = await deliver(entry);
       const outcome = delivered.isOk() ? delivered.value : "not_kept";
@@ -240,10 +269,13 @@ export const createAdapter = (deps: AdapterDeps) => {
         key: entry.review.key,
         outcome,
       });
-      if (RETRIED.has(outcome)) left.push(entry);
+      if (!RETRIED.has(outcome)) settled.add(entry.review.key);
     }
 
-    await observations.keepPending(left);
+    // Only the reviews settled here leave the list, so one another adapter added meanwhile stays.
+    const removed = await observations.removePending(settled);
+    if (removed.isErr())
+      deps.log({ step: "pending_unwritable", message: removed.error.message });
   };
 
   const firstPosition = async (
@@ -265,18 +297,25 @@ export const createAdapter = (deps: AdapterDeps) => {
         : records.findIndex((record) => uuidOf(record) === base);
     // A base not among the records leaves every review in them out, so nothing from before the link is opened.
     const end = base === null ? 0 : found === -1 ? records.length : found + 1;
-    if (!linked)
-      await observations.note({
+    if (
+      !linked &&
+      !(await noted({
         kind: "baseline_estimated",
         sessionId: event.sessionId,
         shownBefore: base,
-      });
-    if (base !== null && found === -1)
-      await observations.note({
+      }))
+    )
+      return null;
+    if (
+      base !== null &&
+      found === -1 &&
+      !(await noted({
         kind: "baseline_missing",
         sessionId: event.sessionId,
         base,
-      });
+      }))
+    )
+      return null;
     const position: SessionPosition = {
       sessionId: String(event.sessionId),
       parentThreadId: String(event.parentThreadId),
@@ -307,9 +346,11 @@ export const createAdapter = (deps: AdapterDeps) => {
 
     let position: SessionPosition;
     let from: number;
-    if (known.value === null)
-      ({ position, from } = await firstPosition(event, records));
-    else {
+    if (known.value === null) {
+      const first = await firstPosition(event, records);
+      if (first === null) return;
+      ({ position, from } = first);
+    } else {
       position = known.value;
       const at =
         position.cursor === null
@@ -321,11 +362,14 @@ export const createAdapter = (deps: AdapterDeps) => {
           cursor: position.cursor,
           at: new Date().toISOString(),
         });
-        await observations.note({
-          kind: "cursor_missing",
-          sessionId,
-          cursor: position.cursor,
-        });
+        if (
+          !(await noted({
+            kind: "cursor_missing",
+            sessionId,
+            cursor: position.cursor,
+          }))
+        )
+          return;
       }
 
       from = at + 1;
@@ -341,28 +385,23 @@ export const createAdapter = (deps: AdapterDeps) => {
       sessionId,
       review,
     }));
+    // Every review is journaled, and in write mode queued, before the position moves past it; a failure leaves the position, so the records are read again.
     for (const entry of entries)
-      await observations.note({
-        kind: mode === "write" ? "review_taken" : "observed_review",
-        sessionId,
-        parentThreadId,
-        review: entry.review,
-      });
+      if (
+        !(await noted({
+          kind: mode === "write" ? "review_taken" : "observed_review",
+          sessionId,
+          parentThreadId,
+          review: entry.review,
+        }))
+      )
+        return;
     if (mode === "write" && entries.length > 0) {
-      const waiting = await observations.pending();
-      if (waiting.isErr()) {
-        deps.log({
-          step: "pending_unreadable",
-          message: waiting.error.message,
-        });
+      const queued = await observations.addPending(entries);
+      if (queued.isErr()) {
+        deps.log({ step: "pending_unwritable", message: queued.error.message });
         return;
       }
-
-      const queued = await observations.keepPending([
-        ...waiting.value,
-        ...entries,
-      ]);
-      if (queued.isErr()) return;
     }
 
     position.taken.push(...fresh.map((review) => review.key));
@@ -379,8 +418,9 @@ export const createAdapter = (deps: AdapterDeps) => {
     const entries = Array.isArray(event.entries)
       ? event.entries.filter(isObject)
       : [];
+    // The bridge names them again at each connection, so one that could not be journaled is taken at the next.
     for (const entry of entries)
-      await observations.note({
+      await noted({
         kind: "legacy_unsent",
         parentThreadId: entry.parentThreadId,
         review: entry.review,
@@ -595,6 +635,6 @@ export const handOver = (
       );
     }
 
-    yield* Result.await(observations.keepPending([...waiting, ...added]));
+    yield* Result.await(observations.addPending(added));
     return Result.ok({ handedOver: added.length, skipped });
   });

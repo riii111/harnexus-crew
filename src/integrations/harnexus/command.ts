@@ -77,8 +77,15 @@ const serve = async (env: Env, adapterId: string) => {
     },
   });
   const lines = createInterface({ input: process.stdin, crlfDelay: Infinity });
-  const running: Promise<void>[] = [];
-  for await (const line of lines) running.push(adapter.receive(line));
+  // Only lines still being handled are held, so a long-running adapter does not keep every line it has read.
+  const running = new Set<Promise<void>>();
+  for await (const line of lines) {
+    const handled = adapter
+      .receive(line)
+      .finally(() => running.delete(handled));
+    running.add(handled);
+  }
+
   await Promise.all(running);
   return { code: 0, stdout: "", stderr: "" };
 };

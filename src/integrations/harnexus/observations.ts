@@ -7,6 +7,7 @@ import { isObject } from "../../lib/object.ts";
 import { fail, type TaskFailed } from "../../task/format.ts";
 import { load, saveJson, stateRoot } from "../../task/records.ts";
 import { type Env, io } from "../../task/request.ts";
+import { withLock } from "./lock.ts";
 import type { CloudReview } from "./reviews.ts";
 
 // Where taskctl keeps what it has seen of each Cloud session, apart from what the app shows, and the journal of the switch from harnexus's own review writer.
@@ -138,6 +139,32 @@ export const createObservations = (root: string) => {
   const keepPending = (entries: readonly PendingReview[]) =>
     saveJson(pendingPath, entries, { exclusive: false });
 
+  // The waiting list is shared by every adapter on the machine, so each change re-reads it under a lock and touches only its own entries.
+  const changePending = (
+    change: (entries: PendingReview[]) => PendingReview[],
+  ) =>
+    withLock(join(root, "locks"), "pending", async () =>
+      Result.gen(async function* () {
+        const entries = yield* Result.await(pending());
+        yield* Result.await(keepPending(change(entries)));
+        return Result.ok();
+      }),
+    );
+
+  const addPending = (added: readonly PendingReview[]) =>
+    changePending((entries) => {
+      const keys = new Set(entries.map((entry) => entry.review.key));
+      return [
+        ...entries,
+        ...added.filter((entry) => !keys.has(entry.review.key)),
+      ];
+    });
+
+  const removePending = (keys: ReadonlySet<string>) =>
+    changePending((entries) =>
+      entries.filter((entry) => !keys.has(entry.review.key)),
+    );
+
   // Every line names when and what, so the switch can be checked and replayed from the journal alone.
   const note = (
     entry: Record<string, unknown>,
@@ -154,6 +181,8 @@ export const createObservations = (root: string) => {
     keepPosition,
     pending,
     keepPending,
+    addPending,
+    removePending,
     note,
     journalPath,
     pendingPath,
