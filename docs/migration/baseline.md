@@ -35,16 +35,16 @@ runtime.ts の特別扱いは次のとおり。
 
 終了コードは成功 0（stdout に JSON 1行）、実行時エラー 1（stderr に `harnexus-task: <msg>`）、使い方エラー 2。
 
-| サブコマンド | 主な引数 | 出力キー |
-|---|---|---|
-| launch | `--request [--model claude-sonnet-5-5 --thinking high]` | `{existing,state}` または `{tool,threadId,model,effort,expected,state}` |
-| review | `--request [--model --thinking --update-base --recover discard --ask FILE]` | App: launch と同じ。Cloud: `{status,verdict,taskId,base,head,reviewer,answer,state}`。ask: `{status,kind:"reply",askedAt,verdict,taskId,head,reviewer,answer}` |
-| state | `[--request]` | 一覧 `{path:json}`、または `{kind,…,requested,actual,pending,pendingThreadId,statePath,prompt,refusedThreadIds}` |
-| resolve | `--request (--sent [--thread-id]\|--not-sent)` | `{released,status}`、または confirm の結果 |
-| name | `--pr PR` | `{threadId,title,watched,renameError?,warning?}` |
-| watch | `[--dry-run [--pr]…\|--release PR\|--status\|--sender\|--link PR]` | 常駐時は JSON ログ。`--status`: `{sender\|senderError,prs:[{pr,worker,status,reason,pending,followUp,awaitingAnswer,handingOver,checkedAt}]}` |
-| environment | なし | `{environment,source,host?,note}` |
-| cloud | `(--link\|--prompt-file) [--project --title --model --thinking]` | `{threadId,cloudSessionId,url,alreadyLinked?}` |
+| サブコマンド | 主な引数                                                                    | 出力キー                                                                                                                                                       |
+| ------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| launch       | `--request [--model claude-sonnet-5-5 --thinking high]`                     | `{existing,state}` または `{tool,threadId,model,effort,expected,state}`                                                                                        |
+| review       | `--request [--model --thinking --update-base --recover discard --ask FILE]` | App: launch と同じ。Cloud: `{status,verdict,taskId,base,head,reviewer,answer,state}`。ask: `{status,kind:"reply",askedAt,verdict,taskId,head,reviewer,answer}` |
+| state        | `[--request]`                                                               | 一覧 `{path:json}`、または `{kind,…,requested,actual,pending,pendingThreadId,statePath,prompt,refusedThreadIds}`                                               |
+| resolve      | `--request (--sent [--thread-id]\|--not-sent)`                              | `{released,status}`、または confirm の結果                                                                                                                     |
+| name         | `--pr PR`                                                                   | `{threadId,title,watched,renameError?,warning?}`                                                                                                               |
+| watch        | `[--dry-run [--pr]…\|--release PR\|--status\|--sender\|--link PR]`          | 常駐時は JSON ログ。`--status`: `{sender\|senderError,prs:[{pr,worker,status,reason,pending,followUp,awaitingAnswer,handingOver,checkedAt}]}`                  |
+| environment  | なし                                                                        | `{environment,source,host?,note}`                                                                                                                              |
+| cloud        | `(--link\|--prompt-file) [--project --title --model --thinking]`            | `{threadId,cloudSessionId,url,alreadyLinked?}`                                                                                                                 |
 
 ## call socket（v0）
 

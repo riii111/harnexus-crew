@@ -1,3 +1,4 @@
 node_modules/
 dist/
 .reviewctl/
+.DS_Store

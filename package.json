@@ -1,0 +1,25 @@
+{
+  "name": "taskctl",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.4",
+  "scripts": {
+    "check": "oxfmt --check && oxlint --deny-warnings",
+    "format": "oxfmt && oxlint --fix",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "5.10.0",
+    "@types/bun": "1.4.2",
+    "oxfmt": "0.75.0",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "better-result": "3.0.1",
+    "zod": "4.4.3"
+  }
+}
