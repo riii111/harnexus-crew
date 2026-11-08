@@ -103,7 +103,7 @@ export const reviewText = (review: CloudReview) =>
 
 // What the session that ran the reviewer is asked when the user writes in the reviewer's chat; the answer comes back as a review does.
 export const reviewerAsk = (reviewer: string, text: string) =>
-  `The user sent this to your Codex reviewer \`${reviewer}\` from its Review chat in the Codex App:\n\n${text}\n\nPass it to the same reviewer: write it to a file and run \`harnexus-task review --request <your review request file> --ask <that file>\`, then reply with the reviewer's answer as it is.`;
+  `The user sent this to your Codex reviewer \`${reviewer}\` from its Review chat in the Codex App:\n\n${text}\n\nPass it to the same reviewer: write it to a file and run \`harnexus-crew review --request <your review request file> --ask <that file>\`, then reply with the reviewer's answer as it is.`;
 
 export const REVIEW_ASK_SENT =
   "Sent to the worker running this reviewer, which passes it on; the reviewer's answer appears here once the worker's session is copied.";

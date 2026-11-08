@@ -85,6 +85,7 @@ type Moved = { kind: string; recorded: string; key: (root: string) => string };
 const copyState = async (fixture: string, root: string, moved: Moved[]) => {
   const state = join(root, fixture, "state");
   await cp(join(FIXTURES, fixture, "state"), state, { recursive: true });
+  await rename(join(state, "taskctl"), join(state, "harnexus-crew"));
   for (const file of await readdir(state, { recursive: true })) {
     if (!file.endsWith(".json")) continue;
     const path = join(state, file);
@@ -104,7 +105,7 @@ const copyState = async (fixture: string, root: string, moved: Moved[]) => {
     ).toBe(recorded);
     const env = { XDG_STATE_HOME: state };
     await rename(
-      join(state, "taskctl", kind, recorded),
+      join(state, "harnexus-crew", kind, recorded),
       stateDirectory(env, kind, key(root)),
     );
   }

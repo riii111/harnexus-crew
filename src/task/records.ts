@@ -102,7 +102,7 @@ export const removeRecord = (path: string) => io(removeFile(path));
 export const stateRoot = (env: Env) =>
   join(
     absoluteOr(env.XDG_STATE_HOME, join(homeOf(env), ".local/state")),
-    "taskctl",
+    "harnexus-crew",
   );
 
 export const stateDirectory = (env: Env, kind: string, key: string) =>
