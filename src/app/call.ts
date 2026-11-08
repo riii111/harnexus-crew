@@ -30,7 +30,7 @@ export type CallDeps = {
 };
 
 const SOCKET_HINT =
-  "open the app without HARNEXUS_CALL_SOCKET=off and run outside the sandbox";
+  "open the app with HARNEXUS_CALL_SOCKET=on (for example `HARNEXUS_CALL_SOCKET=on bun run open-app` in the harnexus checkout) and run outside the sandbox";
 
 const socketHint = (code: string | null) => {
   switch (code) {
