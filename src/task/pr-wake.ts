@@ -23,11 +23,13 @@ const CALL_TIMEOUT_MS = 60_000;
 
 // The pr-wake command, found on PATH unless an absolute path is set, so the watch is owned and updated by pr-wake alone.
 export const prWakeCommand = (env: Env) => {
-  const set = env[PR_WAKE_ENV] ?? env.TASKCTL_PR_WAKE;
+  const variable =
+    env[PR_WAKE_ENV] === undefined ? "TASKCTL_PR_WAKE" : PR_WAKE_ENV;
+  const set = env[variable];
   if (set === undefined || set === "") return Result.ok("pr-wake");
   return isAbsolute(set)
     ? Result.ok(set)
-    : fail(`${PR_WAKE_ENV} must be an absolute path`);
+    : fail(`${variable} must be an absolute path`);
 };
 
 export const NOT_LINKABLE =

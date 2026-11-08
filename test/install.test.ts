@@ -8,6 +8,7 @@ import {
   readlink,
   rm,
   stat,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -103,6 +104,7 @@ describe("scripts/install.sh", () => {
       const prefix = join(await scratch(), "bin");
       await mkdir(prefix);
       await writeFile(join(prefix, "harnexus-task"), "old");
+      await writeFile(join(prefix, "taskctl"), "old taskctl");
       const head = Bun.spawnSync(["git", "-C", ROOT, "rev-parse", "HEAD"])
         .stdout.toString()
         .trim();
@@ -122,6 +124,9 @@ describe("scripts/install.sh", () => {
 
       expect([installed.status, installed.stderr]).toEqual([0, ""]);
       expect(installed.stdout).toContain(`from ${head}`);
+      expect(await readFile(join(prefix, "taskctl"), "utf8")).toBe(
+        "old taskctl",
+      );
       expect(await readlink(join(prefix, "harnexus-task"))).toBe(
         "harnexus-crew",
       );
@@ -130,6 +135,12 @@ describe("scripts/install.sh", () => {
       ).toBe("old");
       expect(usageLine(join(prefix, "harnexus-crew"))).toBe(
         "harnexus-crew: --request is required",
+      );
+      const aliases = join(await scratch(), "aliases");
+      await mkdir(aliases);
+      await symlink(join(prefix, "harnexus-crew"), join(aliases, "taskctl"));
+      expect(usageLine(join(aliases, "taskctl"))).toBe(
+        "taskctl: --request is required",
       );
       expect(usageLine(join(prefix, "harnexus-task"))).toBe(
         "harnexus-task: --request is required",

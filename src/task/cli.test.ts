@@ -1106,6 +1106,20 @@ describe("harnexus-task watch", () => {
     },
   );
 
+  test("prefers the renamed pr-wake setting over the old setting", async () => {
+    const { invoke, prWake, env } = await fixture();
+    env.TASKCTL_PR_WAKE = "/old/pr-wake";
+    env.HARNEXUS_CREW_PR_WAKE = "/new/pr-wake";
+    prWake.answers.push({ status: 0, stdout: "{}", stderr: "" });
+
+    const run = await invoke(["watch", "--status"]);
+
+    expect(run.code).toBe(0);
+    expect(prWake.runs).toEqual([
+      ["/new/pr-wake", "watch", "status", "--json"],
+    ]);
+  });
+
   test("refuses a --link value pr-wake could not watch, before running it", async () => {
     const { invoke, prWake } = await fixture();
 
