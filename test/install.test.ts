@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -101,6 +101,34 @@ describe("scripts/install.sh", () => {
         expect.stringContaining("commit 0000000 is not in"),
       ]);
       expect([after.ino, after.mtimeMs]).toEqual([before.ino, before.mtimeMs]);
+    },
+    { timeout: 180_000 },
+  );
+
+  test(
+    "keeps the installed binary when configured templates cannot be filled",
+    async () => {
+      const root = await scratch();
+      const prefix = join(root, "bin");
+      const installed = run(["--prefix", prefix]);
+      const before = await stat(join(prefix, "harnexus-crew"));
+      const config = join(root, "config");
+      await mkdir(join(config, "harnexus"), { recursive: true });
+      await writeFile(join(root, "worker.md"), "[skill](missing/SKILL.md)\n");
+      await writeFile(
+        join(config, "harnexus/task.json"),
+        JSON.stringify({ templates: { worker: join(root, "worker.md") } }),
+      );
+
+      const failed = run(["--prefix", prefix], { XDG_CONFIG_HOME: config });
+      const after = await stat(join(prefix, "harnexus-crew"));
+
+      expect(installed.status).toBe(0);
+      expect([failed.status, failed.stderr]).toEqual([
+        1,
+        expect.stringContaining("cannot use the configured templates"),
+      ]);
+      expect(after.ino).toBe(before.ino);
     },
     { timeout: 180_000 },
   );
