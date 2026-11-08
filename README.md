@@ -34,3 +34,15 @@ Register `taskctl adapter serve --id taskctl` as harnexus's `externalConversatio
 To switch from `observe` to `write`, stop the app, run `taskctl adapter handover` to queue the recorded reviews that harnexus did not send, then set `mode` to `write` and start the app.
 `taskctl adapter export-links` prints the chats `harnexus-task cloud` opened as `{"version":1,"links":[{"sessionId","threadId","reservedAt"}]}`, the form `harnexus state import-cloud-links` reads; a `threadId` of `null` is a chat whose opening never reported back, which is never opened again.
 `taskctl adapter import-links FILE` writes such a file, as `harnexus state export-cloud-links` prints it, back to `harnexus-task cloud`'s records without replacing a chat already recorded. To go back to a harnexus from before the split, run it before starting that version.
+
+## Dependency security
+
+`minimatch` is temporarily overridden to 11.0.5 for
+[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+The affected 10.x copy comes from ESLint, installed as a peer of the stylistic
+lint plugin; it is not a taskctl runtime dependency. ESLint and
+`@eslint/config-array` still require 10.x, so the override crosses their declared
+major range. Their used `Minimatch` constructor and `match` APIs remain supported;
+`test/lint-dependencies.test.ts` checks glob traversal, ignores and rule enforcement.
+Remove the override once those upstream dependencies accept a fixed version and
+`bun audit` plus the lint compatibility test pass without it.

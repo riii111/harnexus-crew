@@ -23,5 +23,8 @@
   "dependencies": {
     "better-result": "3.0.1",
     "zod": "4.6.7"
+  },
+  "overrides": {
+    "minimatch": "11.0.5"
   }
 }
