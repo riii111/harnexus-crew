@@ -1,16 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  lstat,
-  mkdir,
-  mkdtemp,
-  readdir,
-  readFile,
-  readlink,
-  rm,
-  stat,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -83,32 +72,13 @@ describe("scripts/install.sh", () => {
     expect(ran.stderr).toContain(message);
   });
 
-  test("leaves a harnexus-task that is not harnexus-crew alone, before building anything", async () => {
-    const prefix = join(await scratch(), "bin");
-    await mkdir(prefix);
-    await writeFile(join(prefix, "harnexus-task"), "old");
-
-    const ran = run(["--prefix", prefix, "--compat"]);
-
-    expect([ran.status, ran.stderr]).toEqual([
-      1,
-      expect.stringContaining("is not harnexus-crew; leave it"),
-    ]);
-    expect(await readFile(join(prefix, "harnexus-task"), "utf8")).toBe("old");
-    expect(await Bun.file(join(prefix, "harnexus-crew")).exists()).toBe(false);
-  });
-
   test(
-    "installs a commit with harnexus-task beside it, and keeps it when a later build fails",
+    "installs the requested commit and keeps it when a later build fails",
     async () => {
       const prefix = join(await scratch(), "bin");
-      await mkdir(prefix);
-      await writeFile(join(prefix, "harnexus-task"), "old");
-      await writeFile(join(prefix, "taskctl"), "old taskctl");
       const head = Bun.spawnSync(["git", "-C", ROOT, "rev-parse", "HEAD"])
         .stdout.toString()
         .trim();
-
       const installed = run([
         "--prefix",
         prefix,
@@ -116,7 +86,6 @@ describe("scripts/install.sh", () => {
         ROOT,
         "--rev",
         head,
-        "--replace-harnexus-task",
       ]);
       const before = await stat(join(prefix, "harnexus-crew"));
       const failed = run(["--prefix", prefix, "--rev", "0000000"]);
@@ -124,85 +93,14 @@ describe("scripts/install.sh", () => {
 
       expect([installed.status, installed.stderr]).toEqual([0, ""]);
       expect(installed.stdout).toContain(`from ${head}`);
-      expect(await readFile(join(prefix, "taskctl"), "utf8")).toBe(
-        "old taskctl",
-      );
-      expect(await readlink(join(prefix, "harnexus-task"))).toBe(
-        "harnexus-crew",
-      );
-      expect(
-        await readFile(join(prefix, "harnexus-task.pre-harnexus-crew"), "utf8"),
-      ).toBe("old");
       expect(usageLine(join(prefix, "harnexus-crew"))).toBe(
         "harnexus-crew: --request is required",
-      );
-      const aliases = join(await scratch(), "aliases");
-      await mkdir(aliases);
-      await symlink(join(prefix, "harnexus-crew"), join(aliases, "taskctl"));
-      expect(usageLine(join(aliases, "taskctl"))).toBe(
-        "taskctl: --request is required",
-      );
-      expect(usageLine(join(prefix, "harnexus-task"))).toBe(
-        "harnexus-task: --request is required",
       );
       expect([failed.status, failed.stderr]).toEqual([
         1,
         expect.stringContaining("commit 0000000 is not in"),
       ]);
       expect([after.ino, after.mtimeMs]).toEqual([before.ino, before.mtimeMs]);
-      expect(
-        (await lstat(join(prefix, "harnexus-task"))).isSymbolicLink(),
-      ).toBe(true);
-    },
-    { timeout: 180_000 },
-  );
-
-  test(
-    "puts back the earlier harnexus-crew and harnexus-task when the switch fails, and never installs a binary that cannot fill the templates",
-    async () => {
-      const root = await scratch();
-      const prefix = join(root, "bin");
-      await mkdir(prefix);
-      const installed = run(["--prefix", prefix]);
-      const before = await stat(join(prefix, "harnexus-crew"));
-      await writeFile(join(prefix, "harnexus-task"), "old");
-      const config = join(root, "config");
-      await mkdir(join(config, "harnexus"), { recursive: true });
-      await writeFile(join(root, "worker.md"), "[skill](missing/SKILL.md)\n");
-      await writeFile(
-        join(config, "harnexus/task.json"),
-        JSON.stringify({ templates: { worker: join(root, "worker.md") } }),
-      );
-
-      const linkFailed = run(["--prefix", prefix, "--replace-harnexus-task"], {
-        TASKCTL_INSTALL_FAULT: "link",
-      });
-      const afterLink = await stat(join(prefix, "harnexus-crew"));
-      const unfilled = run(["--prefix", prefix], { XDG_CONFIG_HOME: config });
-      const afterCheck = await stat(join(prefix, "harnexus-crew"));
-
-      expect(installed.status).toBe(0);
-      expect([linkFailed.status, linkFailed.stderr]).toEqual([
-        1,
-        expect.stringContaining(
-          "the earlier harnexus-crew and harnexus-task were put back",
-        ),
-      ]);
-      expect(await readFile(join(prefix, "harnexus-task"), "utf8")).toBe("old");
-      expect(
-        await Bun.file(
-          join(prefix, "harnexus-task.pre-harnexus-crew"),
-        ).exists(),
-      ).toBe(false);
-      expect(afterLink.ino).toBe(before.ino);
-      expect([unfilled.status, unfilled.stderr]).toEqual([
-        1,
-        expect.stringContaining("cannot use the configured templates"),
-      ]);
-      expect(afterCheck.ino).toBe(before.ino);
-      expect(
-        (await readdir(prefix)).filter((name) => name.startsWith(".")),
-      ).toEqual([]);
     },
     { timeout: 180_000 },
   );

@@ -1,7 +1,7 @@
 # harnexus-crew
 
 Task and review commands for Codex App and Claude Code workers, split out of harnexus.
-`harnexus-crew` takes the subcommands, options, JSON output and exit codes of `harnexus-task`, and reads and writes the same state under `$XDG_STATE_HOME/taskctl` and config at `$XDG_CONFIG_HOME/harnexus/task.json`.
+State is kept under `$XDG_STATE_HOME/harnexus-crew` and config at `$XDG_CONFIG_HOME/harnexus/task.json`.
 
 ## Install
 
@@ -10,26 +10,22 @@ Needs git and the Bun version in `package.json`.
 ```sh
 scripts/install.sh                                  # ~/.local/bin/harnexus-crew from this checkout's HEAD
 scripts/install.sh --repo https://github.com/riii111/taskctl --rev <commit> --prefix /opt/bin
-scripts/install.sh --compat                         # also link harnexus-task to harnexus-crew
-scripts/install.sh --replace-harnexus-task          # same, moving an existing harnexus-task to harnexus-task.pre-harnexus-crew
 ```
 
-`HARNEXUS_CREW_PREFIX`, `HARNEXUS_CREW_REPO` and `HARNEXUS_CREW_REV` set the same defaults; the previous `TASKCTL_` names remain supported.
-The binary is built in a temporary directory and must start and fill the worker and reviewer templates that `task.json` names (`harnexus-crew check`) before it replaces anything; when a step fails, the installed `harnexus-crew` and `harnexus-task` stay as they were.
-An existing `taskctl` is left in place and continues to use the same state.
-`--compat` refuses to touch a `harnexus-task` that is not already the link, so an existing one is replaced only with `--replace-harnexus-task`.
+`HARNEXUS_CREW_PREFIX`, `HARNEXUS_CREW_REPO` and `HARNEXUS_CREW_REV` set the same defaults.
+The binary is built in a temporary directory and must start and fill the worker and reviewer templates that `task.json` names (`harnexus-crew check`) before it replaces anything; when a step fails, the installed `harnexus-crew` stay as they were.
 
 ## What it calls
 
 - App operations go to the harnexus bridge's call socket with call protocol 1. A bridge that does not offer it is reported as `unsupported` before anything is sent; update harnexus and restart the app.
-- `watch` runs `pr-wake watch` (found on `PATH`, or at `HARNEXUS_CREW_PR_WAKE`, with `TASKCTL_PR_WAKE` supported for existing settings). The long-running `watch` hands over to the `pr-wake-engine` installed beside it.
+- `watch` runs `pr-wake watch` (found on `PATH`, or at `HARNEXUS_CREW_PR_WAKE`). The long-running `watch` hands over to the `pr-wake-engine` installed beside it.
 - `cloud` asks the bridge's `cloud_open`.
 
 ## Cloud review chats in harnexus
 
-Register `harnexus-crew adapter serve --id taskctl` as harnexus's `externalConversationAdapter`, with `command` set to the absolute path of `harnexus-crew` and `args` to `["adapter", "serve", "--id", "taskctl"]`.
+Register `harnexus-crew adapter serve --id harnexus-crew` as harnexus's `externalConversationAdapter`, with `command` set to the absolute path of `harnexus-crew` and `args` to `["adapter", "serve", "--id", "harnexus-crew"]`.
 
-- `observe` records the reviews Cloud sessions print in `$XDG_STATE_HOME/taskctl/cloud-observe/journal.jsonl` and writes nothing else, while harnexus keeps showing reviews itself.
+- `observe` records the reviews Cloud sessions print in `$XDG_STATE_HOME/harnexus-crew/cloud-observe/journal.jsonl` and writes nothing else, while harnexus keeps showing reviews itself.
 - `write` shows each review once in its reviewer's chat, in the same `cloud-reviews` folder harnexus used, and passes a message written in that chat to the Cloud session that ran the reviewer.
 
 To switch from `observe` to `write`, stop the app, run `harnexus-crew adapter handover` to queue the recorded reviews that harnexus did not send, then set `mode` to `write` and start the app.

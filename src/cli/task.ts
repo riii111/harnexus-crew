@@ -1,15 +1,8 @@
-import { basename } from "node:path";
-
 import { runAdapterCommand } from "../integrations/harnexus/command.ts";
 import { runTask, TASK_DEPS } from "../task/cli.ts";
 import { reportCrash } from "../task/crash.boundary.ts";
 
-// Old entry points retain their name in messages for existing callers.
-const invoked = basename(process.argv0);
-const name =
-  invoked === "harnexus-task" || invoked === "taskctl"
-    ? invoked
-    : "harnexus-crew";
+const name = "harnexus-crew";
 
 const [command, ...rest] = process.argv.slice(2);
 // The harnexus adapter runs as long as its bridge keeps it, so it is apart from the task commands, which answer once.
