@@ -624,7 +624,7 @@ describe("harnexus-task launch", () => {
     );
 
     expect(stopped.code).toBe(1);
-    expect(stopped.err).toContain("another harnexus-task run");
+    expect(stopped.err).toContain("another harnexus-crew run");
     expect(harnexus.calls).toEqual([]);
   });
 
@@ -823,7 +823,7 @@ describe("harnexus-task cloud", () => {
     ]);
     expect([empty.code, empty.err]).toEqual([
       1,
-      "harnexus-task: the prompt file is empty\n",
+      "harnexus-crew: the prompt file is empty\n",
     ]);
   });
 
@@ -864,7 +864,7 @@ describe("harnexus-task cloud", () => {
 
       expect([failed.code, failed.err]).toEqual([
         1,
-        `harnexus-task: cloud_open ${answer.outcome} ${advice}\n`,
+        `harnexus-crew: cloud_open ${answer.outcome} ${advice}\n`,
       ]);
     },
   );
@@ -995,7 +995,7 @@ describe("harnexus-task name", () => {
 
     expect([failed.code, failed.err]).toEqual([
       1,
-      `harnexus-task: pr-wake watch link ${PR} --take-over failed with exit 1: pr-wake-engine: cannot write the link\n`,
+      `harnexus-crew: pr-wake watch link ${PR} --take-over failed with exit 1: pr-wake-engine: cannot write the link\n`,
     ]);
     expect([missing.code, missing.err]).toEqual([
       1,
@@ -1143,7 +1143,7 @@ describe("harnexus-task watch", () => {
     expect([stopped.code, started]).toEqual([0, [join(bin, "pr-wake-engine")]]);
     expect([failed.code, failed.err]).toEqual([
       1,
-      `harnexus-task: ${join(bin, "pr-wake-engine")} watch exited with 3\n`,
+      `harnexus-crew: ${join(bin, "pr-wake-engine")} watch exited with 3\n`,
     ]);
     expect([missing.code, missing.err]).toEqual([
       1,

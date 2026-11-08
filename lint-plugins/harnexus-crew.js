@@ -4,7 +4,7 @@ import testing from "./testing.js";
 
 // Rules use only the ESLint rule API, so they can move to ESLint if Oxlint's JS plugins break.
 export default {
-  meta: { name: "taskctl" },
+  meta: { name: "harnexus-crew" },
   rules: {
     "no-focused-tests": noFocusedTests,
     "no-skipped-tests": noSkippedTests,

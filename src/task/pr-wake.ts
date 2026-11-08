@@ -15,7 +15,7 @@ export type ToolRunner = (
   timeoutMs: number,
 ) => Promise<Result<CommandOutput, CommandFailed>>;
 
-const PR_WAKE_ENV = "TASKCTL_PR_WAKE";
+const PR_WAKE_ENV = "HARNEXUS_CREW_PR_WAKE";
 const ENGINE = "pr-wake-engine";
 // A dry run reads every configured PR from GitHub, so it is given as long as a person waits for it.
 const DRY_RUN_TIMEOUT_MS = 10 * 60_000;
@@ -23,7 +23,7 @@ const CALL_TIMEOUT_MS = 60_000;
 
 // The pr-wake command, found on PATH unless an absolute path is set, so the watch is owned and updated by pr-wake alone.
 export const prWakeCommand = (env: Env) => {
-  const set = env[PR_WAKE_ENV];
+  const set = env[PR_WAKE_ENV] ?? env.TASKCTL_PR_WAKE;
   if (set === undefined || set === "") return Result.ok("pr-wake");
   return isAbsolute(set)
     ? Result.ok(set)

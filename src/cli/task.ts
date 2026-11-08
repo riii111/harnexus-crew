@@ -4,9 +4,12 @@ import { runAdapterCommand } from "../integrations/harnexus/command.ts";
 import { runTask, TASK_DEPS } from "../task/cli.ts";
 import { reportCrash } from "../task/crash.boundary.ts";
 
-// One program serves both names: harnexus-task keeps old chats, skills and permission rules working, and its messages keep that name.
+// Old entry points retain their name in messages for existing callers.
+const invoked = basename(process.argv0);
 const name =
-  basename(process.argv0) === "harnexus-task" ? "harnexus-task" : "taskctl";
+  invoked === "harnexus-task" || invoked === "taskctl"
+    ? invoked
+    : "harnexus-crew";
 
 const [command, ...rest] = process.argv.slice(2);
 // The harnexus adapter runs as long as its bridge keeps it, so it is apart from the task commands, which answer once.

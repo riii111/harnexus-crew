@@ -13,7 +13,7 @@ describe("unpinnedBun", () => {
       pinned: "1.4.4",
       running: "1.3.5",
       expected:
-        "Bun 1.3.5 runs this build, while taskctl pins 1.4.4; install Bun 1.4.4 and run scripts/install.sh again",
+        "Bun 1.3.5 runs this build, while harnexus-crew pins 1.4.4; install Bun 1.4.4 and run scripts/install.sh again",
     },
     {
       name: "a manifest without a pin",

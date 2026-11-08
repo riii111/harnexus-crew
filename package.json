@@ -1,5 +1,5 @@
 {
-  "name": "taskctl",
+  "name": "harnexus-crew",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "bun test",
     "task": "bun --no-env-file --config=/dev/null src/cli/task.ts",
-    "build": "bun --no-env-file --config=/dev/null src/cli/check-bun.ts && bun build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig src/cli/task.ts --outfile dist/taskctl"
+    "build": "bun --no-env-file --config=/dev/null src/cli/check-bun.ts && bun build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig src/cli/task.ts --outfile dist/harnexus-crew"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "5.10.0",
