@@ -652,9 +652,7 @@ const COMMANDS = {
     options: {},
     args: () => Result.ok({}),
     run: async (_args, deps) =>
-      (await checkTemplates(deps.env)).map((templates): Fields => ({
-        templates,
-      })),
+      (await checkTemplates(deps.env)).map((checked): Fields => checked),
   }),
   cloud: subcommand({
     usage:

@@ -358,6 +358,30 @@ describe("harnexus-crew review in T3 Code", () => {
   });
 });
 
+describe("harnexus-crew review in T3 Code with a reviewer template written before T3 Code", () => {
+  test("starts no reviewer, naming the missing reply", async () => {
+    const { root, commit, review, runs } = await reviewFixture();
+    commit("test: candidate");
+    await writeFile(
+      join(root, "reviewer.md"),
+      "{task_id} {base}...{head} [reply](reply-{reply_to}.md)\n",
+    );
+    await writeFile(join(root, "reply-Claude.md"), "reply\n");
+    await writeFile(
+      join(root, "config/harnexus/task.json"),
+      JSON.stringify({ templates: { reviewer: join(root, "reviewer.md") } }),
+    );
+
+    const refused = await review();
+
+    expect([refused.code, refused.err]).toEqual([
+      1,
+      expect.stringContaining("reply-T3.md, which is not a file"),
+    ]);
+    expect(await runs()).toBe(0);
+  });
+});
+
 describe("Codex App commands in T3 Code", () => {
   test.each([
     { name: "name", argv: ["name", "--pr", "1"] },

@@ -190,17 +190,25 @@ const SAMPLE_TASK = {
   head: "0000000000000000000000000000000000000000",
 };
 
-// The replies a reviewer template is rendered for: a worker in the Codex App of either AI, a worker in T3 Code, and a Claude Code cloud session.
-const REPLIES = ["Codex", "Claude", "T3", "Cloud"];
+// The replies a reviewer template must be filled for: a worker in the Codex App of either AI, and a Claude Code cloud session.
+const REPLIES = ["Codex", "Claude", "Cloud"];
+// A worker in T3 Code, whose reply only T3 Code needs, so a template written before T3 Code is still installed and the review in T3 Code refuses it before sending.
+const T3_REPLY = "T3";
+
+type Checked = {
+  templates: Record<string, string | null>;
+  // Whether the reviewer template can be filled for T3 Code, or null when no reviewer template is configured.
+  t3: { ready: true } | { ready: false; reason: string } | null;
+};
 
 // Renders every configured template as launch and review would, so an update can tell before it is switched to that it cannot fill them; a template not configured is only named.
 export const checkTemplates = (env: Env) =>
   Result.gen(async function* () {
     const config = templateConfigPath(env);
     if (!(await pathExists(config)))
-      return Result.ok<Record<string, string | null>>({
-        worker: null,
-        reviewer: null,
+      return Result.ok<Checked>({
+        templates: { worker: null, reviewer: null },
+        t3: null,
       });
     const parsed = CONFIG.safeParse(yield* Result.await(readJson(config)));
     if (!parsed.success)
@@ -225,7 +233,8 @@ export const checkTemplates = (env: Env) =>
           yield* Result.await(workerFields(SAMPLE_TASK)),
         ),
       );
-    if (reviewer !== undefined)
+    let t3: Checked["t3"] = null;
+    if (reviewer !== undefined) {
       for (const reply of REPLIES)
         yield* Result.await(
           checked(
@@ -234,8 +243,18 @@ export const checkTemplates = (env: Env) =>
             yield* Result.await(reviewFields(SAMPLE_TASK, reply)),
           ),
         );
-    return Result.ok<Record<string, string | null>>({
-      worker: worker ?? null,
-      reviewer: reviewer ?? null,
+      const forT3 = await checked(
+        "reviewer",
+        reviewer,
+        yield* Result.await(reviewFields(SAMPLE_TASK, T3_REPLY)),
+      );
+      t3 = forT3.isOk()
+        ? { ready: true }
+        : { ready: false, reason: forT3.error.message };
+    }
+
+    return Result.ok<Checked>({
+      templates: { worker: worker ?? null, reviewer: reviewer ?? null },
+      t3,
     });
   });
