@@ -1,46 +1,42 @@
-# taskctl
+# harnexus-crew
 
-My development automation CLI for [harnexus](https://github.com/riii111/harnexus), used with Codex App and Claude Code workers.
-Shared as a reference for similar setups; task requests and prompt templates follow my personal workflow.
+My CLI for starting workers, requesting reviews, and monitoring PRs in [harnexus](https://github.com/riii111/harnexus).
+Shared as a reference for Codex App and Claude Code setups using my workflow and prompt templates.
 
-## Get started
+## Install
+
+Requires Git and the Bun version specified in [package.json](package.json).
+
+From this checkout, run:
 
 ```sh
-git clone https://github.com/riii111/taskctl.git
-cd taskctl
 scripts/install.sh
 ```
 
-- Installs `taskctl` to `~/.local/bin`; add that directory to `PATH`.
-- Use `scripts/install.sh --prefix /absolute/path` for another location.
+Installs `harnexus-crew` to `~/.local/bin`.
+Add that directory to `PATH`.
+Use `scripts/install.sh --prefix /absolute/path` for another location.
 
 ## Use
 
 Run app commands from a worker or orchestration chat in harnexus.
 
-### Tasks and reviews
+Set prompt template paths in `~/.config/harnexus/task.json` (under `$XDG_CONFIG_HOME` when set).
+Both `templates.worker` and `templates.reviewer` take absolute paths.
+For local reviews, add `~/review-home` as a project in Codex App.
+PR monitoring requires [pr-wake](https://github.com/riii111/pr-wake) on `PATH`.
 
-Set absolute prompt template paths in `~/.config/harnexus/task.json`: `templates.worker` and `templates.reviewer`.
-
-| Command                                | Purpose                                                             |
-| -------------------------------------- | ------------------------------------------------------------------- |
-| `taskctl launch --request task.json`   | Start an implementation worker in its own worktree.                 |
-| `taskctl review --request review.json` | Request an independent review in the app or from Claude Code Cloud. |
-| `taskctl state`                        | Inspect tracked workers and reviews.                                |
-
-- Local reviews: Add `~/review-home` as a project in Codex App.
-
-### Cloud and PR integration
-
-PR monitoring uses [pr-wake](https://github.com/riii111/pr-wake) on `PATH`.
-
-| Command                                  | Purpose                                                 |
-| ---------------------------------------- | ------------------------------------------------------- |
-| `taskctl cloud --prompt-file request.md` | Start a Claude Cloud session in the app.                |
-| `taskctl watch --link <PR URL>`          | Link PR monitoring to the current chat through pr-wake. |
+| Command                                        | Purpose                                  |
+| ---------------------------------------------- | ---------------------------------------- |
+| `harnexus-crew launch --request task.json`     | Start a worker in its own worktree.      |
+| `harnexus-crew review --request review.json`   | Request an independent review.           |
+| `harnexus-crew state`                          | Inspect tracked workers and reviews.     |
+| `harnexus-crew cloud --prompt-file request.md` | Start a Claude Cloud session in the app. |
+| `harnexus-crew watch --link <PR URL>`          | Link PR monitoring to the current chat.  |
 
 ## Troubleshooting
 
-- `taskctl --help`: Command options.
-- `taskctl check`: Validate configured prompt templates.
-- `taskctl environment`: Identify the current execution environment.
+- `harnexus-crew --help`: Command options.
+- `harnexus-crew check`: Validate configured prompt templates.
+- `harnexus-crew environment`: Identify the current execution environment.
+- `unsupported`: Update harnexus and restart the app.

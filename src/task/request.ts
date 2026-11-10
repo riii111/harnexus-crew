@@ -22,7 +22,7 @@ import {
   truthy,
 } from "./format.ts";
 
-export const NAME = "harnexus-task";
+export const NAME = "harnexus-crew";
 
 export type Env = Record<string, string | undefined>;
 

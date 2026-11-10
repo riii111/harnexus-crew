@@ -474,7 +474,7 @@ describe("harnexus-task launch", () => {
     const sent = await launch([], [created("w1", "claude-sonnet-5-5", "high")]);
 
     expect(missing.code).toBe(1);
-    expect(missing.err).toContain("HARNEXUS_CALL_SOCKET=off");
+    expect(missing.err).toContain("HARNEXUS_CALL_SOCKET=on");
     expect(missing.err).toContain("outside the sandbox");
     expect([sent.code, sent.err]).toEqual([0, ""]);
   });
@@ -624,13 +624,13 @@ describe("harnexus-task launch", () => {
     );
 
     expect(stopped.code).toBe(1);
-    expect(stopped.err).toContain("another harnexus-task run");
+    expect(stopped.err).toContain("another harnexus-crew run");
     expect(harnexus.calls).toEqual([]);
   });
 
   test("continues a session the Python taskctl recorded and records state in its layout", async () => {
     const { env, harnexus, data, launch } = await launchFixture();
-    const launches = join(env.XDG_STATE_HOME ?? "", "taskctl/launch");
+    const launches = join(env.XDG_STATE_HOME ?? "", "harnexus-crew/launch");
     // The key the Python version derives from "project\nTR1".
     const session = join(launches, "6279de90d3447943");
     await mkdir(session, { recursive: true });
@@ -754,9 +754,9 @@ describe("harnexus-task launch", () => {
     const sent = await launch([], [created("w1", "claude-sonnet-5-5", "high")]);
 
     expect([sent.code, sent.err]).toEqual([0, ""]);
-    expect(sent.out.state.startsWith(join(root, ".local/state/taskctl/"))).toBe(
-      true,
-    );
+    expect(
+      sent.out.state.startsWith(join(root, ".local/state/harnexus-crew/")),
+    ).toBe(true);
   });
 });
 
@@ -823,7 +823,7 @@ describe("harnexus-task cloud", () => {
     ]);
     expect([empty.code, empty.err]).toEqual([
       1,
-      "harnexus-task: the prompt file is empty\n",
+      "harnexus-crew: the prompt file is empty\n",
     ]);
   });
 
@@ -864,7 +864,7 @@ describe("harnexus-task cloud", () => {
 
       expect([failed.code, failed.err]).toEqual([
         1,
-        `harnexus-task: cloud_open ${answer.outcome} ${advice}\n`,
+        `harnexus-crew: cloud_open ${answer.outcome} ${advice}\n`,
       ]);
     },
   );
@@ -928,7 +928,7 @@ describe("harnexus-task name", () => {
   test("links the PR of a chat no launch recorded without renaming it, and refuses a value that is not a PR", async () => {
     const { harnexus, invoke, launch, env, prWake } = await launchFixture();
     await launch([], [created("w1", "claude-sonnet-5-5", "high")]);
-    const launches = join(env.XDG_STATE_HOME ?? "", "taskctl/launch");
+    const launches = join(env.XDG_STATE_HOME ?? "", "harnexus-crew/launch");
     await writeFile(join(launches, ".DS_Store"), "");
     await mkdir(join(launches, "broken"));
     await writeFile(join(launches, "broken/state.json"), "{");
@@ -995,7 +995,7 @@ describe("harnexus-task name", () => {
 
     expect([failed.code, failed.err]).toEqual([
       1,
-      `harnexus-task: pr-wake watch link ${PR} --take-over failed with exit 1: pr-wake-engine: cannot write the link\n`,
+      `harnexus-crew: pr-wake watch link ${PR} --take-over failed with exit 1: pr-wake-engine: cannot write the link\n`,
     ]);
     expect([missing.code, missing.err]).toEqual([
       1,
@@ -1090,7 +1090,7 @@ describe("harnexus-task watch", () => {
     "passes $name to pr-wake watch and prints its JSON",
     async ({ args, passed }) => {
       const { invoke, prWake, env } = await fixture();
-      env.TASKCTL_PR_WAKE = "/opt/pr-wake/bin/pr-wake";
+      env.HARNEXUS_CREW_PR_WAKE = "/opt/pr-wake/bin/pr-wake";
       prWake.answers.push({
         status: 0,
         stdout: '{"from":"pr-wake"}\n',
@@ -1143,7 +1143,7 @@ describe("harnexus-task watch", () => {
     expect([stopped.code, started]).toEqual([0, [join(bin, "pr-wake-engine")]]);
     expect([failed.code, failed.err]).toEqual([
       1,
-      `harnexus-task: ${join(bin, "pr-wake-engine")} watch exited with 3\n`,
+      `harnexus-crew: ${join(bin, "pr-wake-engine")} watch exited with 3\n`,
     ]);
     expect([missing.code, missing.err]).toEqual([
       1,
@@ -1233,7 +1233,7 @@ describe("harnexus-task state", () => {
   test("lists only the records taskctl keeps, leaving pr-wake's watch unread", async () => {
     const { env, invoke, launch } = await launchFixture();
     const sent = await launch([], [created("w1", "claude-sonnet-5-5", "high")]);
-    const watch = join(env.XDG_STATE_HOME ?? "", "taskctl/watch/abc");
+    const watch = join(env.XDG_STATE_HOME ?? "", "harnexus-crew/watch/abc");
     await mkdir(watch, { recursive: true });
     await writeFile(join(watch, "state.json"), "{");
 

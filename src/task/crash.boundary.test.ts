@@ -30,7 +30,7 @@ describe("reportCrash", () => {
     expect(crashed.code).toBe(1);
     expect(crashed.stdout).toBe("");
     expect(crashed.stderr).toStartWith(
-      "harnexus-task: unexpected failure: TypeError: ",
+      "harnexus-crew: unexpected failure: TypeError: ",
     );
     expect(crashed.stderr).toContain("markdown.render");
     expect(crashed.stderr).not.toContain("Panic");

@@ -37,7 +37,7 @@ const home = async () => {
 
 describe("taskctl adapter export-links and import-links", () => {
   const chatFiles = async (root: string) => {
-    const chats = join(root, "state/taskctl/cloud-chats");
+    const chats = join(root, "state/harnexus-crew/cloud-chats");
     await mkdir(chats, { recursive: true });
     const write = (name: string, value: unknown) =>
       writeFile(join(chats, `${name}.json`), JSON.stringify(value));

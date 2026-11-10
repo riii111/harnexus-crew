@@ -109,7 +109,7 @@ export const createAdapter = (deps: AdapterDeps) => {
     if (mode !== "write" && WRITE_OPS.has(op))
       return Promise.resolve({ outcome: "not_sent", reason: "observe_only" });
     nextId += 1;
-    const id = `taskctl-${nextId}`;
+    const id = `harnexus-crew-${nextId}`;
     const answered = new Promise<Answer>((resolve) => asks.set(id, resolve));
     sendLine({ type: "request", id, op, ...fields });
     return answered;
@@ -515,7 +515,7 @@ export const createAdapter = (deps: AdapterDeps) => {
     const turnId = String(event.turnId);
     const conversation = String(event.conversationId);
     if (mode !== "write") {
-      endTurn(turnId, null, "taskctl only observes for this bridge.");
+      endTurn(turnId, null, "harnexus-crew only observes for this bridge.");
       return;
     }
 

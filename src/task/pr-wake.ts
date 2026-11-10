@@ -15,7 +15,7 @@ export type ToolRunner = (
   timeoutMs: number,
 ) => Promise<Result<CommandOutput, CommandFailed>>;
 
-const PR_WAKE_ENV = "TASKCTL_PR_WAKE";
+const PR_WAKE_ENV = "HARNEXUS_CREW_PR_WAKE";
 const ENGINE = "pr-wake-engine";
 // A dry run reads every configured PR from GitHub, so it is given as long as a person waits for it.
 const DRY_RUN_TIMEOUT_MS = 10 * 60_000;

@@ -1,5 +1,5 @@
 {
-  "name": "taskctl",
+  "name": "harnexus-crew",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,18 +10,21 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "bun test",
     "task": "bun --no-env-file --config=/dev/null src/cli/task.ts",
-    "build": "bun --no-env-file --config=/dev/null src/cli/check-bun.ts && bun build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig src/cli/task.ts --outfile dist/taskctl"
+    "build": "bun --no-env-file --config=/dev/null src/cli/check-bun.ts && bun build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig src/cli/task.ts --outfile dist/harnexus-crew"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "5.10.0",
-    "@types/bun": "1.4.2",
-    "oxfmt": "0.75.0",
-    "oxlint": "1.90.0",
+    "@types/bun": "1.4.4",
+    "oxfmt": "0.76.0",
+    "oxlint": "1.91.0",
     "oxlint-tsgolint": "7.0.2005",
     "typescript": "7.0.2"
   },
   "dependencies": {
     "better-result": "3.0.1",
     "zod": "4.6.7"
+  },
+  "overrides": {
+    "minimatch": "11.0.5"
   }
 }

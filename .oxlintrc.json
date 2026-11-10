@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "jsPlugins": ["@stylistic/eslint-plugin", "./lint-plugins/taskctl.js"],
+  "jsPlugins": ["@stylistic/eslint-plugin", "./lint-plugins/harnexus-crew.js"],
   "categories": { "correctness": "error" },
   "options": { "typeAware": true },
   "ignorePatterns": [".claude/**"],
@@ -24,8 +24,8 @@
     "typescript/require-array-sort-compare": "off",
     "typescript/restrict-template-expressions": "off",
     "typescript/unbound-method": "off",
-    "taskctl/no-focused-tests": "error",
-    "taskctl/no-skipped-tests": "error",
+    "harnexus-crew/no-focused-tests": "error",
+    "harnexus-crew/no-skipped-tests": "error",
     "typescript/no-explicit-any": "error",
     "no-unused-vars": [
       "error",
@@ -45,7 +45,7 @@
     {
       "files": ["src/**"],
       "excludeFiles": ["src/**/*.boundary.ts"],
-      "rules": { "taskctl/no-throw-try-catch": "error" }
+      "rules": { "harnexus-crew/no-throw-try-catch": "error" }
     },
     {
       "files": ["src/**"],
@@ -61,7 +61,7 @@
     },
     {
       "files": ["**/*.test.ts"],
-      "rules": { "taskctl/testing": "error" }
+      "rules": { "harnexus-crew/testing": "error" }
     }
   ]
 }

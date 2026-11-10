@@ -20,7 +20,7 @@ export const withLock = async <T>(
   const path = `${directory}/${name}.lock`;
   const until = Date.now() + waitMs;
   for (;;) {
-    const taken = await acquire(path, "taskctl adapter");
+    const taken = await acquire(path, "harnexus-crew adapter");
     if (taken.isOk()) {
       const done = await work();
       await release(path, taken.value);
