@@ -313,10 +313,6 @@ const resolve = (args: ResolveArgs, deps: TaskDeps) =>
     return await session.resolve(args.sent, thread);
   });
 
-// pr-wake sends a PR's news to a Codex App thread, so a T3 Code thread is never linked to it.
-const T3_PR_ALTERNATIVE =
-  "The PR watch cannot notify a T3 Code thread, so check the PR with gh; rename the thread with t3_thread_update";
-
 // A PR URL may carry a tab, query or fragment after its number, as when copied from the browser.
 const PR_NUMBER =
   /^(?:#?([1-9][0-9]*)|https:\/\/\S+\/pull\/([1-9][0-9]*)(?:[/?#]\S*)?)$/;
@@ -324,7 +320,6 @@ const PR_NUMBER =
 const name = (args: NameArgs, deps: TaskDeps) =>
   Result.gen(async function* () {
     yield* refuseInCloud(deps.env, "name");
-    yield* refuseInT3(deps.env, "name", T3_PR_ALTERNATIVE);
     const matched = PR_NUMBER.exec(args.pr);
     const number = matched?.[1] ?? matched?.[2];
     if (number === undefined)
@@ -338,7 +333,10 @@ const name = (args: NameArgs, deps: TaskDeps) =>
         )
       : null;
     const watched = typeof linked?.watched === "string" ? linked.watched : null;
-    const request = yield* Result.await(launchOfThread(deps.env, worker));
+    const host = hostOf(deps);
+    const request = host.renamesThreads
+      ? yield* Result.await(launchOfThread(deps.env, worker))
+      : null;
     // Only a launched worker has a title to extend; another chat keeps its own.
     // The number goes last so the title still reads as the task, while a search for the PR finds the worker.
     const title =
@@ -346,7 +344,7 @@ const name = (args: NameArgs, deps: TaskDeps) =>
     const answer =
       title === null
         ? null
-        : await hostOf(deps).call(worker, "name_thread", { name: title });
+        : await host.call(worker, "name_thread", { name: title });
     const renamed =
       answer === null || answer.outcome === ("done" satisfies CallOutcome);
     // Fails even after a rename, so a PR the watch cannot see is never taken as watched.
@@ -380,8 +378,6 @@ const watch = async (args: WatchArgs, deps: TaskDeps) => {
   if (args.status) return prWake(deps.runTool, deps.env, ["status", "--json"]);
   if (args.sender) return prWake(deps.runTool, deps.env, ["sender"]);
   if (args.link !== undefined) {
-    const linked = refuseInT3(deps.env, "watch --link", T3_PR_ALTERNATIVE);
-    if (linked.isErr()) return Result.err(linked.error);
     if (!isGitHubPr(args.link))
       return fail(`${args.link} is not watched: ${NOT_LINKABLE}`);
     // Without --take-over pr-wake refuses a PR another chat is watched for, as harnexus-task watch --link did.
