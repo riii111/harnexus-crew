@@ -29,7 +29,6 @@ export type AppCall = (
 
 // What differs between the apps a worker and its reviewer run in; everything else a task does is the same in both.
 export type Host = {
-  app: App;
   // The variable naming the thread a command runs in.
   threadVariable: string;
   call: AppCall;
@@ -53,7 +52,6 @@ const codexHost = (env: Env): Host => {
   const call: AppCall = (caller, tool, args) =>
     callApp({ env, home: homeOf(env) }, caller, tool, args);
   return {
-    app: "codex",
     threadVariable: CODEX_THREAD_ENV,
     call,
     reviewProject: async (caller) => {
@@ -81,7 +79,6 @@ const codexHost = (env: Env): Host => {
 const t3Host = ({ env, which }: HostDeps): Host => {
   const home = homeOf(env);
   return {
-    app: "t3",
     threadVariable: T3_THREAD_ENV,
     call: (_caller, tool, args) => callT3({ env, home, which }, tool, args),
     // The t3 CLI takes a folder for its project, and says so when no project holds it.

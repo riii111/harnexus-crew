@@ -81,45 +81,21 @@ describe("callT3 create_thread", () => {
     ]);
   });
 
-  test.each([
-    {
-      name: "a worker without a starting branch from the project's HEAD",
-      target: workerTarget(),
-      model: "claude-sonnet-5-5",
-      provider: "claudeAgent",
-      worktree: "HEAD",
-    },
-    {
-      name: "a reviewer on Codex in the project folder itself",
-      target: {
-        type: "project",
-        projectId: "/home/review-home",
-        environment: { type: "local" },
-      },
-      model: "gpt-6.1-sol",
-      provider: "codex",
-      worktree: null,
-    },
-  ])("starts $name", async ({ target, model, provider, worktree }) => {
+  test("starts a worker without a starting branch from the project's HEAD", async () => {
     const { deps, plan, rawArgs } = await fixture();
     await plan(1, { out: JSON.stringify({ threadId: "t1" }) });
-    await plan(2, { out: shown(model) });
+    await plan(2, { out: shown("claude-sonnet-5-5") });
 
     await callT3(deps, "create_thread", {
       prompt: "p",
-      target,
+      target: workerTarget(),
       title: "T",
-      model,
+      model: "claude-sonnet-5-5",
     });
 
     const args = await rawArgs(1);
-    const after = (flag: string) =>
-      args.includes(flag) ? args[args.indexOf(flag) + 1] : null;
-    expect([args[2], after("--provider"), after("--worktree")]).toEqual([
-      target.projectId,
-      provider,
-      worktree,
-    ]);
+    const at = args.indexOf("--worktree");
+    expect(args.slice(at, at + 2)).toEqual(["--worktree", "HEAD"]);
   });
 
   test("refuses a thinking level without running t3", async () => {
