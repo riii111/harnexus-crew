@@ -11,29 +11,6 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
 
-const fixture = async () => {
-  const cli = await createFakeCli("t3", cleanups);
-  const deps = {
-    env: { HARNEXUS_T3_BIN: cli.bin, FAKE_DIR: cli.fake },
-    home: cli.root,
-    which: () => null,
-  };
-  const stdin = (n: number) => readFile(join(cli.fake, `stdin.${n}`), "utf8");
-  return { ...cli, deps, stdin };
-};
-
-const workerTarget = (startingState?: unknown) => ({
-  type: "project",
-  projectId: "p1",
-  environment: {
-    type: "worktree",
-    ...(startingState === undefined ? {} : { startingState }),
-  },
-});
-
-const shown = (model: string) =>
-  JSON.stringify({ thread: { threadId: "t1", model }, messages: [] });
-
 describe("callT3 create_thread", () => {
   test("starts the thread in a new worktree with the prompt on stdin and reports the model T3 Code shows", async () => {
     const { deps, plan, rawArgs, stdin } = await fixture();
@@ -260,3 +237,26 @@ describe("callT3", () => {
     expect(t3Home(env, "/u")).toBe(home);
   });
 });
+
+const fixture = async () => {
+  const cli = await createFakeCli("t3", cleanups);
+  const deps = {
+    env: { HARNEXUS_T3_BIN: cli.bin, FAKE_DIR: cli.fake },
+    home: cli.root,
+    which: () => null,
+  };
+  const stdin = (n: number) => readFile(join(cli.fake, `stdin.${n}`), "utf8");
+  return { ...cli, deps, stdin };
+};
+
+const workerTarget = (startingState?: unknown) => ({
+  type: "project",
+  projectId: "p1",
+  environment: {
+    type: "worktree",
+    ...(startingState === undefined ? {} : { startingState }),
+  },
+});
+
+const shown = (model: string) =>
+  JSON.stringify({ thread: { threadId: "t1", model }, messages: [] });

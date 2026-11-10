@@ -13,13 +13,6 @@ import { chatId, codexHome, type Env, homeOf, NAME } from "./request.ts";
 export type App = "codex" | "t3";
 
 export const T3_THREAD_ENV = "T3CODE_THREAD_ID";
-const CODEX_THREAD_ENV = "CODEX_THREAD_ID";
-
-// T3 Code sets its thread in the environment of every agent and job it starts, and runs Codex there with a CODEX_THREAD_ID of Codex's own, so its variable decides first.
-export const appOf = (env: Env): App => {
-  const t3 = env[T3_THREAD_ENV];
-  return t3 !== undefined && t3 !== "" ? "t3" : "codex";
-};
 
 export type AppCall = (
   caller: string,
@@ -44,9 +37,36 @@ export type Host = {
 
 type HostDeps = { env: Env; which: (name: string) => string | null };
 
-// A reviewer reads the worker's checkout by its path, so it runs in an empty project rather than a worktree of its own that counts toward the app's worktree limit.
-const reviewHome = (env: Env) =>
-  realPathOrSelf(join(homeOf(env), "review-home"));
+export const hostOf = (deps: HostDeps): Host =>
+  appOf(deps.env) === "t3" ? t3Host(deps) : codexHost(deps.env);
+
+export const callerId = (env: Env) => {
+  const variable = appOf(env) === "t3" ? T3_THREAD_ENV : CODEX_THREAD_ENV;
+  const value = env[variable];
+  if (value === undefined || value === "")
+    return fail(`${variable} is not set; run ${NAME} from a thread`);
+  return chatId(value, variable);
+};
+
+// Refuses in T3 Code a command that only the Codex App can carry out for the thread it runs in.
+export const refuseInT3 = (
+  env: Env,
+  command: string,
+  alternative: string,
+): Result<void, TaskFailed> =>
+  appOf(env) === "t3"
+    ? fail(
+        `${command} needs the Codex App and is unavailable in T3 Code. ${alternative}`,
+      )
+    : Result.ok();
+
+export const appOf = (env: Env): App => {
+  // T3 Code sets its thread for every agent and job it starts, and runs Codex there with a CODEX_THREAD_ID of Codex's own, so its variable decides first.
+  const t3 = env[T3_THREAD_ENV];
+  return t3 !== undefined && t3 !== "" ? "t3" : "codex";
+};
+
+const CODEX_THREAD_ENV = "CODEX_THREAD_ID";
 
 const codexHost = (env: Env): Host => {
   const call: AppCall = (caller, tool, args) =>
@@ -91,25 +111,6 @@ const t3Host = ({ env, which }: HostDeps): Host => {
   };
 };
 
-export const hostOf = (deps: HostDeps): Host =>
-  appOf(deps.env) === "t3" ? t3Host(deps) : codexHost(deps.env);
-
-export const callerId = (env: Env) => {
-  const variable = appOf(env) === "t3" ? T3_THREAD_ENV : CODEX_THREAD_ENV;
-  const value = env[variable];
-  if (value === undefined || value === "")
-    return fail(`${variable} is not set; run ${NAME} from a thread`);
-  return chatId(value, variable);
-};
-
-// Refuses in T3 Code a command that only the Codex App can carry out for the thread it runs in.
-export const refuseInT3 = (
-  env: Env,
-  command: string,
-  alternative: string,
-): Result<void, TaskFailed> =>
-  appOf(env) === "t3"
-    ? fail(
-        `${command} needs the Codex App and is unavailable in T3 Code. ${alternative}`,
-      )
-    : Result.ok();
+const reviewHome = (env: Env) =>
+  // A reviewer reads the worker's checkout by its path, so it runs in an empty project rather than a worktree of its own that counts toward the app's worktree limit.
+  realPathOrSelf(join(homeOf(env), "review-home"));

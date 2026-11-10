@@ -20,72 +20,6 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
 
-// A worker in T3 Code, whose Codex also sets a CODEX_THREAD_ID of its own.
-const fixture = async () => {
-  const cli = await createFakeCli("t3", cleanups);
-  const { root } = cli;
-  const codex = join(root, "codex");
-  await mkdir(codex);
-  await symlink(SKILLS, join(codex, "skills"));
-  await mkdir(join(root, "config/harnexus"), { recursive: true });
-  await writeFile(
-    join(root, "config/harnexus/task.json"),
-    JSON.stringify({
-      templates: {
-        worker: join(codex, "skills/task-session-launch/references/worker.md"),
-        reviewer: join(
-          codex,
-          "skills/task-review-cycle/references/reviewer.md",
-        ),
-      },
-    }),
-  );
-  await mkdir(join(root, "review-home"));
-  const env: Record<string, string> = {
-    HOME: root,
-    CODEX_HOME: codex,
-    CODEX_THREAD_ID: "codex-own",
-    T3CODE_THREAD_ID: "worker",
-    T3CODE_HOME: join(root, "t3-home"),
-    HARNEXUS_T3_BIN: cli.bin,
-    FAKE_DIR: cli.fake,
-    HARNEXUS_EXECUTION_ENV: "",
-    CODEX_ENVIRONMENT_ID: "",
-    CLAUDE_CODE_REMOTE: "",
-    // A bridge here would mean the Codex App was asked instead.
-    HARNEXUS_CALL_SOCKET: join(root, "none.sock"),
-    XDG_CONFIG_HOME: join(root, "config"),
-    XDG_STATE_HOME: join(root, "state"),
-  };
-  const invoke = async (args: string[]) => {
-    const run = await runTask(args, {
-      ...TASK_DEPS,
-      which: () => null,
-      env: { ...process.env, ...env },
-    });
-    return {
-      code: run.code,
-      out: run.code === 0 ? JSON.parse(run.stdout) : null,
-      err: run.stderr,
-    };
-  };
-
-  const write = async (data: unknown) => {
-    const path = join(root, "request.json");
-    await writeFile(path, JSON.stringify(data));
-    return path;
-  };
-
-  const stdin = (n: number) => readFile(join(cli.fake, `stdin.${n}`), "utf8");
-  const runs = async () =>
-    Number(await readFile(join(cli.fake, "count"), "utf8").catch(() => "0"));
-  return { ...cli, codex, env, invoke, write, stdin, runs };
-};
-
-const started = (threadId: string) => JSON.stringify({ threadId });
-const shown = (model: string) =>
-  JSON.stringify({ thread: { threadId: "x", model }, messages: [] });
-
 describe("harnexus-crew environment in T3 Code", () => {
   test("names T3 Code as the app without asking the harnexus socket", async () => {
     const { invoke } = await fixture();
@@ -205,53 +139,6 @@ describe("harnexus-crew launch in T3 Code", () => {
     expect(await runs()).toBe(1);
   });
 });
-
-const reviewFixture = async () => {
-  const base = await fixture();
-  // T3 Code keeps a worktree at <repository name>/<branch> under its folder.
-  const checkout = join(base.env.T3CODE_HOME ?? "", "worktrees/repo/feat-x");
-  await mkdir(checkout, { recursive: true });
-  const git = (...args: string[]) => {
-    const ran = Bun.spawnSync(
-      [
-        "git",
-        "-C",
-        checkout,
-        "-c",
-        "user.name=Test",
-        "-c",
-        "user.email=test@example.com",
-        "-c",
-        "commit.gpgsign=false",
-        ...args,
-      ],
-      { stderr: "pipe" },
-    );
-    expect(ran.exitCode).toBe(0);
-    return ran.stdout.toString().trim();
-  };
-
-  const commit = (message: string) => {
-    git("commit", "--allow-empty", "-qm", message);
-    return git("rev-parse", "HEAD");
-  };
-
-  git("init", "-q");
-  const initial = commit("test: initial");
-  git("branch", "base");
-  const data: Record<string, unknown> = {
-    taskId: "example",
-    workerAI: "Claude",
-    projectId: "t3-project",
-    checkout,
-    baseBranch: "base",
-    documentRefs: [README],
-    prUrl: null,
-  };
-  const review = async (extra: string[] = []) =>
-    base.invoke(["review", "--request", await base.write(data), ...extra]);
-  return { ...base, checkout, commit, initial, data, review };
-};
 
 describe("harnexus-crew review in T3 Code", () => {
   test("starts a Codex reviewer in the review home that answers through T3 Code, then sends each new head to it", async () => {
@@ -405,3 +292,116 @@ describe("Codex App commands in T3 Code", () => {
     },
   );
 });
+
+// A worker in T3 Code, whose Codex also sets a CODEX_THREAD_ID of its own.
+const fixture = async () => {
+  const cli = await createFakeCli("t3", cleanups);
+  const { root } = cli;
+  const codex = join(root, "codex");
+  await mkdir(codex);
+  await symlink(SKILLS, join(codex, "skills"));
+  await mkdir(join(root, "config/harnexus"), { recursive: true });
+  await writeFile(
+    join(root, "config/harnexus/task.json"),
+    JSON.stringify({
+      templates: {
+        worker: join(codex, "skills/task-session-launch/references/worker.md"),
+        reviewer: join(
+          codex,
+          "skills/task-review-cycle/references/reviewer.md",
+        ),
+      },
+    }),
+  );
+  await mkdir(join(root, "review-home"));
+  const env: Record<string, string> = {
+    HOME: root,
+    CODEX_HOME: codex,
+    CODEX_THREAD_ID: "codex-own",
+    T3CODE_THREAD_ID: "worker",
+    T3CODE_HOME: join(root, "t3-home"),
+    HARNEXUS_T3_BIN: cli.bin,
+    FAKE_DIR: cli.fake,
+    HARNEXUS_EXECUTION_ENV: "",
+    CODEX_ENVIRONMENT_ID: "",
+    CLAUDE_CODE_REMOTE: "",
+    // A bridge here would mean the Codex App was asked instead.
+    HARNEXUS_CALL_SOCKET: join(root, "none.sock"),
+    XDG_CONFIG_HOME: join(root, "config"),
+    XDG_STATE_HOME: join(root, "state"),
+  };
+  const invoke = async (args: string[]) => {
+    const run = await runTask(args, {
+      ...TASK_DEPS,
+      which: () => null,
+      env: { ...process.env, ...env },
+    });
+    return {
+      code: run.code,
+      out: run.code === 0 ? JSON.parse(run.stdout) : null,
+      err: run.stderr,
+    };
+  };
+
+  const write = async (data: unknown) => {
+    const path = join(root, "request.json");
+    await writeFile(path, JSON.stringify(data));
+    return path;
+  };
+
+  const stdin = (n: number) => readFile(join(cli.fake, `stdin.${n}`), "utf8");
+  const runs = async () =>
+    Number(await readFile(join(cli.fake, "count"), "utf8").catch(() => "0"));
+  return { ...cli, codex, env, invoke, write, stdin, runs };
+};
+
+const started = (threadId: string) => JSON.stringify({ threadId });
+const shown = (model: string) =>
+  JSON.stringify({ thread: { threadId: "x", model }, messages: [] });
+
+const reviewFixture = async () => {
+  const base = await fixture();
+  // T3 Code keeps a worktree at <repository name>/<branch> under its folder.
+  const checkout = join(base.env.T3CODE_HOME ?? "", "worktrees/repo/feat-x");
+  await mkdir(checkout, { recursive: true });
+  const git = (...args: string[]) => {
+    const ran = Bun.spawnSync(
+      [
+        "git",
+        "-C",
+        checkout,
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@example.com",
+        "-c",
+        "commit.gpgsign=false",
+        ...args,
+      ],
+      { stderr: "pipe" },
+    );
+    expect(ran.exitCode).toBe(0);
+    return ran.stdout.toString().trim();
+  };
+
+  const commit = (message: string) => {
+    git("commit", "--allow-empty", "-qm", message);
+    return git("rev-parse", "HEAD");
+  };
+
+  git("init", "-q");
+  const initial = commit("test: initial");
+  git("branch", "base");
+  const data: Record<string, unknown> = {
+    taskId: "example",
+    workerAI: "Claude",
+    projectId: "t3-project",
+    checkout,
+    baseBranch: "base",
+    documentRefs: [README],
+    prUrl: null,
+  };
+  const review = async (extra: string[] = []) =>
+    base.invoke(["review", "--request", await base.write(data), ...extra]);
+  return { ...base, checkout, commit, initial, data, review };
+};
