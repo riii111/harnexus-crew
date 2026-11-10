@@ -116,7 +116,26 @@ describe("detectEnvironment", () => {
     ).unwrap();
     expect(found.environment).toBe("local");
     expect(found.source).toBe("harnexus-socket");
+    expect(found.app).toBe("codex");
   });
+
+  test.each([
+    { name: "on its own", env: {}, source: "T3CODE_THREAD_ID" },
+    {
+      name: "under an explicit local",
+      env: { HARNEXUS_EXECUTION_ENV: "local" },
+      source: "explicit",
+    },
+  ])(
+    "names T3 Code as the app from T3CODE_THREAD_ID $name",
+    async ({ env, source }) => {
+      const found = (
+        await detectEnvironment({ ...env, T3CODE_THREAD_ID: "t1" })
+      ).unwrap();
+
+      expect(found).toMatchObject({ environment: "local", source, app: "t3" });
+    },
+  );
 });
 
 describe("harnexus-task environment", () => {

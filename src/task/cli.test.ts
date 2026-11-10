@@ -155,8 +155,9 @@ const fixture = async () => {
   const env: Record<string, string> = {
     CODEX_HOME: codex,
     CODEX_THREAD_ID: "caller",
-    // Pinned, so a Cloud variable in the ambient environment cannot switch the commands to Cloud.
+    // Pinned, so a Cloud variable in the ambient environment cannot switch the commands to Cloud, nor a T3 Code thread to T3 Code.
     HARNEXUS_EXECUTION_ENV: "local",
+    T3CODE_THREAD_ID: "",
     HARNEXUS_CALL_SOCKET: socket,
     XDG_CONFIG_HOME: join(root, "config"),
     XDG_STATE_HOME: join(root, "state"),
@@ -1260,6 +1261,28 @@ describe("taskctl check", () => {
           "skills/task-review-cycle/references/reviewer.md",
         ),
       },
+      t3: { ready: true },
+    });
+  });
+
+  test("passes a reviewer template written before T3 Code, naming why T3 Code cannot use it", async () => {
+    const { invoke, root } = await fixture();
+    await writeFile(
+      join(root, "reviewer.md"),
+      "{task_id} [reply](reply-{reply_to}.md)\n",
+    );
+    for (const reply of ["Codex", "Claude", "Cloud"])
+      await writeFile(join(root, `reply-${reply}.md`), "reply\n");
+    await writeTemplateConfig(join(root, "config"), {
+      templates: { reviewer: join(root, "reviewer.md") },
+    });
+
+    const checked = await invoke(["check"]);
+
+    expect([checked.code, checked.err]).toEqual([0, ""]);
+    expect(checked.out.t3).toEqual({
+      ready: false,
+      reason: expect.stringContaining("reply-T3.md, which is not a file"),
     });
   });
 
@@ -1304,7 +1327,10 @@ describe("taskctl check", () => {
       1,
       expect.stringContaining("the reviewer template"),
     ]);
-    expect(unset.out).toEqual({ templates: { worker: null, reviewer: null } });
+    expect(unset.out).toEqual({
+      templates: { worker: null, reviewer: null },
+      t3: null,
+    });
   });
 });
 
