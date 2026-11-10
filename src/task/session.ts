@@ -2,16 +2,12 @@ import { join } from "node:path";
 
 import { Result } from "better-result";
 
-import { type CallOutcome, callApp as callV1, UNSENT } from "../app/call.ts";
-import { projectsIn } from "../app/projects.ts";
+import { type CallOutcome, UNSENT } from "../app/call.ts";
 import { refusalOf, type TurnSettings } from "../app/settings.ts";
-import {
-  isDirectory,
-  listDirectoryIfExists,
-  realPathOrSelf,
-} from "../lib/fs.boundary.ts";
+import { isDirectory, listDirectoryIfExists } from "../lib/fs.boundary.ts";
 import { type Fields, isObject } from "../lib/object.ts";
 import { asText, fail, jsonEqual, type TaskFailed, truthy } from "./format.ts";
+import type { AppCall } from "./host.ts";
 import {
   load,
   readRecords,
@@ -20,35 +16,9 @@ import {
   stateDirectory,
   stateRoot,
 } from "./records.ts";
-import { chatId, type Env, homeOf, io, NAME } from "./request.ts";
+import { chatId, type Env, io, NAME } from "./request.ts";
 
-// Every App operation goes through harnexus call protocol 1, which is asked for before anything is written.
-export const callApp = (env: Env, caller: string, tool: string, args: Fields) =>
-  callV1({ env, home: homeOf(env) }, caller, tool, args);
-
-// The empty project a reviewer runs in.
-export const reviewProject = async (
-  env: Env,
-  caller: string,
-): Promise<Result<string, TaskFailed>> => {
-  // A reviewer reads the worker's checkout by its path, so it runs in an empty project rather than a worktree of its own that counts toward the app's worktree limit.
-  const home = await realPathOrSelf(join(homeOf(env), "review-home"));
-  const answer = await callApp(env, caller, "list_projects", {});
-  if (answer.outcome !== ("done" satisfies CallOutcome))
-    return fail(`list_projects failed: ${JSON.stringify(answer)}`);
-  for (const project of projectsIn(answer.result)) {
-    if (!isObject(project)) continue;
-    const { path, projectId } = project;
-    if (typeof path !== "string" || typeof projectId !== "string") continue;
-    if ((await realPathOrSelf(path)) === home) return Result.ok(projectId);
-  }
-
-  return fail(
-    `add ${home} to the Codex app as a project, so reviewers run there instead of in a worktree of their own`,
-  );
-};
-
-type SessionDeps = { env: Env; saveJson: SaveJson };
+type SessionDeps = { env: Env; saveJson: SaveJson; call: AppCall };
 
 type Confirmed = (
   thread: string,
@@ -119,7 +89,7 @@ const openSession = (
           );
         }
 
-        const answer = await callApp(deps.env, caller, tool, args);
+        const answer = await deps.call(caller, tool, args);
         const outcome = answer.outcome;
         const thread = truthy(answer.threadId)
           ? answer.threadId

@@ -120,13 +120,6 @@ export const chatId = (value: unknown, name: string) =>
       : Result.ok(id),
   );
 
-export const callerId = (env: Env) => {
-  const value = env.CODEX_THREAD_ID;
-  if (value === undefined || value === "")
-    return fail(`CODEX_THREAD_ID is not set; run ${NAME} from a thread`);
-  return chatId(value, "CODEX_THREAD_ID");
-};
-
 const isHttpsUrl = (value: string) => {
   // urlsplit's scheme and netloc, which decide whether a reference is a URL rather than a path.
   const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):\/\/([^/?#]*)/s.exec(value);
@@ -234,8 +227,12 @@ export const reviewRequest = (
   path: string,
   env: Env,
   git: Git,
-  // In a Claude Code cloud session the checkout is the session's own, and no app project is involved, so projectId may be left out.
-  { cloud = false }: { cloud?: boolean } = {},
+  {
+    // In a Claude Code cloud session the checkout is the session's own, and no app project is involved, so projectId may be left out.
+    cloud = false,
+    // The app's folder of worker worktrees, which a checkout must be in outside Cloud.
+    worktrees = join(codexHome(env), "worktrees"),
+  }: { cloud?: boolean; worktrees?: string } = {},
 ) =>
   Result.gen(async function* () {
     const project = ["projectId"];
@@ -273,16 +270,16 @@ export const reviewRequest = (
     if (!Object.hasOwn(data, "prUrl")) data.prUrl = null;
     const requested = String(data.checkout);
     const checkout = await realPathOrSelf(requested);
-    const worktrees = await realPathOrSelf(join(codexHome(env), "worktrees"));
+    const root = await realPathOrSelf(worktrees);
     const refused = fail(
       cloud
         ? "checkout must be the absolute path of a repository's top level"
-        : `checkout must be the top level of a worker worktree ${worktrees}/<id>/<name>`,
+        : `checkout must be the top level of a worker worktree ${root}/<id>/<name>`,
     );
     // A Claude Code cloud session works in its own checkout, so there the checkout only has to be the top level of a repository.
     if (
       !requested.startsWith("/") ||
-      (!cloud && dirname(dirname(checkout)) !== worktrees) ||
+      (!cloud && dirname(dirname(checkout)) !== root) ||
       !(await isDirectory(checkout))
     )
       return refused;

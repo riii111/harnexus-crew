@@ -3,6 +3,7 @@ import { Result } from "better-result";
 import { callSocketPath } from "../app/socket-path.ts";
 import { requestLine } from "../lib/socket.boundary.ts";
 import { fail, type TaskFailed } from "./format.ts";
+import { type App, appOf, T3_THREAD_ENV } from "./host.ts";
 import { type Env, homeOf } from "./request.ts";
 
 const EXECUTION_ENV = "HARNEXUS_EXECUTION_ENV";
@@ -19,10 +20,13 @@ type Detected = {
     | "explicit"
     | typeof CLOUD_HINT_ENV
     | typeof CLAUDE_CLOUD_ENV
+    | typeof T3_THREAD_ENV
     | "harnexus-socket"
     | "none";
   // Which Cloud runs the command, when it says so; an explicit cloud with neither variable names none.
   host?: "codex" | "claude" | null;
+  // Which app runs the command's thread on this machine.
+  app?: App;
   note: string;
 };
 
@@ -41,7 +45,7 @@ export const declaredEnvironment = (
     return Result.ok({
       environment: explicit,
       source: "explicit",
-      ...(explicit === "cloud" && { host: hostOf(env) }),
+      ...(explicit === "cloud" ? { host: hostOf(env) } : { app: appOf(env) }),
       note: `set by ${EXECUTION_ENV}`,
     });
   }
@@ -76,6 +80,13 @@ export const detectEnvironment = async (
   const declared = declaredEnvironment(env);
   if (declared.isErr() || declared.value !== null)
     return declared.map((value) => value as Detected);
+  if (appOf(env) === "t3")
+    return Result.ok({
+      environment: "local",
+      source: T3_THREAD_ENV,
+      app: "t3",
+      note: `T3 Code sets ${T3_THREAD_ENV} for its agents and the commands they run`,
+    });
   // Local is only claimed once the harnexus call socket answers a connection; a missing variable proves nothing.
   const path = callSocketPath(env, homeOf(env));
   if (path.isOk()) {
@@ -84,6 +95,7 @@ export const detectEnvironment = async (
       return Result.ok({
         environment: "local",
         source: "harnexus-socket",
+        app: "codex",
         note: "the harnexus call socket accepted a connection",
       });
   }
