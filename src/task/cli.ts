@@ -12,6 +12,7 @@ import {
   refuseInCloud,
 } from "./environment.ts";
 import { asText, fail, isBlank, jsonEqual, truthy } from "./format.ts";
+import { callerId, hostOf, refuseInT3 } from "./host.ts";
 import {
   isGitHubPr,
   NOT_LINKABLE,
@@ -21,7 +22,6 @@ import {
 } from "./pr-wake.ts";
 import { type SaveJson, saveJson } from "./records.ts";
 import {
-  callerId,
   candidate,
   chatId,
   type Env,
@@ -38,11 +38,9 @@ import {
   workerFields,
 } from "./request.ts";
 import {
-  callApp,
   launchOfThread,
   launchSession,
   listState,
-  reviewProject,
   reviewSession,
 } from "./session.ts";
 import { checkTemplates, taskPrompt } from "./templates.ts";
@@ -136,7 +134,10 @@ const launch = (args: LaunchArgs, deps: TaskDeps) =>
   Result.gen(async function* () {
     yield* refuseInCloud(deps.env, "launch");
     const data = yield* Result.await(launchRequest(args.request));
-    const session = yield* Result.await(launchSession(data, deps));
+    const host = hostOf(deps);
+    const session = yield* Result.await(
+      launchSession(data, { ...deps, call: host.call }),
+    );
     if (session.state !== null) {
       if (!sameTask(session.state.request, data))
         return fail(
@@ -152,12 +153,13 @@ const launch = (args: LaunchArgs, deps: TaskDeps) =>
     const target = worktreeTarget(data.projectId);
     const fields = yield* Result.await(workerFields(data));
     const prompt = yield* Result.await(taskPrompt(deps.env, "worker", fields));
+    const thinking = args.thinking || host.thinking?.worker;
     const sent: Fields = {
       prompt,
       target,
       title: threadTitle("Impl", data),
       model: args.model || "claude-sonnet-5-5",
-      thinking: args.thinking || "high",
+      ...(thinking === undefined ? {} : { thinking }),
     };
     if (truthy(data.startingBranch))
       target.environment.startingState = {
@@ -201,12 +203,19 @@ const review = (args: ReviewArgs, deps: TaskDeps) =>
         "--recover applies to review only in a Claude Code cloud session",
       );
     const git = gitIn(deps.runGit, deps.env);
-    let data = yield* Result.await(reviewRequest(args.request, deps.env, git));
+    const host = hostOf(deps);
+    let data = yield* Result.await(
+      reviewRequest(args.request, deps.env, git, { worktrees: host.worktrees }),
+    );
     const worker = yield* callerId(deps.env);
     if (!Object.hasOwn(data, "workerChatId")) data.workerChatId = worker;
     if (data.workerChatId !== worker)
-      return fail("workerChatId in the request must equal CODEX_THREAD_ID");
-    const session = yield* Result.await(reviewSession(data, deps));
+      return fail(
+        `workerChatId in the request must equal ${host.threadVariable}`,
+      );
+    const session = yield* Result.await(
+      reviewSession(data, { ...deps, call: host.call }),
+    );
     yield* session.checkIdle();
     const recorded = session.state?.candidate ?? null;
     if (truthy(recorded) && !isObject(recorded))
@@ -233,7 +242,9 @@ const review = (args: ReviewArgs, deps: TaskDeps) =>
         );
     }
 
-    const fields = yield* Result.await(reviewFields(data));
+    const fields = yield* Result.await(
+      reviewFields(data, host.replyTo(String(data.workerAI))),
+    );
     const sent: Fields = {
       prompt: yield* Result.await(taskPrompt(deps.env, "reviewer", fields)),
     };
@@ -245,8 +256,9 @@ const review = (args: ReviewArgs, deps: TaskDeps) =>
       if (args.thinking !== undefined) sent.thinking = args.thinking;
     } else {
       const project = yield* Result.await(
-        reviewProject(deps.env, String(data.workerChatId)),
+        host.reviewProject(String(data.workerChatId)),
       );
+      const thinking = args.thinking || host.thinking?.reviewer;
       Object.assign(sent, {
         target: {
           type: "project",
@@ -255,7 +267,7 @@ const review = (args: ReviewArgs, deps: TaskDeps) =>
         },
         title: threadTitle("Review", data),
         model: args.model || "gpt-6.1-sol",
-        thinking: args.thinking || "medium",
+        ...(thinking === undefined ? {} : { thinking }),
       });
     }
 
@@ -268,15 +280,19 @@ const review = (args: ReviewArgs, deps: TaskDeps) =>
 const requestedSession = (path: string, deps: TaskDeps) =>
   Result.gen(async function* () {
     const raw = yield* Result.await(readJson(path));
+    const host = hostOf(deps);
+    const sessionDeps = { ...deps, call: host.call };
     if (isObject(raw) && Object.hasOwn(raw, "completionTarget")) {
       const data = yield* Result.await(launchRequest(path));
-      return await launchSession(data, deps);
+      return await launchSession(data, sessionDeps);
     }
 
     const git = gitIn(deps.runGit, deps.env);
-    const data = yield* Result.await(reviewRequest(path, deps.env, git));
+    const data = yield* Result.await(
+      reviewRequest(path, deps.env, git, { worktrees: host.worktrees }),
+    );
     data.workerChatId = yield* callerId(deps.env);
-    return await reviewSession(data, deps);
+    return await reviewSession(data, sessionDeps);
   });
 
 const state = (args: StateArgs, deps: TaskDeps) =>
@@ -297,6 +313,10 @@ const resolve = (args: ResolveArgs, deps: TaskDeps) =>
     return await session.resolve(args.sent, thread);
   });
 
+// pr-wake sends a PR's news to a Codex App thread, so a T3 Code thread is never linked to it.
+const T3_PR_ALTERNATIVE =
+  "The PR watch cannot notify a T3 Code thread, so check the PR with gh; rename the thread with t3_thread_update";
+
 // A PR URL may carry a tab, query or fragment after its number, as when copied from the browser.
 const PR_NUMBER =
   /^(?:#?([1-9][0-9]*)|https:\/\/\S+\/pull\/([1-9][0-9]*)(?:[/?#]\S*)?)$/;
@@ -304,6 +324,7 @@ const PR_NUMBER =
 const name = (args: NameArgs, deps: TaskDeps) =>
   Result.gen(async function* () {
     yield* refuseInCloud(deps.env, "name");
+    yield* refuseInT3(deps.env, "name", T3_PR_ALTERNATIVE);
     const matched = PR_NUMBER.exec(args.pr);
     const number = matched?.[1] ?? matched?.[2];
     if (number === undefined)
@@ -325,7 +346,7 @@ const name = (args: NameArgs, deps: TaskDeps) =>
     const answer =
       title === null
         ? null
-        : await callApp(deps.env, worker, "name_thread", { name: title });
+        : await hostOf(deps).call(worker, "name_thread", { name: title });
     const renamed =
       answer === null || answer.outcome === ("done" satisfies CallOutcome);
     // Fails even after a rename, so a PR the watch cannot see is never taken as watched.
@@ -359,6 +380,8 @@ const watch = async (args: WatchArgs, deps: TaskDeps) => {
   if (args.status) return prWake(deps.runTool, deps.env, ["status", "--json"]);
   if (args.sender) return prWake(deps.runTool, deps.env, ["sender"]);
   if (args.link !== undefined) {
+    const linked = refuseInT3(deps.env, "watch --link", T3_PR_ALTERNATIVE);
+    if (linked.isErr()) return Result.err(linked.error);
     if (!isGitHubPr(args.link))
       return fail(`${args.link} is not watched: ${NOT_LINKABLE}`);
     // Without --take-over pr-wake refuses a PR another chat is watched for, as harnexus-task watch --link did.
@@ -384,6 +407,11 @@ const watch = async (args: WatchArgs, deps: TaskDeps) => {
 const cloud = (args: CloudArgs, deps: TaskDeps) =>
   Result.gen(async function* () {
     yield* refuseInCloud(deps.env, "cloud");
+    yield* refuseInT3(
+      deps.env,
+      "cloud",
+      "Open a Cloud session from the Codex App instead",
+    );
     if (args.project !== undefined)
       yield* singleLine(args.project, "--project");
     const caller = yield* callerId(deps.env);
@@ -393,7 +421,7 @@ const cloud = (args: CloudArgs, deps: TaskDeps) =>
         : yield* Result.await(io(readRegularTextFile(args.promptFile)));
     if (prompt !== undefined && isBlank(prompt))
       return fail("the prompt file is empty");
-    const answer = await callApp(deps.env, caller, "cloud_open", {
+    const answer = await hostOf(deps).call(caller, "cloud_open", {
       cwd: deps.cwd ?? process.cwd(),
       ...(args.link !== undefined && { link: args.link }),
       ...(prompt !== undefined && { prompt }),

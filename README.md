@@ -1,6 +1,6 @@
 # harnexus-crew
 
-Task and review commands for Codex App and Claude Code workers, split out of harnexus.
+Task and review commands for Codex and Claude Code workers in the Codex App or T3 Code, split out of harnexus.
 State is kept under `$XDG_STATE_HOME/harnexus-crew` and config at `$XDG_CONFIG_HOME/harnexus/task.json`.
 
 ## Install
@@ -20,6 +20,18 @@ The binary is built in a temporary directory and must start and fill the worker 
 - App operations go to the harnexus bridge's call socket with call protocol 1. A bridge that does not offer it is reported as `unsupported` before anything is sent; update harnexus and restart the app.
 - `watch` runs `pr-wake watch` (found on `PATH`, or at `HARNEXUS_CREW_PR_WAKE`). The long-running `watch` hands over to the `pr-wake-engine` installed beside it.
 - `cloud` asks the bridge's `cloud_open`.
+- In a T3 Code thread, thread operations go to T3 Code's `t3` CLI instead; see below.
+
+## T3 Code
+
+A command run in a T3 Code thread, which T3 Code marks with `T3CODE_THREAD_ID`, starts and messages threads with `t3 thread start` and `t3 thread send`.
+
+- `launch` starts the worker in a new T3 Code worktree based on `startingBranch`, or the project's `HEAD` without one; `projectId` is the T3 Code project's ID.
+- `review` takes a checkout in `$T3CODE_HOME/worktrees` (by default `~/.t3/worktrees`) and starts the reviewer in `~/review-home`, which must be a T3 Code project: `t3 project add ~/review-home`.
+- The reviewer template's `reply-{reply_to}.md` link resolves to `reply-T3.md`, which `harnexus-crew check` also fills, so the reviewer answers with T3 Code's `t3_thread_send`; a Claude worker waits with `t3_thread_wait` and `t3_thread_read`.
+- `--thinking`, and `--model` for a re-review, are refused, since `t3` cannot set them; set them in T3 Code.
+- `name`, `watch --link` and `cloud` need the Codex App.
+- `t3` is taken from `HARNEXUS_T3_BIN`, then `PATH`, then `~/.t3/bin/t3`, the desktop app's launcher, and must run outside the sandbox.
 
 ## Cloud review chats in harnexus
 

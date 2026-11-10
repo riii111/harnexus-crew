@@ -341,7 +341,13 @@ const appFixture = async (answers: Line[]) => {
   const run = async (args: string[], thread: string) => {
     const done = await runTask(args, {
       ...TASK_DEPS,
-      env: { ...process.env, ...env, CODEX_THREAD_ID: thread },
+      // A T3 Code thread running the suite would otherwise take the commands to T3 Code.
+      env: {
+        ...process.env,
+        ...env,
+        CODEX_THREAD_ID: thread,
+        T3CODE_THREAD_ID: "",
+      },
     });
     return {
       code: done.code,

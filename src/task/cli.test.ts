@@ -155,8 +155,9 @@ const fixture = async () => {
   const env: Record<string, string> = {
     CODEX_HOME: codex,
     CODEX_THREAD_ID: "caller",
-    // Pinned, so a Cloud variable in the ambient environment cannot switch the commands to Cloud.
+    // Pinned, so a Cloud variable in the ambient environment cannot switch the commands to Cloud, nor a T3 Code thread to T3 Code.
     HARNEXUS_EXECUTION_ENV: "local",
+    T3CODE_THREAD_ID: "",
     HARNEXUS_CALL_SOCKET: socket,
     XDG_CONFIG_HOME: join(root, "config"),
     XDG_STATE_HOME: join(root, "state"),

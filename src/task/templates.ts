@@ -190,8 +190,8 @@ const SAMPLE_TASK = {
   head: "0000000000000000000000000000000000000000",
 };
 
-// The replies a reviewer template is rendered for: a worker in the app of either AI, and a Claude Code cloud session.
-const REPLIES = ["Codex", "Claude", "Cloud"];
+// The replies a reviewer template is rendered for: a worker in the Codex App of either AI, a worker in T3 Code, and a Claude Code cloud session.
+const REPLIES = ["Codex", "Claude", "T3", "Cloud"];
 
 // Renders every configured template as launch and review would, so an update can tell before it is switched to that it cannot fill them; a template not configured is only named.
 export const checkTemplates = (env: Env) =>
