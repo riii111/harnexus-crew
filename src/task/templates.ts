@@ -243,6 +243,7 @@ export const checkTemplates = (env: Env) =>
             yield* Result.await(reviewFields(SAMPLE_TASK, reply)),
           ),
         );
+
       const forT3 = await checked(
         "reviewer",
         reviewer,
