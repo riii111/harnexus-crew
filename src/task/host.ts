@@ -33,6 +33,8 @@ export type Host = {
   thinking: { worker: string; reviewer: string } | null;
   // Which reply template a reviewer follows to hand its result to the worker.
   replyTo: (workerAI: string) => string;
+  // Whether name --pr can rename the worker's thread to show its PR.
+  renamesThreads: boolean;
 };
 
 type HostDeps = { env: Env; which: (name: string) => string | null };
@@ -93,6 +95,7 @@ const codexHost = (env: Env): Host => {
     worktrees: join(codexHome(env), "worktrees"),
     thinking: { worker: "high", reviewer: "medium" },
     replyTo: (workerAI) => workerAI,
+    renamesThreads: true,
   };
 };
 
@@ -108,6 +111,8 @@ const t3Host = ({ env, which }: HostDeps): Host => {
     thinking: null,
     // A reviewer in T3 Code answers through T3 Code's own thread tools, whichever AI the worker is.
     replyTo: () => "T3",
+    // The t3 CLI cannot rename a thread; a worker renames its own with T3 Code's t3_thread_update.
+    renamesThreads: false,
   };
 };
 

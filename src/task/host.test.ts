@@ -8,7 +8,9 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 
-import { runTask, TASK_DEPS } from "./cli.ts";
+import { Result } from "better-result";
+
+import { runTask, TASK_DEPS, type TaskDeps } from "./cli.ts";
 import { createFakeCli } from "./testing/fake-cli.ts";
 
 const SKILLS = join(import.meta.dir, "../../test/fixtures/task-skills");
@@ -269,28 +271,82 @@ describe("harnexus-crew review in T3 Code with a reviewer template written befor
   });
 });
 
-describe("Codex App commands in T3 Code", () => {
-  test.each([
-    { name: "name", argv: ["name", "--pr", "1"] },
-    {
-      name: "watch --link",
-      argv: ["watch", "--link", "https://github.com/o/r/pull/1"],
-    },
-    { name: "cloud", argv: ["cloud", "--link", "session"] },
-  ])(
-    "refuses $name, which only the Codex App carries out",
-    async ({ argv }) => {
-      const { invoke, runs } = await fixture();
+describe("PR watch commands in T3 Code", () => {
+  test("links the PR to the T3 Code thread through pr-wake, leaving a launched worker's title to T3 Code", async () => {
+    const { invoke, write, plan, runs } = await fixture();
+    await plan(1, { out: started("worker") });
+    await plan(2, { out: shown("claude-sonnet-5-5") });
+    await invoke([
+      "launch",
+      "--request",
+      await write({
+        taskId: "TR1",
+        documentRefs: [README],
+        completionTarget: "draft_pr",
+        projectId: "t3-project",
+      }),
+    ]);
+    const prWake = fakePrWake({
+      threadId: "t3:worker",
+      watched: "https://github.com/o/r/pull/1",
+    });
 
-      const refused = await invoke([...argv]);
+    const named = await invoke(
+      ["name", "--pr", "https://github.com/o/r/pull/1"],
+      { runTool: prWake.runTool },
+    );
 
-      expect([refused.code, refused.err]).toEqual([
-        1,
-        expect.stringContaining("unavailable in T3 Code"),
-      ]);
-      expect(await runs()).toBe(0);
-    },
-  );
+    expect([named.code, named.err]).toEqual([0, ""]);
+    expect(named.out).toEqual({
+      threadId: "worker",
+      title: null,
+      watched: "https://github.com/o/r/pull/1",
+    });
+    expect(prWake.runs).toEqual([
+      {
+        argv: [
+          "pr-wake",
+          "watch",
+          "link",
+          "https://github.com/o/r/pull/1",
+          "--take-over",
+        ],
+        thread: "worker",
+      },
+    ]);
+    expect(await runs()).toBe(2);
+  });
+
+  test("passes watch --link to pr-wake from the T3 Code thread", async () => {
+    const { invoke } = await fixture();
+    const prWake = fakePrWake({
+      threadId: "t3:worker",
+      watched: "https://github.com/o/r/pull/1",
+    });
+
+    const linked = await invoke(
+      ["watch", "--link", "https://github.com/o/r/pull/1"],
+      { runTool: prWake.runTool },
+    );
+
+    expect([linked.code, linked.out?.watched]).toEqual([
+      0,
+      "https://github.com/o/r/pull/1",
+    ]);
+    expect(prWake.runs.map((run) => run.thread)).toEqual(["worker"]);
+  });
+
+  test("refuses cloud, which only the Codex App opens", async () => {
+    const { invoke, runs } = await fixture();
+
+    const refused = await invoke(["cloud", "--link", "session"]);
+
+    expect([refused.code, refused.err]).toEqual([
+      1,
+      expect.stringContaining("unavailable in T3 Code"),
+    ]);
+    expect(await runs()).toBe(0);
+  });
 });
 
 // A worker in T3 Code, whose Codex also sets a CODEX_THREAD_ID of its own.
@@ -330,10 +386,14 @@ const fixture = async () => {
     XDG_CONFIG_HOME: join(root, "config"),
     XDG_STATE_HOME: join(root, "state"),
   };
-  const invoke = async (args: string[]) => {
+  const invoke = async (
+    args: string[],
+    deps: Partial<Omit<TaskDeps, "env">> = {},
+  ) => {
     const run = await runTask(args, {
       ...TASK_DEPS,
       which: () => null,
+      ...deps,
       env: { ...process.env, ...env },
     });
     return {
@@ -404,4 +464,19 @@ const reviewFixture = async () => {
   const review = async (extra: string[] = []) =>
     base.invoke(["review", "--request", await base.write(data), ...extra]);
   return { ...base, checkout, commit, initial, data, review };
+};
+
+// pr-wake answering each watch command with the one JSON object it prints, recording the thread it was run from.
+const fakePrWake = (answer: Record<string, unknown>) => {
+  const runs: { argv: string[]; thread: string | undefined }[] = [];
+  const runTool: TaskDeps["runTool"] = async (argv, env) => {
+    runs.push({ argv: [...argv], thread: env.T3CODE_THREAD_ID });
+    return Result.ok({
+      status: 0,
+      stdout: `${JSON.stringify(answer)}\n`,
+      stderr: "",
+    });
+  };
+
+  return { runs, runTool };
 };

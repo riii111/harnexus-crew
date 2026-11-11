@@ -44,7 +44,9 @@ The task skills need `T3CODE_THREAD_ID` and T3 Code's thread tools, such as `t3_
 
 Set thinking levels in T3 Code; `--thinking` is refused.
 Change the model for a re-review in T3 Code; `--model` is refused for re-reviews.
-`name`, `watch --link` and `cloud` work only in the Codex App.
+PR monitoring in T3 Code needs a pr-wake that supports T3 Code.
+`name --pr` keeps the thread's title in T3 Code.
+`cloud` works only in the Codex App.
 `t3` is found on `PATH` or at `~/.t3/bin/t3`.
 Use `HARNEXUS_T3_BIN` to specify another path.
 
