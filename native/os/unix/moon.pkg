@@ -1,0 +1,5 @@
+options(
+  "native-stub": [ "stub.c" ],
+)
+
+supported_targets = "+native"

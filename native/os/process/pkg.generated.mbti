@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/os/process"
+
+import {
+  "riii111/harnexus-crew/shared/boundary",
+}
+
+// Values
+pub async fn run_command(String, ArrayView[String], Map[String, String], timeout_ms? : Int32) -> @boundary.CommandOutput raise @boundary.CommandFailed
+
+pub async fn run_inherited(String, ArrayView[String], Map[String, String]) -> Int32 raise @boundary.CommandFailed
+
+pub async fn run_process(String, ArrayView[String], String, cwd~ : String, env~ : Map[String, String], timeout_ms~ : Int32, kill_grace_ms~ : Int32) -> @boundary.ProcessRun raise @boundary.ProcessRunFailed
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
