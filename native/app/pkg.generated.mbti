@@ -58,7 +58,7 @@ pub(all) struct DefaultThinking {
 
 pub struct Host {
   thread_variable : String
-  call : async (String, String, Map[String, @json.Json]) -> @call.CallAnswer
+  call : async (String, String, Map[String, @json.Json]) -> @call.CallAnswer noraise
   review_project : async (String) -> String raise @failure.TaskFailed
   worktrees : String
   thinking : DefaultThinking?

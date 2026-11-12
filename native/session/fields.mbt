@@ -1,0 +1,102 @@
+///|
+/// The values Python and JS count as false, which decide whether state recorded by either version counts as present.
+fn truthy(value : Json) -> Bool {
+  match value {
+    Null | False => false
+    True => true
+    Number(number, ..) => number != 0.0
+    String(text) => text.length() > 0
+    Array(items) => !items.is_empty()
+    Object(members) => !members.is_empty()
+  }
+}
+
+///|
+/// A member of a record, Null when the record has none or is not an object.
+fn field(record : Json, key : String) -> Json {
+  match record {
+    Object(members) => value_of(members, key)
+    _ => Json::null()
+  }
+}
+
+///|
+fn value_of(members : Map[String, Json], key : String) -> Json {
+  members.get(key).unwrap_or(Json::null())
+}
+
+///|
+/// Structural equality as the TypeScript build's strict deep comparison has it: members in any order, numbers by value.
+fn json_equal(a : Json, b : Json) -> Bool {
+  match (a, b) {
+    (Null, Null) | (True, True) | (False, False) => true
+    (Number(x, ..), Number(y, ..)) => x == y
+    (String(x), String(y)) => x == y
+    (Array(x), Array(y)) =>
+      x.length() == y.length() &&
+      (for i in 0..<x.length() {
+        if !json_equal(x[i], y[i]) {
+          break false
+        }
+      } nobreak {
+        true
+      })
+    (Object(x), Object(y)) =>
+      x.length() == y.length() &&
+      (for key, item in x {
+        match y.get(key) {
+          Some(other) if json_equal(item, other) => ()
+          _ => break false
+        }
+      } nobreak {
+        true
+      })
+    _ => false
+  }
+}
+
+///|
+/// A string as it is, any other value as JSON.
+fn as_text(value : Json) -> String {
+  match value {
+    String(text) => text
+    other => @jsonio.stringify(other)
+  }
+}
+
+///|
+/// The model and thinking a record names, null where it names none.
+fn settings_of(record : Json) -> Json {
+  Json::object({
+    "model": field(record, "model"),
+    "effort": field(record, "effort"),
+  })
+}
+
+///|
+/// What a thread was asked to run on and ran on.
+/// A send that named neither leaves the thread's settings as they were, so it has none.
+fn sent_settings(sent : Json) -> Json {
+  let requested = settings_of(field(sent, "expected"))
+  let asked = !(field(requested, "model") is Null) ||
+    !(field(requested, "effort") is Null)
+  if field(sent, "tool") is String("create_thread") || asked {
+    Json::object({
+      "requested": requested,
+      "actual": settings_of(field(sent, "actual")),
+    })
+  } else {
+    Json::null()
+  }
+}
+
+///|
+/// The title of a thread: the task's display name when it has one, else its ID.
+fn thread_title(kind : String, request : Json) -> String {
+  let name = field(request, "displayName")
+  if truthy(name) {
+    "\{kind}｜\{as_text(name)}"
+  } else {
+    "\{kind} \{as_text(field(request, "taskId"))}"
+  }
+}

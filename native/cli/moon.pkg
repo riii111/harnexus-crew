@@ -7,6 +7,7 @@ import {
   "riii111/harnexus-crew/prompt",
   "riii111/harnexus-crew/shared/failure",
   "riii111/harnexus-crew/shared/jsonio",
+  "riii111/harnexus-crew/session",
   "riii111/harnexus-crew/shared/run",
   "riii111/harnexus-crew/store",
   "riii111/harnexus-crew/text",

@@ -4,11 +4,15 @@ async fn run_command(command : @args.Command, env : @environment.Env) -> Json {
   match command {
     Environment => environment_command(env)
     State({ request: None, }) => state_command(env)
-    State({ request: Some(_), }) => not_migrated("state --request")
-    Launch(_) => not_migrated("launch")
-    Review(_) => not_migrated("review")
-    Resolve(_) => not_migrated("resolve")
-    Name(_) => not_migrated("name")
+    State({ request: Some(request), }) =>
+      @session.state_request(request, env, which=@which.in_env(env))
+    Launch(args) => @session.launch(args, env, which=@which.in_env(env))
+    Review(args) =>
+      @session.review(args, env, which=@which.in_env(env), cloud=_ => {
+        not_migrated("review in a Claude Code cloud session")
+      })
+    Resolve(args) => @session.resolve(args, env, which=@which.in_env(env))
+    Name(args) => @session.name(args, env, which=@which.in_env(env))
     Watch(args) => @prwake.watch(args, env, which=@which.in_env(env))
     Check => @prompt.check_templates(env)
     Cloud(_) => not_migrated("cloud")
