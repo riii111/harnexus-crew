@@ -1,0 +1,5 @@
+import {
+  "riii111/harnexus-crew/shared/jsonio",
+}
+
+supported_targets = "+native"

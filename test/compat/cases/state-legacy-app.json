@@ -1,0 +1,11 @@
+{
+  "name": "state-legacy-app",
+  "owner": "MB09",
+  "status": "pending",
+  "kind": "command",
+  "argv": ["state"],
+  "env": { "HARNEXUS_EXECUTION_ENV": "local" },
+  "seed": {
+    "state/harnexus-crew": "test/fixtures/legacy-state/app/state/taskctl"
+  }
+}

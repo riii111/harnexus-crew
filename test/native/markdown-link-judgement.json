@@ -1,0 +1,469 @@
+{
+  "baseline": "51af56c5ee443de97e244be1c9eee97ebb34a6ac",
+  "bun": "1.4.4",
+  "note": "selected lists the indexes of candidates (the targets of ](...) in the template, in order) that Bun.markdown.render judged to be links or images after the marker replacement of src/task/templates.ts; md4c v0.6.0 judged the same.",
+  "cases": [
+    {
+      "name": "T01 reviewer fixture template",
+      "source": "templates.test.ts",
+      "file": "test/fixtures/task-skills/task-review-cycle/references/reviewer.md",
+      "candidates": [
+        "../../ai-code-review/SKILL.md",
+        "../SKILL.md#レビュー時の確認事項",
+        "reply-{reply_to}.md"
+      ],
+      "selected": [0, 1, 2]
+    },
+    {
+      "name": "T02 own template with values, refs and URLs",
+      "source": "templates.test.ts",
+      "text": "{{task_id}} is {task_id}\n{document_refs}\n[guide](https://example.com/guide) [local](/nowhere.md) [top](#top) [linked](../linked.md) [escaped](../{{task_id}}.md)\n[ref][r]\n\n[r]: ../linked.md\n[注意]: 先に読むこと\n",
+      "candidates": [
+        "https://example.com/guide",
+        "/nowhere.md",
+        "#top",
+        "../linked.md",
+        "../{{task_id}}.md"
+      ],
+      "selected": [0, 1, 2, 3, 4]
+    },
+    {
+      "name": "T03 links in code, comment, tags and indentation",
+      "source": "templates.test.ts",
+      "text": "Cite as `[file](path/to/file.ts)` or ``[a](b`c.md)``.\n```md\n[x](missing.md)\n```\n~~~\n[y](gone.md)\n```\nstill code [z](none.md)\n~~~\n1. Output format:\n\n    ~~~md\n    [file](path/to/file.ts)\n    ~~~\n\n> ```\n> [q](quoted.md)\n> ```\n\n<!--\n- [old](gone.md)\n\n# Old\n[x](gone.md)\n-->\nWrite `[text](` then <rules>\n[$s](linked.md)\n</rules>\n\n    ![i](linked.md)\n",
+      "candidates": [
+        "path/to/file.ts",
+        "missing.md",
+        "gone.md",
+        "none.md",
+        "path/to/file.ts",
+        "quoted.md",
+        "gone.md",
+        "gone.md",
+        "linked.md",
+        "linked.md"
+      ],
+      "selected": [8, 9]
+    },
+    {
+      "name": "T04 after a code span",
+      "source": "templates.test.ts",
+      "text": "`[a](b.md)` then [c](missing.md)\n",
+      "candidates": ["b.md", "missing.md"],
+      "selected": [1]
+    },
+    {
+      "name": "T05 lone backtick, CRLF blank line",
+      "source": "templates.test.ts",
+      "text": "Type a ` to start.\r\n\r\n[c](missing.md)\r\n\r\nThen `x`.\r\n",
+      "candidates": ["missing.md"],
+      "selected": [0]
+    },
+    {
+      "name": "T06 lone backtick, heading",
+      "source": "templates.test.ts",
+      "text": "Type a backtick: `\n# Instructions\n[c](missing.md)\nUse `x`.\n",
+      "candidates": ["missing.md"],
+      "selected": [0]
+    },
+    {
+      "name": "T07 escaped backtick",
+      "source": "templates.test.ts",
+      "text": "Write \\` then [c](missing.md) and `x`.\n",
+      "candidates": ["missing.md"],
+      "selected": [0]
+    },
+    {
+      "name": "T08 anchors and field-led targets",
+      "source": "templates.test.ts",
+      "text": "[note](notes/task.md#{task_id}) [id]({task_id})\n",
+      "candidates": ["notes/task.md#{task_id}", "{task_id}"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "T09 refuse: real path with a space",
+      "source": "templates.test.ts",
+      "text": "[$s](spaced/SKILL.md)\n",
+      "candidates": ["spaced/SKILL.md"],
+      "selected": [0]
+    },
+    {
+      "name": "T10 refuse: real path with #",
+      "source": "templates.test.ts",
+      "text": "[$s](hashed/SKILL.md)\n",
+      "candidates": ["hashed/SKILL.md"],
+      "selected": [0]
+    },
+    {
+      "name": "T11 refuse: target with a title",
+      "source": "templates.test.ts",
+      "text": "[n](notes/task.md \"notes\")\n",
+      "candidates": ["notes/task.md \"notes\""],
+      "selected": [0]
+    },
+    {
+      "name": "T12 refuse: escaped braces",
+      "source": "templates.test.ts",
+      "text": "[n]({{task_id}}/task.md)\n",
+      "candidates": ["{{task_id}}/task.md"],
+      "selected": [0]
+    },
+    {
+      "name": "T13 refuse: full-width space",
+      "source": "templates.test.ts",
+      "text": "[n](　notes/task.md)\n",
+      "candidates": ["　notes/task.md"],
+      "selected": [0]
+    },
+    {
+      "name": "T14 refuse: angle brackets",
+      "source": "templates.test.ts",
+      "text": "[n](<notes/task.md>)\n",
+      "candidates": ["<notes/task.md>"],
+      "selected": [0]
+    },
+    {
+      "name": "T15 refuse: field holding a path",
+      "source": "templates.test.ts",
+      "text": "[n](notes/{task_id}.md)\n",
+      "candidates": ["notes/{task_id}.md"],
+      "selected": [0]
+    },
+    {
+      "name": "T16 refuse: field breaking the anchor",
+      "source": "templates.test.ts",
+      "text": "[n](notes/task.md#{task_id})\n",
+      "candidates": ["notes/task.md#{task_id}"],
+      "selected": [0]
+    },
+    {
+      "name": "T17 refuse: unknown field",
+      "source": "templates.test.ts",
+      "text": "[n](notes/{constructor}.md)\n",
+      "candidates": ["notes/{constructor}.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X01 fence with longer closing fence",
+      "source": "fixed",
+      "text": "````\n[a](x.md)\n```\nstill [b](y.md)\n````\n[c](z.md)\n",
+      "candidates": ["x.md", "y.md", "z.md"],
+      "selected": [2]
+    },
+    {
+      "name": "X02 fence with info string and indent 3",
+      "source": "fixed",
+      "text": "   ```md\n   [a](x.md)\n   ```\n[b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [1]
+    },
+    {
+      "name": "X03 double backtick code span",
+      "source": "fixed",
+      "text": "``[a](x.md)`` and ``code ` tick`` [b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [1]
+    },
+    {
+      "name": "X04 code span across lines",
+      "source": "fixed",
+      "text": "`start\n[a](x.md)\nend` [b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [1]
+    },
+    {
+      "name": "X05 single-line comment",
+      "source": "fixed",
+      "text": "<!-- [a](x.md) --> [b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [1]
+    },
+    {
+      "name": "X06 unclosed comment",
+      "source": "fixed",
+      "text": "<!-- [a](x.md)\n\n[b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X07 custom tag wrapping prose",
+      "source": "fixed",
+      "text": "<rules>\n[a](x.md)\n</rules>\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X08 div with blank lines",
+      "source": "fixed",
+      "text": "<div>\n\n[a](x.md)\n\n</div>\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X09 inline html span",
+      "source": "fixed",
+      "text": "<span>[a](x.md)</span> <b>[c](z.md)</b>\n",
+      "candidates": ["x.md", "z.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X10 html anchor element",
+      "source": "fixed",
+      "text": "<a href=\"q.md\">[b](y.md)</a>\n",
+      "candidates": ["y.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X11 custom tag with attributes",
+      "source": "fixed",
+      "text": "<task-rules level=\"2\">\n[a](x.md)\n</task-rules>\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X12 processing instruction inline",
+      "source": "fixed",
+      "text": "<?x [a](x.md) ?> [b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [1]
+    },
+    {
+      "name": "X13 CDATA inline",
+      "source": "fixed",
+      "text": "<![CDATA[ [a](x.md) ]]> [b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [1]
+    },
+    {
+      "name": "X14 declaration inline",
+      "source": "fixed",
+      "text": "<!DOCTYPE [a](x.md)> [b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [1]
+    },
+    {
+      "name": "X15 four-space prose",
+      "source": "fixed",
+      "text": "Intro\n\n    [a](x.md) indented prose\n\n        [b](y.md) eight spaces\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X16 tab indented prose",
+      "source": "fixed",
+      "text": "Intro\n\n\t[a](x.md)\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X17 indented after list",
+      "source": "fixed",
+      "text": "- item\n\n      [a](x.md)\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X18 image",
+      "source": "fixed",
+      "text": "![i](x.png)\n",
+      "candidates": ["x.png"],
+      "selected": [0]
+    },
+    {
+      "name": "X19 image inside link",
+      "source": "fixed",
+      "text": "[![i](a.png)](b.md)\n",
+      "candidates": ["a.png", "b.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X20 space in target",
+      "source": "fixed",
+      "text": "[a](x y.md)\n",
+      "candidates": ["x y.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X21 parenthesis in target",
+      "source": "fixed",
+      "text": "[a](x(1).md)\n",
+      "candidates": ["x(1"],
+      "selected": [0]
+    },
+    {
+      "name": "X22 angle target with space",
+      "source": "fixed",
+      "text": "[a](<x y.md>)\n",
+      "candidates": ["<x y.md>"],
+      "selected": [0]
+    },
+    {
+      "name": "X23 padded target",
+      "source": "fixed",
+      "text": "[a]( x.md )\n",
+      "candidates": [" x.md "],
+      "selected": [0]
+    },
+    {
+      "name": "X24 single-quoted title",
+      "source": "fixed",
+      "text": "[a](x.md 'T')\n",
+      "candidates": ["x.md 'T'"],
+      "selected": [0]
+    },
+    {
+      "name": "X25 escaped opening bracket",
+      "source": "fixed",
+      "text": "\\[a](x.md)\n",
+      "candidates": ["x.md"],
+      "selected": []
+    },
+    {
+      "name": "X26 escaped closing bracket",
+      "source": "fixed",
+      "text": "[a\\](x.md)\n",
+      "candidates": ["x.md"],
+      "selected": []
+    },
+    {
+      "name": "X27 escaped paren in target",
+      "source": "fixed",
+      "text": "[a](x\\).md)\n",
+      "candidates": ["x\\"],
+      "selected": [0]
+    },
+    {
+      "name": "X28 emphasis around link",
+      "source": "fixed",
+      "text": "*[a](x.md)* **[b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X29 atx and setext headings",
+      "source": "fixed",
+      "text": "# [a](x.md)\n\n[b](y.md)\n---\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X30 blockquote and list",
+      "source": "fixed",
+      "text": "> [a](x.md)\n\n- [b](y.md)\n  1. [c](z.md)\n",
+      "candidates": ["x.md", "y.md", "z.md"],
+      "selected": [0, 1, 2]
+    },
+    {
+      "name": "X31 table cells",
+      "source": "fixed",
+      "text": "| [a](x.md) | b |\n|---|---|\n| [c](y.md) | d |\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X32 strikethrough",
+      "source": "fixed",
+      "text": "~~[a](x.md)~~\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X33 task list",
+      "source": "fixed",
+      "text": "- [ ] [a](x.md)\n- [x] done\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X34 autolink and bare URL",
+      "source": "fixed",
+      "text": "<https://e.com/(x)> https://e.com/[a](x.md)\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X35 reference definition and use",
+      "source": "fixed",
+      "text": "[a][b]\n\n[b]: x.md\n[c]: (y.md)\n",
+      "candidates": [],
+      "selected": []
+    },
+    {
+      "name": "X36 nested brackets",
+      "source": "fixed",
+      "text": "[a [b]](x.md) [[c]](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X37 link text across lines",
+      "source": "fixed",
+      "text": "[a\nb](x.md)\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X38 link in link text",
+      "source": "fixed",
+      "text": "[a [b](y.md)](x.md)\n",
+      "candidates": ["y.md", "x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X39 entity in target",
+      "source": "fixed",
+      "text": "[a](x&amp;.md)\n",
+      "candidates": ["x&amp;.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X40 hard break and trailing spaces",
+      "source": "fixed",
+      "text": "line  \n[a](x.md)\\\n[b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X41 paragraph interrupted by fence",
+      "source": "fixed",
+      "text": "text [a](x.md\n```\n[b](y.md)\n```\n",
+      "candidates": ["y.md"],
+      "selected": []
+    },
+    {
+      "name": "X42 full-width text around",
+      "source": "fixed",
+      "text": "「[a](x.md)」と［b］(y.md)\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X43 empty target",
+      "source": "fixed",
+      "text": "[a]() [b](#)\n",
+      "candidates": ["", "#"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X44 thematic break and link",
+      "source": "fixed",
+      "text": "***\n[a](x.md)\n___\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    },
+    {
+      "name": "X45 html block type 1 tag",
+      "source": "fixed",
+      "text": "<pre>\n[a](x.md)\n</pre>\n[b](y.md)\n",
+      "candidates": ["x.md", "y.md"],
+      "selected": [0, 1]
+    },
+    {
+      "name": "X46 script tag",
+      "source": "fixed",
+      "text": "<script>\n[a](x.md)\n</script>\n",
+      "candidates": ["x.md"],
+      "selected": [0]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "help",
+  "owner": "MB05",
+  "status": "pending",
+  "kind": "help",
+  "argv": ["--help"]
+}
