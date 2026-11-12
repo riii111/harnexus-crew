@@ -1,0 +1,17 @@
+{
+  "name": "adapter-handover-pending-not-a-list",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "command",
+  "argv": ["adapter", "handover"],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ],
+  "files": {
+    "state/harnexus-crew/cloud-observe/pending.json": "{}"
+  }
+}

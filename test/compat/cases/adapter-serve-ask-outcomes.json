@@ -1,0 +1,83 @@
+{
+  "name": "adapter-serve-ask-outcomes",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "session",
+  "argv": ["adapter", "serve", "--id", "taskctl"],
+  "steps": [
+    {
+      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"adapterId\":\"taskctl\",\"mode\":\"write\",\"versions\":[1]}"
+    },
+    {
+      "wait": 1
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"ready\",\"bridgeId\":\"b1\",\"bindings\":[],\"pending\":[],\"conflicts\":[]}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"request\",\"id\":\"settle\",\"op\":\"history\",\"threadId\":\"none\"}"
+    },
+    {
+      "wait": 2
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t1\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"a\"}"
+    },
+    {
+      "wait": 3
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-1\",\"bridgeId\":\"b1\",\"outcome\":\"rejected\",\"reason\":\"not_linked\"}"
+    },
+    {
+      "wait": 5
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t2\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"b\"}"
+    },
+    {
+      "wait": 6
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-2\",\"bridgeId\":\"b1\",\"outcome\":\"unknown\"}"
+    },
+    {
+      "wait": 7
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t3\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"c\"}"
+    },
+    {
+      "wait": 8
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-3\",\"bridgeId\":\"b1\",\"outcome\":\"not_sent\",\"reason\":\"down\"}"
+    },
+    {
+      "wait": 9
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t4\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"d\"}"
+    },
+    {
+      "wait": 10
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-4\",\"bridgeId\":\"b1\",\"outcome\":\"rejected\"}"
+    },
+    {
+      "wait": 11
+    }
+  ],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ],
+  "snapshot": ["state"],
+  "files": {
+    "home/.local/state/harnexus/cloud-reviews/chats.json": "{\"R1\":{\"threadId\":\"chat-r1\",\"session\":\"session_01AbC\"}}"
+  }
+}

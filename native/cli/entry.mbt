@@ -35,7 +35,7 @@ async fn dispatch(
     }
   }
   if command == "adapter" {
-    return failure_run(not_migrated_message("adapter"))
+    return adapter_run(argv[1:], read_env)
   }
   let usage = usage_of([command], @environment.NAME)
   match parse(command, argv[1:]) {

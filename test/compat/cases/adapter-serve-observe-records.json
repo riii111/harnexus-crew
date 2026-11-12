@@ -1,0 +1,37 @@
+{
+  "name": "adapter-serve-observe-records",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "session",
+  "argv": ["adapter", "serve", "--id", "taskctl"],
+  "steps": [
+    {
+      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"adapterId\":\"taskctl\",\"mode\":\"observe\",\"versions\":[1]}"
+    },
+    {
+      "wait": 1
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"ready\",\"bridgeId\":\"b1\",\"bindings\":[],\"pending\":[],\"conflicts\":[]}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"session_records\",\"eventId\":\"e1\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"link\":\"parent-chat\",\"shownBefore\":null,\"phase\":\"linked\",\"linkedAt\":\"u-t-aaa1111-R1\",\"records\":[{\"type\":\"user\",\"uuid\":\"p0\",\"message\":{\"role\":\"user\",\"content\":\"start\"}},{\"type\":\"assistant\",\"uuid\":\"a-t-aaa1111-R1\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t-aaa1111-R1\",\"name\":\"Bash\",\"input\":{}}]}},{\"type\":\"user\",\"uuid\":\"u-t-aaa1111-R1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"t-aaa1111-R1\",\"content\":\"{\\n \\\"status\\\": \\\"completed\\\",\\n \\\"verdict\\\": \\\"LGTM\\\",\\n \\\"taskId\\\": \\\"harnexus-1\\\",\\n \\\"base\\\": \\\"b1\\\",\\n \\\"head\\\": \\\"aaa1111\\\",\\n \\\"reviewer\\\": \\\"R1\\\",\\n \\\"answer\\\": \\\"判定: LGTM aaa1111\\\",\\n \\\"state\\\": \\\"/tmp/state.json\\\"\\n}\",\"is_error\":false}]}}]}"
+    },
+    {
+      "wait": 2
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"session_records\",\"eventId\":\"e2\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"link\":\"parent-chat\",\"shownBefore\":\"u-t-aaa1111-R1\",\"phase\":\"continued\",\"records\":[{\"type\":\"user\",\"uuid\":\"p0\",\"message\":{\"role\":\"user\",\"content\":\"start\"}},{\"type\":\"assistant\",\"uuid\":\"a-t-aaa1111-R1\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t-aaa1111-R1\",\"name\":\"Bash\",\"input\":{}}]}},{\"type\":\"user\",\"uuid\":\"u-t-aaa1111-R1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"t-aaa1111-R1\",\"content\":\"{\\n \\\"status\\\": \\\"completed\\\",\\n \\\"verdict\\\": \\\"LGTM\\\",\\n \\\"taskId\\\": \\\"harnexus-1\\\",\\n \\\"base\\\": \\\"b1\\\",\\n \\\"head\\\": \\\"aaa1111\\\",\\n \\\"reviewer\\\": \\\"R1\\\",\\n \\\"answer\\\": \\\"判定: LGTM aaa1111\\\",\\n \\\"state\\\": \\\"/tmp/state.json\\\"\\n}\",\"is_error\":false}]}},{\"type\":\"assistant\",\"uuid\":\"a-t-bbb2222-R1\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t-bbb2222-R1\",\"name\":\"Bash\",\"input\":{}}]}},{\"type\":\"user\",\"uuid\":\"u-t-bbb2222-R1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"t-bbb2222-R1\",\"content\":\"{\\n \\\"status\\\": \\\"completed\\\",\\n \\\"verdict\\\": \\\"LGTM\\\",\\n \\\"taskId\\\": \\\"harnexus-1\\\",\\n \\\"base\\\": \\\"b1\\\",\\n \\\"head\\\": \\\"bbb2222\\\",\\n \\\"reviewer\\\": \\\"R1\\\",\\n \\\"answer\\\": \\\"判定: LGTM bbb2222\\\",\\n \\\"state\\\": \\\"/tmp/state.json\\\"\\n}\",\"is_error\":false}]}}]}"
+    },
+    {
+      "wait": 3
+    }
+  ],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ]
+}

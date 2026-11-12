@@ -21,6 +21,7 @@ export type Sandbox = {
   env: Record<string, string>;
   cwd: string;
   bridgeSocket: string;
+  expand: (text: string) => string;
   cleanup: () => Promise<void>;
 };
 
@@ -71,6 +72,7 @@ export const createSandbox = async (spec: Case): Promise<Sandbox> => {
     env,
     cwd: dirs.work,
     bridgeSocket,
+    expand,
     cleanup: () => rm(root, { recursive: true, force: true }),
   };
 };

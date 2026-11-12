@@ -265,3 +265,11 @@ fn cloud_args(options : ParsedOptions) -> CloudArgs raise UsageError {
     thinking: options.text("thinking"),
   }
 }
+
+///|
+/// Reads the arguments after `adapter serve`, which takes no `--help`; the id is None when it was not given.
+pub fn parse_adapter_serve(
+  rest : ArrayView[String],
+) -> String? raise UsageError {
+  parse_options(rest, [{ name: "id", kind: Text, short: None, }]).text("id")
+}

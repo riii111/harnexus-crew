@@ -4,6 +4,8 @@ package "riii111/harnexus-crew/args"
 // Values
 pub fn command_names() -> Array[String]
 
+pub fn parse_adapter_serve(ArrayView[String]) -> String? raise UsageError
+
 pub fn parse_command(String, ArrayView[String]) -> Parsed raise UsageError
 
 // Errors

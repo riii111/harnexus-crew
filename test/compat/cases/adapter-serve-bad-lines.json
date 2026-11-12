@@ -1,0 +1,52 @@
+{
+  "name": "adapter-serve-bad-lines",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "session",
+  "argv": ["adapter", "serve", "--id", "taskctl"],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ],
+  "steps": [
+    {
+      "send": "not json"
+    },
+    {
+      "send": "{\"type\":\"hello\"}"
+    },
+    {
+      "send": "{\"v\":2,\"type\":\"hello\"}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"bogus\"}"
+    },
+    {
+      "send": "{\"v\":1}"
+    },
+    {
+      "send": "[1,2]"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"unknown_event\"}"
+    },
+    {
+      "send": ""
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"response\",\"id\":\"nobody\",\"outcome\":\"done\"}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"request\",\"op\":\"other\",\"id\":\"x\"}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"adapterId\":\"taskctl\",\"mode\":\"observe\",\"versions\":[1]}"
+    },
+    {
+      "wait": 1
+    }
+  ]
+}

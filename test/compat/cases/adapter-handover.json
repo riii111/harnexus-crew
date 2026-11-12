@@ -1,0 +1,20 @@
+{
+  "name": "adapter-handover",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "command",
+  "argv": ["adapter", "handover"],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ],
+  "files": {
+    "state/harnexus-crew/cloud-observe/journal.jsonl": "{\"at\":\"2026-11-01T00:00:00.000Z\",\"kind\":\"observed_review\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"7419687f80b7267449159b3d2b775812\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\"}}\n{\"at\":\"2026-11-01T00:00:00.000Z\",\"kind\":\"observed_review\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"69a672596356f0cb4c8243a03754317f\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"bbb2222\",\"answer\":\"判定: LGTM bbb2222\"}}\n{\"at\":\"2026-11-01T00:00:00.000Z\",\"kind\":\"observed_review\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"7419687f80b7267449159b3d2b775812\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\"}}\n{\"at\":\"2026-11-01T00:00:00.000Z\",\"kind\":\"legacy_unsent\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"9e2d70ab8628d4a3ec4b3bc2fd2e91d7\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"ccc3333\",\"answer\":\"判定: LGTM ccc3333\"}}\n{\"at\":\"2026-11-01T00:00:00.000Z\",\"kind\":\"observed_review\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"350fac1e5261353171e57a57712f52be\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"ddd4444\",\"answer\":\"判定: LGTM ddd4444\"}}\n{\"at\":\"2026-11-01T00:00:00.000Z\",\"kind\":\"review_taken\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"2266203d87f3ec5c1cc36dcde352905b\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"eee5555\",\"answer\":\"判定: LGTM eee5555\"}}\nnot json\n\n{\"kind\":\"observed_review\",\"review\":{\"notKey\":1},\"parentThreadId\":\"parent-chat\"}\n{\"kind\":\"observed_review\",\"review\":{\"key\":\"69a672596356f0cb4c8243a03754317f\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"bbb2222\",\"answer\":\"判定: LGTM bbb2222\"}}\n[\"array\"]\n",
+    "home/.local/state/harnexus/cloud-reviews/69a672596356f0cb4c8243a03754317f.json": "{\"key\":\"69a672596356f0cb4c8243a03754317f\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"bbb2222\",\"answer\":\"判定: LGTM bbb2222\",\"sent\":true,\"threadId\":\"chat-r1\",\"shownAt\":\"2026-11-01T00:00:00.000Z\"}",
+    "home/.local/state/harnexus/cloud-reviews/350fac1e5261353171e57a57712f52be.reserved": "{}",
+    "state/harnexus-crew/cloud-observe/pending.json": "[{\"parentThreadId\":\"p\",\"sessionId\":null,\"review\":{\"key\":\"7419687f80b7267449159b3d2b775812\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\"}}]"
+  }
+}

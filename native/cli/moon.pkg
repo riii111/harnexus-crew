@@ -1,4 +1,5 @@
 import {
+  "riii111/harnexus-crew/adapter",
   "riii111/harnexus-crew/args",
   "riii111/harnexus-crew/environment",
   "riii111/harnexus-crew/os/socket",
