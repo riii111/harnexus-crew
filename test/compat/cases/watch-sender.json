@@ -1,0 +1,12 @@
+{
+  "name": "watch-sender",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "command",
+  "argv": ["watch", "--sender"],
+  "commands": {
+    "pr-wake": {
+      "stdout": "{\"sender\":\"ok\"}\n"
+    }
+  }
+}

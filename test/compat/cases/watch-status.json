@@ -1,0 +1,12 @@
+{
+  "name": "watch-status",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "command",
+  "argv": ["watch", "--status"],
+  "commands": {
+    "pr-wake": {
+      "stdout": "{\"watching\":[],\"n\":1}\n"
+    }
+  }
+}

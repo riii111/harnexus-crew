@@ -59,6 +59,7 @@ mooncakesの `moonbitlang/async` は使わない。
 | `os/testkit`      | 上の試験が使うサーバー・fd数の確認（試験だけが取り込む）    | MB02               |
 | `cli`             | 振り分け、usage、クラッシュ報告、`environment`・`state`     | MB05               |
 | `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）              | MB05               |
+| `prwake`          | pr-wakeの呼び出しと `watch` コマンド、GitHubのPRのURL判定   | MB07               |
 | `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                         | MB05               |
 
 後続の新しいパッケージは、次の名前を目安にする。

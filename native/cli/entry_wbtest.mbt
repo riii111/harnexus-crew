@@ -88,7 +88,6 @@ async test "commands no task has moved fail and never fall back" {
     (["state", "--request", "r"], "state --request"),
     (["resolve", "--request", "r", "--sent"], "resolve"),
     (["name", "--pr", "1"], "name"),
-    (["watch"], "watch"),
     (["check"], "check"),
     (["cloud", "--link", "l"], "cloud"),
     (["adapter"], "adapter"),
@@ -103,6 +102,17 @@ async test "commands no task has moved fail and never fall back" {
       "harnexus-crew: \{pair.1} is not available in this native build yet\n",
     )
   }
+}
+
+///|
+async test "watch is run by the pr-wake package" {
+  let run = run_with(["watch", "--link", "https://example.com/o/r/pull/1"], [])
+  assert_eq(run.code, 1)
+  assert_eq(run.stdout, "")
+  assert_eq(
+    run.stderr,
+    "harnexus-crew: https://example.com/o/r/pull/1 is not watched: the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>\n",
+  )
 }
 
 ///|

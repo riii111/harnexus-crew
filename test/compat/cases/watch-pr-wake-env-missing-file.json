@@ -1,0 +1,10 @@
+{
+  "name": "watch-pr-wake-env-missing-file",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "command",
+  "argv": ["watch", "--status"],
+  "env": {
+    "HARNEXUS_CREW_PR_WAKE": "{{root}}/nowhere/pr-wake"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "watch-dry-run",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "command",
+  "argv": ["watch", "--dry-run"],
+  "commands": {
+    "pr-wake": {
+      "stdout": "{\"prs\":[]}\n"
+    }
+  }
+}

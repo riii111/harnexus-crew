@@ -12,7 +12,7 @@ async fn run_command(
     Review(_) => not_migrated("review")
     Resolve(_) => not_migrated("resolve")
     Name(_) => not_migrated("name")
-    Watch(_) => not_migrated("watch")
+    Watch(args) => @prwake.watch(args, env, which=@which.in_env(env))
     Check => not_migrated("check")
     Cloud(_) => not_migrated("cloud")
   }
