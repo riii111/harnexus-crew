@@ -81,11 +81,13 @@ fn leave_marker(args : Array[String]) -> Json {
 }
 
 ///|
-/// Arguments: path, content, start time.
+/// The content is `size` copies of one string, built here because an argument can hold only about 128 KiB on Linux.
+/// Arguments: path, string, size, start time.
 async fn create_exclusive(args : Array[String]) -> Json {
-  wait_until(number_arg(args, 4))
+  let content = arg(args, 3).repeat(number_arg(args, 4).to_int())
+  wait_until(number_arg(args, 5))
   try {
-    let created = @store.write_exclusive(arg(args, 2), arg(args, 3))
+    let created = @store.write_exclusive(arg(args, 2), content)
     object([("created", Json::boolean(created))])
   } catch {
     failed => refused(failed.user_message())

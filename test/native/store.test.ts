@@ -210,13 +210,14 @@ if (probePath !== undefined) {
       const directory = await sandbox();
       const target = join(directory, "created.json");
       const at = soon();
-      const contents = Array.from(
-        { length: 16 },
-        (_, index) => `${String(index).repeat(200000)}`,
+      const contents = Array.from({ length: 16 }, (_, index) =>
+        String(index).repeat(200000),
       );
 
       const replies = await Promise.all(
-        contents.map((content) => run("exclusive", target, content, at)),
+        contents.map((_, index) =>
+          run("exclusive", target, String(index), "200000", at),
+        ),
       );
 
       expect(
@@ -252,8 +253,16 @@ if (probePath !== undefined) {
         }
       }
 
+      const survivors = await Promise.all(
+        [writers[0], writers[2]].map((writer) => {
+          if (writer === undefined) throw new Error("writer is missing");
+          return reply(writer);
+        }),
+      );
       await Promise.all(writers.map((writer) => writer.exited));
 
+      for (const answer of survivors)
+        expect(Number(answer["writes"])).toBeGreaterThan(0);
       expect(torn).toEqual([]);
       expect(reads).toBeGreaterThan(20);
       const last = await readFile(target, "utf8");
