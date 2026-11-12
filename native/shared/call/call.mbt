@@ -1,6 +1,6 @@
 ///|
 /// What harnexus call protocol 1 answers, plus `Unsupported` for a bridge that does not offer the protocol or the tool, to which nothing was sent.
-pub enum CallOutcome {
+pub(all) enum CallOutcome {
   Done
   // Protocol 1 never answers this; it is kept for a bridge that still does.
   ToolError
@@ -68,26 +68,69 @@ pub fn CallOutcome::is_unsent(self : CallOutcome) -> Bool {
 pub struct CallAnswer {
   outcome : String
   fields : Map[String, Json]
+  // How many of `fields` the bridge wrote before the outcome, so the answer prints in the order it came.
+  priv outcome_at : Int32
+}
+
+///|
+/// An answer made here, with the outcome first as the bridge writes it.
+pub fn CallAnswer::new(
+  outcome : CallOutcome,
+  fields : Array[(String, Json)],
+) -> CallAnswer {
+  let members = Map([])
+  for pair in fields {
+    let (name, item) = pair
+    members[name] = item
+  }
+  { outcome: outcome.name(), fields: members, outcome_at: 0, }
 }
 
 ///|
 pub fn CallAnswer::failed(outcome : CallOutcome, error~ : String) -> CallAnswer {
-  { outcome: outcome.name(), fields: { "error": Json::string(error) }, }
+  CallAnswer::new(outcome, [("error", Json::string(error))])
 }
 
 ///|
 pub fn CallAnswer::of_json(value : Json) -> CallAnswer raise @jsonio.JsonError {
   let fields = @jsonio.Fields::from_json(value, context="bridge answer")
+  let outcome_at = outcome_position(value)
   let outcome = fields.take_string("outcome")
-  { outcome, fields: fields.rest(), }
+  { outcome, fields: fields.rest(), outcome_at, }
+}
+
+///|
+fn outcome_position(value : Json) -> Int32 {
+  match value {
+    Object(pairs) => {
+      let mut at = 0
+      for name, _ in pairs {
+        if name == "outcome" {
+          break
+        }
+        at += 1
+      }
+      at
+    }
+    _ => 0
+  }
 }
 
 ///|
 pub fn CallAnswer::to_json(self : CallAnswer) -> Json {
-  @jsonio.object_with_extra(
-    [("outcome", Json::string(self.outcome))],
-    self.fields,
-  )
+  let members = Map([])
+  let mut at = 0
+  for name, item in self.fields {
+    if at == self.outcome_at {
+      members["outcome"] = Json::string(self.outcome)
+    }
+    members[name] = item
+    at += 1
+  }
+  if at <= self.outcome_at {
+    members["outcome"] = Json::string(self.outcome)
+  }
+  Json::object(members)
 }
 
 ///|
