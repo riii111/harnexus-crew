@@ -11,6 +11,8 @@ import {
 }
 
 // Values
+pub fn check_kept(@json.Json, @json.Json, Array[String]) -> Unit raise @failure.TaskFailed
+
 pub async fn launch(@args.LaunchArgs, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
 
 pub async fn name(@args.NameArgs, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed

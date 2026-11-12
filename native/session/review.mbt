@@ -54,7 +54,7 @@ async fn review_in(
   let candidate = request.candidate(previous, args.update_base, ctx.git)
   let data = candidate.to_json()
   if previous is Some(previous) {
-    check_same_session(Json::object(previous), data)
+    check_kept(Json::object(previous), data, app_session_keys)
     if json_equal(value_of(previous, "head"), field(data, "head")) {
       @failure.fail(
         "head \{as_text(field(data, "head"))} was already sent to reviewer \{as_text(field(state, "reviewer"))}; wait for its result",
@@ -183,12 +183,20 @@ fn first_set(values : Array[Json]) -> Json {
 }
 
 ///|
-/// A review session keeps its task, worker, project and checkout, so a different request starts a session of its own.
-fn check_same_session(
+/// The members that make a review session the same session when a review is asked for again.
+let app_session_keys : Array[String] = [
+  "taskId", "workerAI", "workerChatId", "projectId", "checkout",
+]
+
+///|
+/// A review session keeps the members named, so a request that differs in one of them starts a session of its own.
+/// A Cloud review keeps fewer members than an app one, so the caller names them.
+pub fn check_kept(
   previous : Json,
   current : Json,
+  keys : Array[String],
 ) -> Unit raise @failure.TaskFailed {
-  for key in ["taskId", "workerAI", "workerChatId", "projectId", "checkout"] {
+  for key in keys {
     if !json_equal(session_value(previous, key), session_value(current, key)) {
       @failure.fail("review session must keep the original \{key}")
     }
