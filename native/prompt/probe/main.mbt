@@ -1,5 +1,5 @@
 ///|
-/// A test driver: `test/native/prompt.test.ts` runs it to fill a template.
+/// A test driver: `test/test_prompt.py` runs it to fill a template.
 /// Arguments: HOME, XDG_CONFIG_HOME, `worker` or `reviewer`, then the template's `name=value` fields.
 /// It is not part of the CLI.
 fn main {

@@ -5,7 +5,7 @@ Shared as a reference for Codex App and T3 Code setups using my workflow and pro
 
 ## Install
 
-Requires Git and the Bun version specified in [package.json](package.json).
+Requires Git, a C compiler, and either Nix or the MoonBit version pinned in [flake.nix](flake.nix).
 
 From this checkout, run:
 
@@ -16,6 +16,8 @@ scripts/install.sh
 Installs `harnexus-crew` to `~/.local/bin`.
 Add that directory to `PATH`.
 Use `scripts/install.sh --prefix /absolute/path` for another location.
+The script builds with `moon` on `PATH`, or with the pinned toolchain through `nix develop` when there is none.
+If the build or its checks fail, the installed binary stays as it was.
 
 ## Use
 

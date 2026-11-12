@@ -1,5 +1,5 @@
 ///|
-/// A test driver: `test/native/markdown.test.ts` runs it with the path of a template and reads which candidate link targets Markdown judges to be links.
+/// A test driver: `test/test_markdown.py` runs it with the path of a template and reads which candidate link targets Markdown judges to be links.
 /// It is not part of the CLI.
 fn main {
   let path = @env.args().get(1).unwrap_or("")

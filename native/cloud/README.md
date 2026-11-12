@@ -70,12 +70,12 @@ Cloud・T3 Codeでは何も送らずに拒否する。
 ## TS版との差
 
 - 非文字列の `workerChatId`（null・数値・配列など）は、プロンプトにはJSの `String(値)` の形で入れ、保存する候補には入力のまま残す。TS版と同じ。
-- 2147483648以上の時間で、TS版が標準エラーへ書くBunの `TimeoutOverflowWarning` は、Native版では書かない。比較事例は、この警告だけを置換して比べる。
+- 2147483648以上の時間で、TS版が標準エラーへ書くBunの `TimeoutOverflowWarning` は、Native版では書かない。期待値は、この警告だけを除いて固定してある。
 - カレントディレクトリを読めないとき、`cloud` は `cannot read the current directory` で失敗する。TS版は例外で終わる。
 
 ## 試験
 
 - `moon test` の `cloud`: Codex CLIの代役 `test/native/mocks/fake-cli.sh` を実際の子プロセスとして動かし、Gitとテンプレートは差し替える。初回と再レビュー、判定済みの `head`、実行の失敗と停止、保存できなかった答え、`ask`、ロック、`harnexus-task` が残した状態（`test/fixtures/legacy-state/cloud`）の継続を確かめる。
-- `test/compat/cases/cloud-review-*`: 1回の実行の結果を、Codex CLIの出力を変えながらTS版と比べる。
-- `test/compat/cases/cloud-*`（ブリッジを使う事例）: `cloud` コマンドの要求・答え・失敗をTS版と比べる。
-- `test/native/cloud.test.ts`: 複数回の実行にまたがる流れ（再レビュー、停止からの復旧、`ask`、ロックの取り上げ、保存済みの状態の継続）をTS版と同じ根で動かして比べる。
+- `test/cases/cloud-review-*`: 1回の実行の結果を、Codex CLIの出力を変えながら、TS版の出力を固定した期待値と照らす。
+- `test/cases/cloud-*`（ブリッジを使う事例）: `cloud` コマンドの要求・答え・失敗を、同じ期待値と照らす。
+- `test/test_cloud.py`: 複数回の実行にまたがる流れ（再レビュー、停止からの復旧、`ask`、ロックの取り上げ、保存済みの状態の継続）を、TS版の出力を固定した期待値と照らす。
