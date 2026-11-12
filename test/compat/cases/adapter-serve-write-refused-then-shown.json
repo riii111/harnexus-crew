@@ -15,16 +15,22 @@
       "send": "{\"v\":1,\"type\":\"ready\",\"bridgeId\":\"b1\",\"bindings\":[],\"pending\":[],\"conflicts\":[]}"
     },
     {
-      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"session_records\",\"eventId\":\"e1\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"link\":\"parent-chat\",\"shownBefore\":null,\"phase\":\"linked\",\"linkedAt\":null,\"records\":[]}"
+      "send": "{\"v\":1,\"type\":\"request\",\"id\":\"settle\",\"op\":\"history\",\"threadId\":\"none\"}"
     },
     {
       "wait": 2
     },
     {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"session_records\",\"eventId\":\"e1\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"link\":\"parent-chat\",\"shownBefore\":null,\"phase\":\"linked\",\"linkedAt\":null,\"records\":[]}"
+    },
+    {
+      "wait": 3
+    },
+    {
       "send": "{\"v\":1,\"type\":\"event\",\"event\":\"session_records\",\"eventId\":\"e2\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"link\":\"parent-chat\",\"shownBefore\":null,\"phase\":\"continued\",\"records\":[{\"type\":\"assistant\",\"uuid\":\"a-t-aaa1111-R1\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t-aaa1111-R1\",\"name\":\"Bash\",\"input\":{}}]}},{\"type\":\"user\",\"uuid\":\"u-t-aaa1111-R1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"t-aaa1111-R1\",\"content\":\"{\\n \\\"status\\\": \\\"completed\\\",\\n \\\"verdict\\\": \\\"LGTM\\\",\\n \\\"taskId\\\": \\\"harnexus-1\\\",\\n \\\"base\\\": \\\"b1\\\",\\n \\\"head\\\": \\\"aaa1111\\\",\\n \\\"reviewer\\\": \\\"R1\\\",\\n \\\"answer\\\": \\\"判定: LGTM aaa1111\\\",\\n \\\"state\\\": \\\"/tmp/state.json\\\"\\n}\",\"is_error\":false}]}}]}"
     },
     {
-      "wait": 4
+      "wait": 5
     },
     {
       "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-1\",\"bridgeId\":\"b1\",\"outcome\":\"rejected\",\"reason\":\"binding_conflict\"}"
@@ -33,7 +39,7 @@
       "send": "{\"v\":1,\"type\":\"event\",\"event\":\"session_records\",\"eventId\":\"e3\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"link\":\"parent-chat\",\"shownBefore\":null,\"phase\":\"continued\",\"records\":[{\"type\":\"assistant\",\"uuid\":\"a-t-aaa1111-R1\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t-aaa1111-R1\",\"name\":\"Bash\",\"input\":{}}]}},{\"type\":\"user\",\"uuid\":\"u-t-aaa1111-R1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"t-aaa1111-R1\",\"content\":\"{\\n \\\"status\\\": \\\"completed\\\",\\n \\\"verdict\\\": \\\"LGTM\\\",\\n \\\"taskId\\\": \\\"harnexus-1\\\",\\n \\\"base\\\": \\\"b1\\\",\\n \\\"head\\\": \\\"aaa1111\\\",\\n \\\"reviewer\\\": \\\"R1\\\",\\n \\\"answer\\\": \\\"判定: LGTM aaa1111\\\",\\n \\\"state\\\": \\\"/tmp/state.json\\\"\\n}\",\"is_error\":false}]}}]}"
     },
     {
-      "wait": 6
+      "wait": 7
     },
     {
       "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-2\",\"bridgeId\":\"b1\",\"outcome\":\"invalid\"}"
@@ -42,7 +48,7 @@
       "send": "{\"v\":1,\"type\":\"event\",\"event\":\"session_records\",\"eventId\":\"e4\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"link\":\"parent-chat\",\"shownBefore\":null,\"phase\":\"continued\",\"records\":[{\"type\":\"assistant\",\"uuid\":\"a-t-aaa1111-R1\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t-aaa1111-R1\",\"name\":\"Bash\",\"input\":{}}]}},{\"type\":\"user\",\"uuid\":\"u-t-aaa1111-R1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"t-aaa1111-R1\",\"content\":\"{\\n \\\"status\\\": \\\"completed\\\",\\n \\\"verdict\\\": \\\"LGTM\\\",\\n \\\"taskId\\\": \\\"harnexus-1\\\",\\n \\\"base\\\": \\\"b1\\\",\\n \\\"head\\\": \\\"aaa1111\\\",\\n \\\"reviewer\\\": \\\"R1\\\",\\n \\\"answer\\\": \\\"判定: LGTM aaa1111\\\",\\n \\\"state\\\": \\\"/tmp/state.json\\\"\\n}\",\"is_error\":false}]}}]}"
     },
     {
-      "wait": 8
+      "wait": 9
     },
     {
       "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-3\",\"bridgeId\":\"b1\",\"outcome\":\"done\"}"

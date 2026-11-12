@@ -15,40 +15,46 @@
       "send": "{\"v\":1,\"type\":\"ready\",\"bridgeId\":\"b1\",\"bindings\":[],\"pending\":[],\"conflicts\":[]}"
     },
     {
-      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t1\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"B1 は？\"}"
+      "send": "{\"v\":1,\"type\":\"request\",\"id\":\"settle\",\"op\":\"history\",\"threadId\":\"none\"}"
     },
     {
       "wait": 2
     },
     {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t1\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"B1 は？\"}"
+    },
+    {
+      "wait": 3
+    },
+    {
       "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-1\",\"bridgeId\":\"b1\",\"outcome\":\"done\"}"
     },
     {
-      "wait": 4
+      "wait": 5
     },
     {
       "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t2\",\"threadId\":\"chat-r2\",\"conversationId\":\"R2\",\"kind\":\"input\",\"text\":\"hello\"}"
     },
     {
-      "wait": 6
+      "wait": 7
     },
     {
       "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t3\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"/cloud-review 7419687f80b7267449159b3d2b775812\"}"
     },
     {
-      "wait": 8
+      "wait": 9
     },
     {
       "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t4\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"/cloud-review nothere\"}"
     },
     {
-      "wait": 10
+      "wait": 11
     },
     {
       "send": "{\"v\":1,\"type\":\"request\",\"id\":\"h1\",\"op\":\"history\",\"conversationId\":\"R1\",\"threadId\":\"chat-r1\"}"
     },
     {
-      "wait": 11
+      "wait": 12
     }
   ],
   "normalize": [
