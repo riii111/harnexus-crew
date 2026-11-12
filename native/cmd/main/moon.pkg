@@ -1,0 +1,7 @@
+import {
+  "riii111/harnexus-crew/shared/run",
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

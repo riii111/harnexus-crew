@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/sys"
+
+// Values
+pub fn platform() -> Platform
+
+pub fn write_text(Int32, String) -> Unit raise WriteFailed
+
+// Errors
+pub suberror WriteFailed {
+  WriteFailed(fd~ : Int32, errno~ : Int32)
+}
+
+// Types and methods
+pub enum Platform {
+  Darwin
+  Linux
+  Other
+}
+
+// Type aliases
+
+// Traits

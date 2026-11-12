@@ -1,0 +1,7 @@
+{
+  "name": "environment-undeclared",
+  "owner": "MB05",
+  "status": "pending",
+  "kind": "command",
+  "argv": ["environment"]
+}

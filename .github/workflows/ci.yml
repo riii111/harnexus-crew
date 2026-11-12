@@ -24,3 +24,45 @@ jobs:
       - run: bun run check
       - run: bun run typecheck
       - run: bun run test
+
+  native:
+    name: native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04]
+    env:
+      DO_NOT_TRACK: "1"
+    defaults:
+      run:
+        shell: nix develop --no-write-lock-file --command bash -euo pipefail {0}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@d9186cbdca7adedf113a159fa91f725a27866771 # v31
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun ci
+      - name: Lint workflows
+        run: actionlint
+      - name: Check Nix formatting
+        run: nix fmt --no-write-lock-file -- --check flake.nix
+      - name: Check formatting
+        run: moon fmt --check
+      - name: Check warnings
+        run: moon check --deny-warn
+      - name: Check public interfaces
+        run: |
+          moon info
+          git add --intent-to-add --all -- '*.mbti'
+          git diff --exit-code -- '*.mbti'
+      - name: Test
+        run: moon test
+      - name: Build native release
+        run: moon build --target native --release
+      - name: Compare with the TypeScript baseline
+        run: HARNEXUS_CREW_NATIVE="$PWD/_build/native/release/build/cmd/main/main.exe" bun test test/compat
