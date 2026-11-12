@@ -1,0 +1,14 @@
+{
+ "baseline": "Bun 1.4.4",
+ "pattern": "ranges joined by commas, start then end of each",
+ "letters": {
+  "ranges": 684,
+  "codePoints": 145672,
+  "sha256": "bacda94916f5106829e541edfb0adae7dd4c81953a54169e4cef6b1bf534932e"
+ },
+ "numbers": {
+  "ranges": 146,
+  "codePoints": 1924,
+  "sha256": "84633bef2d7c71a2550d568f35b862b5a1b91716e61e1f58f11beb9bbdc5b788"
+ }
+}

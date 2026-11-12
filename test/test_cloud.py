@@ -400,6 +400,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertIn("a run that was taking over this session died before it finished", steps[1]["stderr"])
 
 
+RECORDED_ROOT = "/tmp/taskctl-legacy"
 LEGACY_FIXTURE = REPO / "test" / "fixtures" / "legacy-state" / "cloud" / "state" / "taskctl"
 
 
@@ -409,6 +410,9 @@ def place_legacy_state(rig):
     state = Path(root) / "state" / "harnexus-crew" / "cloud-review"
     state.mkdir(parents=True, exist_ok=True)
     for recorded_key, task in (("3e52769db5ac05f8", "judged"), ("470a1ab24e770f8c", "lost")):
+        recorded_at = hashlib.sha256(f"{RECORDED_ROOT}/cloud/repo\0{task}".encode("utf-8")).hexdigest()[:16]
+        if recorded_at != recorded_key:
+            raise AssertionError("the recorded review key no longer matches the SHA-256 layout")
         key = hashlib.sha256(jsonvalue.lossy_bytes(f"{root}/cloud/repo\0{task}")).hexdigest()[:16]
         target = state / key
         shutil.copytree(LEGACY_FIXTURE / "cloud-review" / recorded_key, target)
