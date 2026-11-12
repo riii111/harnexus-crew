@@ -178,3 +178,32 @@ async test "state prints an empty object when no state was kept" {
   assert_eq(run.code, 0)
   assert_eq(run.stdout, "{}\n")
 }
+
+///|
+fn homeless_env(vars : Array[(String, String)]) -> () -> @environment.Env raise {
+  let map : Map[String, String] = Map([])
+  for pair in vars {
+    map[pair.0] = pair.1
+  }
+  () => @environment.Env::deferred_home(map, () => None)
+}
+
+///|
+async test "environment needs no home when the declaration settles it" {
+  let run = run(
+    ["environment"][:],
+    homeless_env([("HARNEXUS_EXECUTION_ENV", "local")]),
+  )
+  assert_eq(run.code, 0)
+  assert_true(run.stdout.contains("\"source\":\"explicit\""))
+}
+
+///|
+async test "a command that needs the home fails as a crash when there is none" {
+  for argv in [["environment"], ["state"]] {
+    let run = run(argv[:], homeless_env([]))
+    assert_eq(run.code, 1)
+    assert_true(run.stderr.contains("unexpected failure"))
+    assert_true(run.stderr.contains("HomeNotFound"))
+  }
+}
