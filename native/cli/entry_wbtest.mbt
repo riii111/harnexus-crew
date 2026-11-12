@@ -83,22 +83,46 @@ async test "usage is checked before anything is read from the environment" {
 ///|
 async test "commands no task has moved fail and never fall back" {
   let cases = [
-    (["launch", "--request", "r"], "launch"),
-    (["review", "--request", "r"], "review"),
-    (["state", "--request", "r"], "state --request"),
-    (["resolve", "--request", "r", "--sent"], "resolve"),
-    (["name", "--pr", "1"], "name"),
-    (["cloud", "--link", "l"], "cloud"),
+    (
+      ["review", "--request", "r"],
+      [("CLAUDE_CODE_REMOTE", "true")],
+      "review in a Claude Code cloud session",
+    ),
+    (["cloud", "--link", "l"], [], "cloud"),
   ]
-  for pair in cases {
-    let run = run_with(pair.0, [])
+  for triple in cases {
+    let run = run_with(triple.0, triple.1)
     assert_eq(run.code, 1)
     assert_eq(run.stdout, "")
     assert_eq(
       run.stderr,
-      "harnexus-crew: \{pair.1} is not available in this native build yet\n",
+      "harnexus-crew: \{triple.2} is not available in this native build yet\n",
     )
   }
+}
+
+///|
+async test "the session commands are run by the session package" {
+  // A missing request file shows the command went past the registry.
+  for
+    argv in [
+      ["launch", "--request", "/absent/request.json"],
+      ["review", "--request", "/absent/request.json"],
+      ["state", "--request", "/absent/request.json"],
+      ["resolve", "--request", "/absent/request.json", "--sent"],
+    ] {
+    let run = run_with(argv, [])
+    assert_eq(run.code, 1)
+    assert_eq(
+      run.stderr,
+      "harnexus-crew: cannot read /absent/request.json (ENOENT)\n",
+    )
+  }
+  let run = run_with(["name", "--pr", "x"], [])
+  assert_eq(
+    run.stderr,
+    "harnexus-crew: --pr must be a pull request URL or number\n",
+  )
 }
 
 ///|
