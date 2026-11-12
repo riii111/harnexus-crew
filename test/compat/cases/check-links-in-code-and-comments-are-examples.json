@@ -1,0 +1,12 @@
+{
+  "name": "check-links-in-code-and-comments-are-examples",
+  "owner": "MB06",
+  "status": "active",
+  "kind": "command",
+  "argv": ["check"],
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/templates/worker.md\"}}",
+    "templates/linked.md": "",
+    "templates/worker.md": "Cite as `[file](path/to/file.ts)` or ``[a](b`c.md)``.\n```md\n[x](missing.md)\n```\n~~~\n[y](gone.md)\n```\nstill code [z](none.md)\n~~~\n1. Output format:\n\n    ~~~md\n    [file](path/to/file.ts)\n    ~~~\n\n> ```\n> [q](quoted.md)\n> ```\n\n<!--\n- [old](gone.md)\n\n# Old\n[x](gone.md)\n-->\nWrite `[text](` then <rules>\n[$s](linked.md)\n</rules>\n\n    ![i](linked.md)\n"
+  }
+}

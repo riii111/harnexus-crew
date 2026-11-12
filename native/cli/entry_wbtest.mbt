@@ -88,7 +88,6 @@ async test "commands no task has moved fail and never fall back" {
     (["state", "--request", "r"], "state --request"),
     (["resolve", "--request", "r", "--sent"], "resolve"),
     (["name", "--pr", "1"], "name"),
-    (["check"], "check"),
     (["cloud", "--link", "l"], "cloud"),
     (["adapter"], "adapter"),
     (["adapter", "serve"], "adapter"),
