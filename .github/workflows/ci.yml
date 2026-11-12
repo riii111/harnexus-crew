@@ -66,3 +66,5 @@ jobs:
         run: moon build --target native --release
       - name: Compare with the TypeScript baseline
         run: HARNEXUS_CREW_NATIVE="$PWD/_build/native/release/build/cmd/main/main.exe" bun test test/compat
+      - name: Compare active cases with the TypeScript baseline
+        run: bun test/compat/cli.ts --native "$PWD/_build/native/release/build/cmd/main/main.exe"

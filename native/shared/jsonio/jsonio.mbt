@@ -6,6 +6,7 @@ pub suberror JsonError {
 
 ///|
 /// Parses like JS `JSON.parse`: a repeated key keeps its last value and numbers go through a double.
+/// A string with an unpaired surrogate escape such as "\ud800" is refused with a JsonError, because a MoonBit String cannot hold one.
 pub fn parse(text : String) -> Json raise JsonError {
   @json.parse(text, reject_duplicate_keys=false) catch {
     error => raise JsonError("invalid JSON: \{error}")
@@ -13,9 +14,130 @@ pub fn parse(text : String) -> Json raise JsonError {
 }
 
 ///|
-/// One line, no indentation, as `JSON.stringify` writes it.
+/// One line, no indentation, written as JS `JSON.stringify` writes a parsed value.
+/// A number is written from its double, never from the text it was read from, so 9007199254740993 becomes 9007199254740992 and 1e400 becomes null.
+/// Keys that are array indexes come first in ascending order, then the others in the order they were added.
 pub fn stringify(value : Json) -> String {
-  value.stringify()
+  let out = StringBuilder()
+  write_value(out, value)
+  out.to_string()
+}
+
+///|
+fn write_value(out : StringBuilder, value : Json) -> Unit {
+  match value {
+    Null => out.write_string("null")
+    True => out.write_string("true")
+    False => out.write_string("false")
+    Number(number, ..) => out.write_string(number_text(number))
+    String(text) => write_quoted(out, text)
+    Array(items) => {
+      out.write_char('[')
+      for index, item in items {
+        if index > 0 {
+          out.write_char(',')
+        }
+        write_value(out, item)
+      }
+      out.write_char(']')
+    }
+    Object(entries) => {
+      out.write_char('{')
+      let mut first = true
+      for key in js_key_order(entries) {
+        if !first {
+          out.write_char(',')
+        }
+        first = false
+        write_quoted(out, key)
+        out.write_char(':')
+        write_value(out, entries[key])
+      }
+      out.write_char('}')
+    }
+  }
+}
+
+///|
+fn number_text(number : Double) -> String {
+  // JSON.stringify writes -0 as 0 and a number JSON cannot hold as null.
+  if number == 0.0 {
+    "0"
+  } else if number.is_nan() || number.is_inf() {
+    "null"
+  } else {
+    // Double::to_string already writes the shortest digits in JS's layout, including the exponent form from 1e21 and below 1e-6.
+    number.to_string()
+  }
+}
+
+///|
+fn write_quoted(out : StringBuilder, text : String) -> Unit {
+  out.write_char('"')
+  for char in text {
+    match char {
+      '"' => out.write_string("\\\"")
+      '\\' => out.write_string("\\\\")
+      '\n' => out.write_string("\\n")
+      '\r' => out.write_string("\\r")
+      '\t' => out.write_string("\\t")
+      '\u{08}' => out.write_string("\\b")
+      '\u{0C}' => out.write_string("\\f")
+      _ =>
+        if char.to_int() < 0x20 {
+          // JS writes the code in lower-case hexadecimal.
+          out.write_string("\\u00")
+          out.write_char(hex_digit(char.to_int() / 16))
+          out.write_char(hex_digit(char.to_int() % 16))
+        } else {
+          out.write_char(char)
+        }
+    }
+  }
+  out.write_char('"')
+}
+
+///|
+fn hex_digit(value : Int32) -> Char {
+  "0123456789abcdef"[value].to_char().unwrap()
+}
+
+///|
+/// The order JS lists the keys of an object in: array indexes ascending, then the rest as added.
+fn js_key_order(entries : Map[String, Json]) -> Array[String] {
+  let indexes : Array[(Int64, String)] = []
+  let others : Array[String] = []
+  for key, _ in entries {
+    match array_index(key) {
+      Some(index) => indexes.push((index, key))
+      None => others.push(key)
+    }
+  }
+  indexes.sort_by_key(pair => pair.0)
+  let ordered = indexes.map(pair => pair.1)
+  ordered.append(others)
+  ordered
+}
+
+///|
+/// The array index a key stands for: decimal digits without a leading zero, up to 2^32 - 2.
+fn array_index(key : String) -> Int64? {
+  let length = key.length()
+  if length == 0 || length > 10 || (length > 1 && key[0] == '0') {
+    return None
+  }
+  let mut value : Int64 = 0L
+  for unit in key.code_units() {
+    if unit < '0' || unit > '9' {
+      return None
+    }
+    value = value * 10L + (unit - '0').to_int64()
+  }
+  if value <= 4294967294L {
+    Some(value)
+  } else {
+    None
+  }
 }
 
 ///|

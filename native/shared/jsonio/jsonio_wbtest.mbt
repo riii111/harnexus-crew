@@ -73,13 +73,49 @@ test "typed takes name the member that has the wrong type" {
 }
 
 ///|
-test "stringify writes what JSON.stringify writes" {
-  let text = "line\nquote\"back\\slash/ \u{0001}あ🌙"
-  inspect(
-    stringify(Json::string(text)),
-    content="\"line\\nquote\\\"back\\\\slash/ \\u0001あ🌙\"",
-  )
-  inspect(stringify(Json::number(1.0)), content="1")
-  inspect(stringify(Json::number(0.1)), content="0.1")
-  inspect(stringify(Json::number(1000000000000000000000.0)), content="1e+21")
+test "a round trip gives what JSON.parse then JSON.stringify give in JS" {
+  let cases : Array[(String, String)] = [
+    ("9007199254740993", "9007199254740992"),
+    ("1e400", "null"),
+    ("-1e400", "null"),
+    ("-0", "0"),
+    ("12345678901234567890", "12345678901234567000"),
+    ("1E5", "100000"),
+    ("0.1e1", "1"),
+    ("1e-7", "1e-7"),
+    ("0.000001", "0.000001"),
+    ("1e21", "1e+21"),
+    ("1e20", "100000000000000000000"),
+    ("5e-324", "5e-324"),
+    ("1.7976931348623157e308", "1.7976931348623157e+308"),
+    ("{\"2\":2,\"1\":1}", "{\"1\":1,\"2\":2}"),
+    (
+      "{\"b\":1,\"a\":{\"10\":1,\"9\":2,\"x\":3,\"01\":4,\"4294967294\":5,\"4294967295\":6},\"0\":0}",
+      "{\"0\":0,\"b\":1,\"a\":{\"9\":2,\"10\":1,\"4294967294\":5,\"x\":3,\"01\":4,\"4294967295\":6}}",
+    ),
+    (
+      "[{\"2\":1,\"1\":[{\"3\":3,\"2\":2}]}]", "[{\"1\":[{\"2\":2,\"3\":3}],\"2\":1}]",
+    ),
+    (
+      "\"\\u0001\\u001f\\b\\f\\n\\r\\t\\\"\\\\\\/\\u007f\\u2028\\u2029あ\\ud83c\\udf19\"",
+      "\"\\u0001\\u001f\\b\\f\\n\\r\\t\\\"\\\\/\u{007f}\u{2028}\u{2029}あ🌙\"",
+    ),
+    ("{\"a\":1,\"b\":2,\"a\":3}", "{\"a\":3,\"b\":2}"),
+  ]
+  for pair in cases {
+    let (input, expected) = pair
+    inspect(stringify(parse(input)), content=expected)
+  }
+}
+
+///|
+test "an unpaired surrogate escape is refused, not changed" {
+  let refused = try {
+    parse("\"\\ud800\"") |> ignore
+    false
+  } catch {
+    JsonError(_) => true
+  }
+  inspect(refused, content="true")
+  inspect(stringify(parse("\"\\ud83c\\udf19\"")), content="\"🌙\"")
 }
