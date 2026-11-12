@@ -59,17 +59,15 @@ async fn with_server(
 
 ///|
 /// Reads the request line, as the bridge does.
-async fn read_request(stream : @raw_fd.RawFdStream) -> String {
+/// None when the peer closed before sending a line, which differs from a line that is empty.
+async fn read_request(stream : @raw_fd.RawFdStream) -> String? {
   let line = stream.read_until(b"\n") catch { _ => None }
-  match line {
-    Some(bytes) => @utf8.decode_lossy(bytes)
-    None => ""
-  }
+  line.map(bytes => @utf8.decode_lossy(bytes))
 }
 
 ///|
 async fn answer(stream : @raw_fd.RawFdStream) -> Unit {
-  let line = read_request(stream)
+  let line = read_request(stream).unwrap_or("")
   stream.write(
     @utf8.encode(
       "{\"outcome\":\"done\",\"echoed\":\{Json::string(line).stringify()},\"text\":\"あい🌙\"}\n",
@@ -197,12 +195,13 @@ async test "S4 a socket file with no server behind it is refused and not sent" {
 ///|
 async test "S5 an empty line only probes: the server sees a connection and no bytes" {
   serial(() => {
-    let seen = Ref("not called")
-    with_server("s5", stream => seen.val = read_request(stream), path => {
+    let seen = Ref(-1)
+    // Everything the server receives until the client closes, so a stray newline would show.
+    with_server("s5", stream => seen.val = stream.read_all().length(), path => {
       assert_eq(exchange_line(path, "", 1000), "")
       @async.sleep(100)
     })
-    assert_eq(seen.val, "")
+    assert_eq(seen.val, 0)
   })
 }
 

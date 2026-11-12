@@ -48,11 +48,13 @@ pub async fn run_process(
       stop(Timeout)
     })
     group.spawn_bg(no_wait=true, () => feed_input(child.stdin, input))
+    // One count over both streams: the limit bounds what a run keeps in memory.
+    let size = Ref(0)
     let reading_out = group.spawn(() => {
-      capture.drain(child.stdout, capture.stdout, () => stop(OutputLimit))
+      drain(child.stdout, capture.stdout, size, () => stop(OutputLimit))
     })
     let reading_err = group.spawn(() => {
-      capture.drain(child.stderr, capture.stderr, () => stop(OutputLimit))
+      drain(child.stderr, capture.stderr, size, () => stop(OutputLimit))
     })
     let waiting = group.spawn(() => child.wait_exit())
     reading_out.wait()
@@ -64,8 +66,7 @@ pub async fn run_process(
       raise failed(true, "pid \{child.pid} did not exit after SIGKILL")
     err => raise failed(true, err.to_string())
   }
-  // Anything the command left in its group goes with it.
-  ignore(child.signal(SIGKILL, group=true))
+  child.sweep_group()
   {
     status: match exit.val {
       Code(code) => code

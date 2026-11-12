@@ -551,3 +551,85 @@ async test "a command that cannot be stopped makes the run fail as started" {
     assert_eq(@testkit.open_fds(), before)
   })
 }
+
+///|
+async test "B1 cancelling a run whose leader already exited still ends the group and frees the descriptors" {
+  serial(() => {
+    let dir = scratch("b1")
+    ignore(shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    let pidfile = "\{dir}/pid"
+    ignore(outcome("/usr/bin/true", []))
+    let before = @testkit.open_fds()
+    let finished = @async.with_timeout_opt(300, () => {
+      outcome(
+        "/bin/sh",
+        ["-c", "sleep 30 & echo $! > \{pidfile}; exit 0"],
+        timeout_ms=30000,
+      )
+    })
+    assert_true(finished is None)
+    assert_true(is_gone(pid_in(pidfile)))
+    assert_eq(@testkit.open_fds(), before)
+  })
+}
+
+///|
+async test "B2 run_command limits each stream on its own" {
+  serial(() => {
+    let both = run_command(
+      "/bin/sh",
+      ["-c", "head -c 10000000 /dev/zero; head -c 10000000 /dev/zero >&2"],
+      plain_env(),
+      timeout_ms=20000,
+    )
+    assert_eq(both.status, 0)
+    assert_eq(both.stdout.length(), 10000000)
+    assert_eq(both.stderr.length(), 10000000)
+    try
+      run_command(
+        "/bin/sh",
+        ["-c", "head -c 17000000 /dev/zero >&2"],
+        plain_env(),
+        timeout_ms=20000,
+      )
+      |> ignore
+    catch {
+      @boundary.CommandFailed(message~, ..) =>
+        assert_eq(message, "cannot run /bin/sh")
+    } noraise {
+      _ => fail("expected a failure")
+    }
+  })
+}
+
+///|
+async test "B3 a relative PATH entry is looked up under the working directory" {
+  serial(() => {
+    let dir = scratch("b3")
+    ignore(
+      shell(
+        "mkdir -p \{dir}/bin && printf '#!/bin/sh\\necho found\\n' > \{dir}/bin/hxc-cmd && chmod +x \{dir}/bin/hxc-cmd",
+      ),
+    )
+    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    let found = "started ended=exit status=0 stdout=\"found\\n\" stderr=\"\""
+    assert_eq(
+      outcome("hxc-cmd", [], cwd=dir, env={ "PATH": "./bin" }, output=true),
+      found,
+    )
+    assert_eq(
+      outcome(
+        "hxc-cmd",
+        [],
+        cwd="\{dir}/bin",
+        env={ "PATH": "/nonexistent:" },
+        output=true,
+      ),
+      found,
+    )
+    // An entry that exists only under the parent's directory is not a candidate.
+    let missing = outcome("hxc-cmd", [], cwd="/", env={ "PATH": "./bin" })
+    assert_true(missing.has_prefix("failed started=false: "))
+  })
+}

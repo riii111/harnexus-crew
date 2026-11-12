@@ -36,11 +36,12 @@ pub async fn run_command(
         ignore(child.signal(SIGTERM, group=false))
       }
     }
+    // execFile applies its limit to each stream on its own.
     let reading_out = group.spawn(() => {
-      capture.drain(child.stdout, capture.stdout, on_limit)
+      drain(child.stdout, capture.stdout, Ref(0), on_limit)
     })
     let reading_err = group.spawn(() => {
-      capture.drain(child.stderr, capture.stderr, on_limit)
+      drain(child.stderr, capture.stderr, Ref(0), on_limit)
     })
     let waiting = group.spawn(() => child.wait_exit())
     reading_out.wait()

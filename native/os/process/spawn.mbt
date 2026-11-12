@@ -8,6 +8,7 @@ priv struct Child {
   stdout : Fd
   stderr : Fd
   mut reaped : Bool
+  mut swept : Bool
 }
 
 ///|
@@ -114,6 +115,7 @@ fn spawn(
     stdout: Fd::new(out[2]),
     stderr: Fd::new(out[3]),
     reaped: false,
+    swept: false,
   }
 }
 
@@ -166,16 +168,23 @@ fn Child::signal(self : Child, sig : Int32, group~ : Bool) -> Bool {
 }
 
 ///|
-/// Kills the child and what it started, and collects it, for a run that ends without the child's own exit.
+/// Kills what the child left in its group, which stays reachable by the group id after the child itself is collected.
+fn Child::sweep_group(self : Child) -> Unit {
+  if self.new_session && !self.swept {
+    self.swept = true
+    ignore(self.signal(SIGKILL, group=true))
+  }
+}
+
+///|
+/// Ends a run that stops without the child's own exit: kills the group and the child, and collects the child.
 /// A child still alive after the bounded wait is left; the caller is reporting a failure by then.
 fn Child::stop_and_reap(self : Child) -> Unit {
+  self.sweep_group()
   if self.reaped {
     return
   }
-  ignore(self.signal(SIGKILL, group=self.new_session))
-  if self.new_session {
-    ignore(self.signal(SIGKILL, group=false))
-  }
+  ignore(self.signal(SIGKILL, group=false))
   ignore(self.collect(2000))
 }
 

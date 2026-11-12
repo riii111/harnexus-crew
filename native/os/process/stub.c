@@ -80,7 +80,8 @@ static const char *env_value(char **envp, const char *name) {
 // Looks a bare command name up in the PATH of the environment the command will run in, which is where the TypeScript CLI's runtime looks.
 // Without a PATH the usual system directories are searched.
 // Returns 0 with the path in `out`, or the errno execvp would give.
-static int find_in_path(const char *file, char **envp, char *out, size_t size) {
+static int find_in_path(const char *file, char **envp, const char *cwd, char *out,
+                        size_t size) {
   const char *path = env_value(envp, "PATH");
   if (path == NULL)
     path = "/usr/bin:/bin";
@@ -93,9 +94,18 @@ static int find_in_path(const char *file, char **envp, char *out, size_t size) {
                            : snprintf(out, size, "%.*s/%s", (int)len, dir, file);
     if (written < 0 || (size_t)written >= size)
       return ENAMETOOLONG;
+    // The command runs after chdir, so a relative entry is looked up under the working directory it will have.
+    char probe[PATH_MAX];
+    const char *checked = out;
+    if (out[0] != '/' && cwd[0] != '\0') {
+      int joined = snprintf(probe, sizeof(probe), "%s/%s", cwd, out);
+      if (joined < 0 || (size_t)joined >= sizeof(probe))
+        return ENAMETOOLONG;
+      checked = probe;
+    }
     struct stat info;
-    if (stat(out, &info) == 0 && S_ISREG(info.st_mode)) {
-      if (access(out, X_OK) == 0)
+    if (stat(checked, &info) == 0 && S_ISREG(info.st_mode)) {
+      if (access(checked, X_OK) == 0)
         return 0;
       denied = 1;
     }
@@ -167,7 +177,7 @@ int32_t harnexus_spawn(moonbit_bytes_t file, moonbit_bytes_t argv_blob, int32_t 
   const char *path = (const char *)file;
   int err = 0;
   if (strchr(path, '/') == NULL) {
-    err = find_in_path(path, envp, found, sizeof(found));
+    err = find_in_path(path, envp, (const char *)cwd, found, sizeof(found));
     path = found;
   }
   if (err != 0) {
