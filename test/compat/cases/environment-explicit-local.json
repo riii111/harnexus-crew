@@ -1,0 +1,13 @@
+{
+  "name": "environment-explicit-local",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "HARNEXUS_EXECUTION_ENV": "local"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

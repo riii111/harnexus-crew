@@ -1,0 +1,7 @@
+{
+  "name": "help-environment",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["environment", "--help"]
+}

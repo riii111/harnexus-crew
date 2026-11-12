@@ -1,0 +1,11 @@
+import {
+  "riii111/harnexus-crew/environment",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+}
+
+options(
+  "native-stub": [ "stub.c" ],
+)
+
+supported_targets = "+native"

@@ -1,6 +1,13 @@
 import {
+  "riii111/harnexus-crew/cli",
   "riii111/harnexus-crew/shared/run",
+  "moonbitlang/core/async",
+  "moonbitlang/core/env",
 }
+
+options(
+  "allow-experimental-packages": true,
+)
 
 supported_targets = "+native"
 

@@ -1,0 +1,14 @@
+{
+  "name": "environment-explicit-cloud-codex",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "HARNEXUS_EXECUTION_ENV": "cloud",
+    "CODEX_ENVIRONMENT_ID": "env-1"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

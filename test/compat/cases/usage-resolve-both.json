@@ -1,0 +1,7 @@
+{
+  "name": "usage-resolve-both",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["resolve", "--request", "r", "--sent", "--not-sent"]
+}

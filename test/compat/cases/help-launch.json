@@ -1,0 +1,7 @@
+{
+  "name": "help-launch",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["launch", "--help"]
+}

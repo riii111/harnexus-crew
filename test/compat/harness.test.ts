@@ -268,12 +268,24 @@ const nativeBinary = process.env["HARNEXUS_CREW_NATIVE"];
 // The Native binary runs only where a build exists; CI builds it before this test.
 if (nativeBinary !== undefined) {
   describe("the Native binary under the harness", () => {
-    test("an unmigrated binary differs from the baseline in exit code and output", async () => {
-      const owned = cases.find((item) => item.name === "state-legacy-app");
-      if (owned === undefined) throw new Error("state-legacy-app is missing");
-      const native = nativeImplementation(nativeBinary);
-      const found = await differences(owned, TS_BASELINE, native);
-      const fields = found.map((difference) => difference.field);
+    test("the Native binary runs under the harness and a different observation shows as a difference", async () => {
+      const find = (name: string) => {
+        const found = cases.find((item) => item.name === name);
+        if (found === undefined) throw new Error(`${name} is missing`);
+        return found;
+      };
+
+      const asked = find("help");
+      const baseline = await observe(TS_BASELINE, asked);
+      const native = await observe(
+        nativeImplementation(nativeBinary),
+        find("usage-unknown-subcommand"),
+      );
+      const fields = compare(
+        asked,
+        normalize(baseline.observation, asked, baseline.root),
+        normalize(native.observation, asked, native.root),
+      ).map((difference) => difference.field);
       expect(fields).toContain("exitCode");
       expect(fields).toContain("stdout");
     });

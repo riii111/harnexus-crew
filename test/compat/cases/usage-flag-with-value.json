@@ -1,0 +1,7 @@
+{
+  "name": "usage-flag-with-value",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["review", "--request", "r", "--update-base=yes"]
+}

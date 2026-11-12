@@ -1,0 +1,18 @@
+{
+  "name": "environment-socket-accepted",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}"
+  },
+  "bridge": [
+    {
+      "answer": "silent"
+    }
+  ],
+  "compare": {
+    "stdout": "exact"
+  }
+}

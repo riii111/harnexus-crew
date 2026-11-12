@@ -1,7 +1,7 @@
 {
   "name": "usage-unknown-subcommand",
   "owner": "MB05",
-  "status": "pending",
+  "status": "active",
   "kind": "help",
   "argv": ["bogus"]
 }

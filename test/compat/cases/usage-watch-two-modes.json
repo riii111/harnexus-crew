@@ -1,0 +1,7 @@
+{
+  "name": "usage-watch-two-modes",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["watch", "--status", "--sender"]
+}

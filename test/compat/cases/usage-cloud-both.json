@@ -1,0 +1,7 @@
+{
+  "name": "usage-cloud-both",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["cloud", "--link", "l", "--prompt-file", "f"]
+}

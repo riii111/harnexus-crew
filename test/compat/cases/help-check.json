@@ -1,0 +1,7 @@
+{
+  "name": "help-check",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["check", "--help"]
+}

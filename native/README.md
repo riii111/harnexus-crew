@@ -57,7 +57,9 @@ mooncakesの `moonbitlang/async` は使わない。
 | `os/socket`       | Unixソケットへ1行を送り、答えを受ける                       | MB02               |
 | `os/process`      | 子プロセスの実行（締切・出力上限・プロセス群）              | MB02               |
 | `os/testkit`      | 上の試験が使うサーバー・fd数の確認（試験だけが取り込む）    | MB02               |
-| `cmd/main`        | 入口。現在は未移行を示して失敗するだけ                      | MB05               |
+| `cli`             | 振り分け、usage、クラッシュ報告、`environment`・`state`     | MB05               |
+| `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）              | MB05               |
+| `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                         | MB05               |
 
 後続の新しいパッケージは、次の名前を目安にする。
 
@@ -93,6 +95,19 @@ JSONの境界:
 
 `shared/run` の `finish` は、標準出力、標準エラーの順に書いてから終了コードで終わる。
 書き込めなかった結果は成功として返さず、終了コード1にする。
+
+## CLIの入口
+
+`cli::run` が1回の呼び出しを受け、`shared/run` の `CommandRun` を返す。
+usageの文面、`-h` と使い方エラー（終了コード2）、成功時のJSON1行（stdout）、`TaskFailed` の出力（`harnexus-crew: メッセージ`、終了コード1）、クラッシュ報告をここだけが持つ。
+`TaskFailed` 以外のエラーはクラッシュとして報告する。
+環境変数は引数が受理されてから読む。HOMEがないときだけアカウントのホームを調べ、見つからなければクラッシュとして報告する。
+
+後続のコマンド担当は、自分のパッケージと `cli/registry.mbt` の自分の分岐だけを変更する。
+まだ移していないコマンド（`adapter` を含む）は「is not available in this native build yet」で終了コード1になり、TS版へは委譲しない。
+PATH上のコマンド探索が要る担当（`app` のT3 CLI探索、MB07のpr-wake探索）は、`(String) -> String?` の引数を受け取り、`cli/registry.mbt` の分岐が `@which.in_env(env)` を渡す。
+実体は `which` パッケージにあり、相対のPATH要素と空の要素、実行できない通常ファイルの扱いを `Bun.which` に合わせている。
+`state --request` も同じ扱いで、`state` の一覧は `launch`・`review`・`cloud-review` の状態ファイルだけを読む（pr-wakeの `watch` は読まない）。
 
 ## 要求・設定・環境変数の境界
 

@@ -1,0 +1,14 @@
+{
+  "name": "environment-explicit-local-t3",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "HARNEXUS_EXECUTION_ENV": "local",
+    "T3CODE_THREAD_ID": "t3-thread"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

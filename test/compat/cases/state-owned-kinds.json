@@ -1,0 +1,28 @@
+{
+  "name": "state-owned-kinds",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["state"],
+  "files": {
+    "state/harnexus-crew/launch/aaaa/state.json": "{\"threadId\":\"t1\",\"request\":{\"taskId\":\"A\"}}\n",
+    "state/harnexus-crew/launch/aaaa/notes.txt": "not state\n",
+    "state/harnexus-crew/launch/bbbb/state.json": "{\"threadId\":\"t2\",\"n\":1.50,\"big\":9007199254740993}",
+    "state/harnexus-crew/launch/bbbb/pending.json": "{\"tool\":\"create_thread\",\"id\":\"x\"}",
+    "state/harnexus-crew/review/cccc/state.json": "{\"reviewer\":\"r1\",\"candidate\":{\"head\":\"h\"},\"extra\":{\"b\":1,\"a\":[1,2,{\"z\":null}]}}",
+    "state/harnexus-crew/cloud-review/dddd/state.json": "{\"session\":\"s\",\"escaped\":\"\\u00e9\\ud83d\\ude00\\n\"}",
+    "state/harnexus-crew/cloud-review/dddd/state.json.bak": "{}",
+    "state/harnexus-crew/watch/eeee/state.json": "{\"owner\":\"pr-wake\"}",
+    "state/harnexus-crew/other-kind/ffff/state.json": "{\"owner\":\"nobody\"}",
+    "state/harnexus-crew/launch/loose-file.json": "{\"not\":\"under a key\"}",
+    "state/harnexus-crew/launch/.hidden/state.json": "{\"hidden\":true}",
+    "state/harnexus-crew/launch/B-upper/state.json": "{\"order\":\"upper\"}",
+    "state/harnexus-crew/launch/a-lower/state.json": "{\"order\":\"lower\"}",
+    "state/harnexus-crew/launch/😀/state.json": "{\"order\":\"astral\"}",
+    "state/harnexus-crew/launch/～/state.json": "{\"order\":\"fullwidth tilde\"}",
+    "state/harnexus-crew/launch/gggg/.json": "{\"name\":\"only the extension\"}"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}
