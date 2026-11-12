@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: <ROOT>/config/harnexus/task.json is invalid: ✖ Unrecognized key: \"prompts\"\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {}, \"prompts\": {}}"
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"prs\":[]}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [
+  {
+   "name": "pr-wake",
+   "argv": [
+    "watch",
+    "dry-run"
+   ],
+   "stdin": ""
+  }
+ ],
+ "files": {}
+}

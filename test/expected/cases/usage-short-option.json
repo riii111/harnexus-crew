@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 2,
+ "signal": null,
+ "stdout": "",
+ "stderr": "usage:\n  harnexus-crew check\nharnexus-crew: Unknown option '-x'\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

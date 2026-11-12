@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: cannot read {{work}}/links.json (ENOENT)\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"session_A\",\"threadId\":null,\"reservedAt\":\"x\",\"extra\":1}]}"
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: <ROOT>/config/harnexus/task.json is invalid: ✖ Invalid input: expected object, received undefined\n  → at templates\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{}"
+ }
+}

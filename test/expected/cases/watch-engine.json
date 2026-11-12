@@ -1,0 +1,18 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "engine output\n{\"watch\":\"stopped\"}\n",
+ "stderr": "engine notice\n",
+ "requests": [],
+ "commands": [
+  {
+   "name": "pr-wake-engine",
+   "argv": [
+    "watch"
+   ],
+   "stdin": ""
+  }
+ ],
+ "files": {}
+}

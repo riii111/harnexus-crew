@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"v\":1,\"type\":\"hello\",\"adapterId\":\"taskctl\",\"bindings\":[{\"conversationId\":\"R4\",\"threadId\":\"chat-different\"}]}\n{\"v\":1,\"type\":\"response\",\"id\":\"h1\",\"outcome\":\"done\",\"entries\":[]}\n",
+ "stderr": "{\"time\":\"<TIME>\",\"step\":\"binding_differs\",\"conversationId\":\"R4\"}\n{\"time\":\"<TIME>\",\"step\":\"binding_conflicts\",\"threads\":[\"chat-x\"]}\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-observe/pending.json": "[]",
+  "home/.local/state/harnexus/cloud-reviews/chats.json": "{\"R4\":\"chat-different\",\"R3\":{\"threadId\":\"chat-r3\",\"session\":null},\"R5\":{\"threadId\":\"chat-r5\",\"session\":null}}"
+ }
+}

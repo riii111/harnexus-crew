@@ -1,0 +1,24 @@
+{
+ "keys": [
+  {
+   "text": "<ROOT>/home/.codex/worktrees/ab12/repo\nw1",
+   "length": 16
+  }
+ ],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: a worker cannot review itself\n",
+ "requests": [
+  "{\"version\":1,\"query\":\"capabilities\"}",
+  "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"list_projects\",\"arguments\":{}}",
+  "{\"version\":1,\"query\":\"capabilities\"}",
+  "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"create_thread\",\"arguments\":{\"prompt\":\"[$ai-code-review](<ROOT>/skills/ai-code-review/SKILL.md)\\nタスクID: TR1\\n参照文書のパス・URL:\\n- https://example.com/task\\nworkerの担当AI: Codex\\nworkerのチャットID: w1\\nworkerの作業ディレクトリ: <ROOT>/home/.codex/worktrees/ab12/repo\\nレビュー対象のコミット範囲: af314261c610837f3606d61aa2dff1981debda94...a6bc63c9fd9d736a274586bb4a3989bc27297649\\nPRのURL: null\\n\\n[レビュー時の確認事項](<ROOT>/skills/task-review-cycle/SKILL.md#レビュー時の確認事項)と[返却方法](<ROOT>/skills/task-review-cycle/references/reply-Codex.md)に従ってください。\\n\",\"target\":{\"type\":\"project\",\"projectId\":\"p-review\",\"environment\":{\"type\":\"local\"}},\"title\":\"Review TR1\",\"model\":\"gpt-6.1-sol\",\"thinking\":\"medium\"}}"
+ ],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/skills/task-session-launch/references/worker.md\", \"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "state/harnexus-crew/review/{{key:0}}/pending.json": "{\n \"status\": \"unknown\",\n \"tool\": \"create_thread\",\n \"arguments\": {\n  \"prompt\": \"[$ai-code-review](<ROOT>/skills/ai-code-review/SKILL.md)\\nタスクID: TR1\\n参照文書のパス・URL:\\n- https://example.com/task\\nworkerの担当AI: Codex\\nworkerのチャットID: w1\\nworkerの作業ディレクトリ: <ROOT>/home/.codex/worktrees/ab12/repo\\nレビュー対象のコミット範囲: af314261c610837f3606d61aa2dff1981debda94...a6bc63c9fd9d736a274586bb4a3989bc27297649\\nPRのURL: null\\n\\n[レビュー時の確認事項](<ROOT>/skills/task-review-cycle/SKILL.md#レビュー時の確認事項)と[返却方法](<ROOT>/skills/task-review-cycle/references/reply-Codex.md)に従ってください。\\n\",\n  \"target\": {\n   \"type\": \"project\",\n   \"projectId\": \"p-review\",\n   \"environment\": {\n    \"type\": \"local\"\n   }\n  },\n  \"title\": \"Review TR1\",\n  \"model\": \"gpt-6.1-sol\",\n  \"thinking\": \"medium\"\n },\n \"candidate\": {\n  \"taskId\": \"TR1\",\n  \"workerAI\": \"Codex\",\n  \"projectId\": \"project\",\n  \"checkout\": \"<ROOT>/home/.codex/worktrees/ab12/repo\",\n  \"baseBranch\": \"base\",\n  \"documentRefs\": [\n   \"https://example.com/task\"\n  ],\n  \"prUrl\": null,\n  \"workerChatId\": \"w1\",\n  \"head\": \"a6bc63c9fd9d736a274586bb4a3989bc27297649\",\n  \"base\": \"af314261c610837f3606d61aa2dff1981debda94\"\n },\n \"workspace\": \"<ROOT>/home/.codex/worktrees/ab12/repo\",\n \"threadId\": \"w1\",\n \"answer\": {\n  \"outcome\": \"done\",\n  \"threadId\": \"w1\",\n  \"model\": \"gpt-6.1-sol\",\n  \"effort\": \"medium\"\n }\n}",
+  "work/review.json": "{\"taskId\": \"TR1\", \"workerAI\": \"Codex\", \"projectId\": \"project\", \"checkout\": \"<ROOT>/home/.codex/worktrees/ab12/repo\", \"baseBranch\": \"base\", \"documentRefs\": [\"https://example.com/task\"], \"prUrl\": null}"
+ }
+}

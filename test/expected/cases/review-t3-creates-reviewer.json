@@ -1,0 +1,49 @@
+{
+ "keys": [
+  {
+   "text": "<ROOT>/home/.t3/worktrees/ab12/repo\nw1",
+   "length": 16
+  }
+ ],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"tool\":\"create_thread\",\"threadId\":\"t3-r1\",\"model\":\"gpt-6.1-sol\",\"effort\":null,\"expected\":{\"model\":\"gpt-6.1-sol\",\"effort\":null},\"state\":\"<ROOT>/state/harnexus-crew/review/{{key:0}}/state.json\"}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [
+  {
+   "name": "t3",
+   "argv": [
+    "thread",
+    "start",
+    "<ROOT>/home/review-home",
+    "-",
+    "--title",
+    "Review TR1",
+    "--provider",
+    "codex",
+    "--model",
+    "gpt-6.1-sol",
+    "--json"
+   ],
+   "stdin": "[$ai-code-review](<ROOT>/skills/ai-code-review/SKILL.md)\nタスクID: TR1\n参照文書のパス・URL:\n- https://example.com/task\nworkerの担当AI: Codex\nworkerのチャットID: w1\nworkerの作業ディレクトリ: <ROOT>/home/.t3/worktrees/ab12/repo\nレビュー対象のコミット範囲: af314261c610837f3606d61aa2dff1981debda94...a6bc63c9fd9d736a274586bb4a3989bc27297649\nPRのURL: null\n\n[レビュー時の確認事項](<ROOT>/skills/task-review-cycle/SKILL.md#レビュー時の確認事項)と[返却方法](<ROOT>/skills/task-review-cycle/references/reply-T3.md)に従ってください。\n"
+  },
+  {
+   "name": "t3",
+   "argv": [
+    "thread",
+    "show",
+    "t3-r1",
+    "--messages",
+    "0",
+    "--json"
+   ],
+   "stdin": ""
+  }
+ ],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/skills/task-session-launch/references/worker.md\", \"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "state/harnexus-crew/review/{{key:0}}/state.json": "{\n \"reviewer\": \"t3-r1\",\n \"candidate\": {\n  \"taskId\": \"TR1\",\n  \"workerAI\": \"Codex\",\n  \"projectId\": \"project\",\n  \"checkout\": \"<ROOT>/home/.t3/worktrees/ab12/repo\",\n  \"baseBranch\": \"base\",\n  \"documentRefs\": [\n   \"https://example.com/task\"\n  ],\n  \"prUrl\": null,\n  \"workerChatId\": \"w1\",\n  \"head\": \"a6bc63c9fd9d736a274586bb4a3989bc27297649\",\n  \"base\": \"af314261c610837f3606d61aa2dff1981debda94\"\n },\n \"sent\": {\n  \"tool\": \"create_thread\",\n  \"prompt\": \"[$ai-code-review](<ROOT>/skills/ai-code-review/SKILL.md)\\nタスクID: TR1\\n参照文書のパス・URL:\\n- https://example.com/task\\nworkerの担当AI: Codex\\nworkerのチャットID: w1\\nworkerの作業ディレクトリ: <ROOT>/home/.t3/worktrees/ab12/repo\\nレビュー対象のコミット範囲: af314261c610837f3606d61aa2dff1981debda94...a6bc63c9fd9d736a274586bb4a3989bc27297649\\nPRのURL: null\\n\\n[レビュー時の確認事項](<ROOT>/skills/task-review-cycle/SKILL.md#レビュー時の確認事項)と[返却方法](<ROOT>/skills/task-review-cycle/references/reply-T3.md)に従ってください。\\n\",\n  \"expected\": {\n   \"model\": \"gpt-6.1-sol\",\n   \"effort\": null\n  },\n  \"actual\": {\n   \"model\": \"gpt-6.1-sol\",\n   \"effort\": null\n  },\n  \"workspace\": \"<ROOT>/home/.t3/worktrees/ab12/repo\",\n  \"answer\": {\n   \"outcome\": \"done\",\n   \"threadId\": \"t3-r1\",\n   \"model\": \"gpt-6.1-sol\",\n   \"effort\": null\n  }\n },\n \"settings\": {\n  \"requested\": {\n   \"model\": \"gpt-6.1-sol\",\n   \"effort\": null\n  },\n  \"actual\": {\n   \"model\": \"gpt-6.1-sol\",\n   \"effort\": null\n  }\n }\n}",
+  "work/review.json": "{\"taskId\": \"TR1\", \"workerAI\": \"Codex\", \"projectId\": \"project\", \"checkout\": \"<ROOT>/home/.t3/worktrees/ab12/repo\", \"baseBranch\": \"base\", \"documentRefs\": [\"https://example.com/task\"], \"prUrl\": null}"
+ }
+}

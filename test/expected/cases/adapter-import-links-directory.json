@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: cannot read {{work}} (ENOENT)\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

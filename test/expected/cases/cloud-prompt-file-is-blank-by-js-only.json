@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: the prompt file is empty\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "work/prompt.md": "\u001c"
+ }
+}

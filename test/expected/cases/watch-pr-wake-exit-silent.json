@@ -1,0 +1,19 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: pr-wake watch sender failed with exit 2\n",
+ "requests": [],
+ "commands": [
+  {
+   "name": "pr-wake",
+   "argv": [
+    "watch",
+    "sender"
+   ],
+   "stdin": ""
+  }
+ ],
+ "files": {}
+}

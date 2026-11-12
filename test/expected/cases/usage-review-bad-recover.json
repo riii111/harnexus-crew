@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 2,
+ "signal": null,
+ "stdout": "",
+ "stderr": "usage:\n  harnexus-crew review --request REQUEST [--model MODEL] [--thinking THINKING] [--update-base] [--recover discard] [--ask FILE]\nharnexus-crew: --recover must be one of discard\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

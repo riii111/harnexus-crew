@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: fatal: not a git repository (or any of the parent directories): .git; harnexus-crew never fetches, so fetch any missing commit in the worktree\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\":{\"reviewer\":\"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "work/review.json": "{\"taskId\":\"example\",\"workerAI\":\"Claude\",\"checkout\":\"<ROOT>/home\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null}"
+ }
+}

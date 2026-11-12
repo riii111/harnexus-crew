@@ -1,0 +1,14 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: the --ask file is empty\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\":{\"reviewer\":\"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "work/q.md": " \n　\n",
+  "work/review.json": "{\"taskId\":\"example\",\"workerAI\":\"Claude\",\"checkout\":\"<ROOT>/home/repo\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null}"
+ }
+}

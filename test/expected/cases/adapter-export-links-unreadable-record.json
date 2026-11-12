@@ -1,0 +1,17 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: <ROOT>/state/harnexus-crew/cloud-chats/session_D.json is not a Cloud chat record\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-chats/session_B.json": "{\"threadId\":null,\"startedAt\":\"2026-11-02T00:00:00Z\"}",
+  "state/harnexus-crew/cloud-chats/notes.txt": "not read",
+  "state/harnexus-crew/cloud-chats/session_C.json": "{\"threadId\":\"chat-c\"}",
+  "state/harnexus-crew/cloud-chats/session_D.json": "{\"threadId\":\"\"}",
+  "state/harnexus-crew/cloud-chats/bad name.json": "not read",
+  "state/harnexus-crew/cloud-chats/session_A.json": "{\"threadId\":\"chat-a\",\"openedAt\":\"2026-11-01T00:00:00Z\"}"
+ }
+}

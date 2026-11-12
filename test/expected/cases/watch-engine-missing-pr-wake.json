@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: pr-wake is not on PATH; install pr-wake, or set HARNEXUS_CREW_PR_WAKE to its absolute path\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

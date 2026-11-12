@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: https://example.com/o/r/pull/3 is not watched: the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

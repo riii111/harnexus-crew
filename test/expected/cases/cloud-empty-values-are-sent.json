@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"threadId\":\"cloud-chat\",\"cloudSessionId\":\"session_01NfjPqrDm5ZNRA1m484J4Kt\",\"url\":\"https://claude.ai/code/session_01NfjPqrDm5ZNRA1m484J4Kt\"}\n",
+ "stderr": "",
+ "requests": [
+  "{\"version\":1,\"query\":\"capabilities\"}",
+  "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"cloud_open\",\"arguments\":{\"cwd\":\"<ROOT>/work\",\"link\":\"\",\"projectId\":\"p\",\"title\":\"\",\"model\":\"\",\"thinking\":\"\"}}"
+ ],
+ "commands": [],
+ "files": {}
+}

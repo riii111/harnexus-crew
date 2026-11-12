@@ -1,0 +1,20 @@
+{
+ "keys": [
+  {
+   "text": "R9\u0000aaa1111\u0000\u0000判定: LGTM aaa1111",
+   "length": 32
+  }
+ ],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"v\":1,\"type\":\"hello\",\"adapterId\":\"taskctl\",\"bindings\":[]}\n{\"v\":1,\"type\":\"response\",\"id\":\"settle\",\"outcome\":\"done\",\"entries\":[]}\n{\"v\":1,\"type\":\"observed\",\"eventId\":\"e1\"}\n{\"v\":1,\"type\":\"observed\",\"eventId\":\"e2\"}\n{\"v\":1,\"type\":\"request\",\"id\":\"harnexus-crew-1\",\"op\":\"list_projects\",\"callerThreadId\":\"parent-chat\"}\n{\"v\":1,\"type\":\"observed\",\"eventId\":\"e3\"}\n{\"v\":1,\"type\":\"request\",\"id\":\"harnexus-crew-2\",\"op\":\"list_projects\",\"callerThreadId\":\"parent-chat\"}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-observe/sessions/session_01AbC.json": "{\n \"sessionId\": \"session_01AbC\",\n \"parentThreadId\": \"parent-chat\",\n \"baseline\": {\n  \"uuid\": null,\n  \"estimated\": false,\n  \"at\": \"<TIME>\"\n },\n \"cursor\": \"u-t-aaa1111-R9\",\n \"excluded\": [],\n \"taken\": [\n  \"{{key:0}}\"\n ],\n \"gaps\": []\n}",
+  "state/harnexus-crew/cloud-observe/journal.jsonl": "{\"at\":\"<TIME>\",\"kind\":\"review_taken\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"{{key:0}}\",\"reviewer\":\"R9\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\"}}\n{\"at\":\"<TIME>\",\"kind\":\"delivered\",\"key\":\"{{key:0}}\",\"outcome\":\"no_project\"}\n{\"at\":\"<TIME>\",\"kind\":\"delivered\",\"key\":\"{{key:0}}\",\"outcome\":\"not_sent\"}\n",
+  "state/harnexus-crew/cloud-observe/pending.json": "[\n {\n  \"parentThreadId\": \"parent-chat\",\n  \"sessionId\": \"session_01AbC\",\n  \"review\": {\n   \"key\": \"{{key:0}}\",\n   \"reviewer\": \"R9\",\n   \"verdict\": \"LGTM\",\n   \"taskId\": \"harnexus-1\",\n   \"head\": \"aaa1111\",\n   \"answer\": \"判定: LGTM aaa1111\"\n  }\n }\n]",
+  "home/.local/state/harnexus/cloud-reviews/{{key:0}}.json": "{\"key\":\"{{key:0}}\",\"reviewer\":\"R9\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\"}"
+ }
+}

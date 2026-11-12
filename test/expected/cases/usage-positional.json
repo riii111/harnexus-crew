@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 2,
+ "signal": null,
+ "stdout": "",
+ "stderr": "usage:\n  harnexus-crew check\nharnexus-crew: Unexpected argument 'extra'. This command does not take positional arguments\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

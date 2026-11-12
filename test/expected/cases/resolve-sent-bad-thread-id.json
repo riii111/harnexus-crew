@@ -1,0 +1,14 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: --thread-id must be a confirmed chat ID without whitespace\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/skills/task-session-launch/references/worker.md\", \"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "state/harnexus-crew/launch/6279de90d3447943/pending.json": "{\"status\": \"unknown\", \"tool\": \"create_thread\", \"arguments\": {\"prompt\": \"P\", \"target\": {\"type\": \"project\", \"projectId\": \"project\", \"environment\": {\"type\": \"worktree\"}}, \"title\": \"Impl TR1\", \"model\": \"claude-sonnet-5-5\", \"thinking\": \"high\"}, \"request\": {\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}, \"workspace\": {\"type\": \"project\", \"projectId\": \"project\", \"environment\": {\"type\": \"worktree\"}}}",
+  "work/launch.json": "{\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}"
+ }
+}

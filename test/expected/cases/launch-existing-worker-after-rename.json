@@ -1,0 +1,19 @@
+{
+ "keys": [
+  {
+   "text": "project\nTR1",
+   "length": 16
+  }
+ ],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"existing\":\"w1\",\"state\":\"<ROOT>/state/harnexus-crew/launch/{{key:0}}/state.json\"}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/skills/task-session-launch/references/worker.md\", \"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "state/harnexus-crew/launch/{{key:0}}/state.json": "{\"threadId\": \"w1\", \"request\": {\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}, \"sent\": {\"tool\": \"create_thread\", \"prompt\": \"P\", \"expected\": {\"model\": \"claude-sonnet-5-5\", \"effort\": \"high\"}, \"actual\": {\"model\": \"claude-sonnet-5-5\", \"effort\": \"high\"}, \"workspace\": {\"type\": \"project\", \"projectId\": \"project\", \"environment\": {\"type\": \"worktree\"}}, \"answer\": {\"outcome\": \"done\", \"threadId\": \"w1\"}}}",
+  "work/launch.json": "{\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\", \"displayName\": \"New name\"}"
+ }
+}

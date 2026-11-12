@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"templates\":{\"worker\":null,\"reviewer\":\"<ROOT>/templates/reviewer.md\"},\"t3\":{\"ready\":false,\"reason\":\"the reviewer template <ROOT>/templates/reviewer.md: links to <ROOT>/refs/reply-T3.md, which is not a file\"}}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"reviewer\": \"<ROOT>/templates/reviewer.md\"}}"
+ }
+}

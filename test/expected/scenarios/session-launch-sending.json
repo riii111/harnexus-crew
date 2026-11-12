@@ -1,0 +1,143 @@
+{
+ "keys": [
+  {
+   "text": "project\nTR1",
+   "length": 16
+  }
+ ],
+ "result": {
+  "steps": [
+   {
+    "code": 1,
+    "stdout": "",
+    "stderr": "harnexus-crew: previous create_thread ended as sending; never resend. Ask the user to check the App, then run resolve --sent or --not-sent\n"
+   },
+   {
+    "code": 1,
+    "stdout": "",
+    "stderr": "harnexus-crew: previous create_thread ended as sending; never resend. Ask the user to check the App, then run resolve --sent or --not-sent\n"
+   },
+   {
+    "code": 0,
+    "stdout": {
+     "released": "create_thread",
+     "status": "sending"
+    },
+    "stderr": ""
+   },
+   {
+    "code": 0,
+    "stdout": {
+     "tool": "create_thread",
+     "threadId": "w2",
+     "model": null,
+     "effort": null,
+     "expected": {
+      "model": "claude-sonnet-5-5",
+      "effort": "high"
+     },
+     "state": "<ROOT>/state/harnexus-crew/launch/{{key:0}}/state.json"
+    },
+    "stderr": ""
+   }
+  ],
+  "secondTook": 32
+ },
+ "requests": [
+  {
+   "version": 1,
+   "query": "capabilities"
+  },
+  {
+   "version": 1,
+   "threadId": "w1",
+   "tool": "create_thread",
+   "arguments": {
+    "prompt": "タスクID: TR1\n参照文書のパス・URL:\n- https://example.com/task\n進めてよい範囲: draft_pr\n\n[$task-worker](<ROOT>/skills/task-worker/SKILL.md)\n",
+    "target": {
+     "type": "project",
+     "projectId": "project",
+     "environment": {
+      "type": "worktree"
+     }
+    },
+    "title": "Impl TR1",
+    "model": "claude-sonnet-5-5",
+    "thinking": "high"
+   }
+  },
+  {
+   "version": 1,
+   "query": "capabilities"
+  },
+  {
+   "version": 1,
+   "threadId": "w1",
+   "tool": "create_thread",
+   "arguments": {
+    "prompt": "タスクID: TR1\n参照文書のパス・URL:\n- https://example.com/task\n進めてよい範囲: draft_pr\n\n[$task-worker](<ROOT>/skills/task-worker/SKILL.md)\n",
+    "target": {
+     "type": "project",
+     "projectId": "project",
+     "environment": {
+      "type": "worktree"
+     }
+    },
+    "title": "Impl TR1",
+    "model": "claude-sonnet-5-5",
+    "thinking": "high"
+   }
+  }
+ ],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": {
+   "templates": {
+    "worker": "<ROOT>/skills/task-session-launch/references/worker.md",
+    "reviewer": "<ROOT>/skills/task-review-cycle/references/reviewer.md"
+   }
+  },
+  "state/harnexus-crew/launch/{{key:0}}/state.json": {
+   "threadId": "w2",
+   "request": {
+    "taskId": "TR1",
+    "documentRefs": [
+     "https://example.com/task"
+    ],
+    "completionTarget": "draft_pr",
+    "projectId": "project"
+   },
+   "sent": {
+    "tool": "create_thread",
+    "prompt": "タスクID: TR1\n参照文書のパス・URL:\n- https://example.com/task\n進めてよい範囲: draft_pr\n\n[$task-worker](<ROOT>/skills/task-worker/SKILL.md)\n",
+    "expected": {
+     "model": "claude-sonnet-5-5",
+     "effort": "high"
+    },
+    "actual": {
+     "model": null,
+     "effort": null
+    },
+    "workspace": {
+     "type": "project",
+     "projectId": "project",
+     "environment": {
+      "type": "worktree"
+     }
+    },
+    "answer": {
+     "outcome": "done",
+     "threadId": "w2"
+    }
+   }
+  },
+  "work/launch.json": {
+   "taskId": "TR1",
+   "documentRefs": [
+    "https://example.com/task"
+   ],
+   "completionTarget": "draft_pr",
+   "projectId": "project"
+  }
+ }
+}

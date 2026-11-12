@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 2,
+ "signal": null,
+ "stdout": "",
+ "stderr": "usage:\n  harnexus-crew launch --request REQUEST [--model MODEL] [--thinking THINKING]\n  harnexus-crew review --request REQUEST [--model MODEL] [--thinking THINKING] [--update-base] [--recover discard] [--ask FILE]\n  harnexus-crew state [--request REQUEST]\n  harnexus-crew resolve --request REQUEST (--sent | --not-sent) [--thread-id THREAD_ID]\n  harnexus-crew name --pr PR\n  harnexus-crew watch [--dry-run [--pr PR]... | --release PR | --status | --sender | --link PR]\n  harnexus-crew environment\n  harnexus-crew check\n  harnexus-crew cloud (--link SESSION_OR_URL | --prompt-file FILE) [--project PROJECT_ID] [--title TITLE] [--model MODEL] [--thinking THINKING]\nharnexus-crew: expected a subcommand: launch, review, state, resolve, name, watch, environment, check, cloud\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

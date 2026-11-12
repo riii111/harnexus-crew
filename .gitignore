@@ -5,3 +5,4 @@ dist/
 _build/
 .mooncakes/
 .direnv/
+__pycache__/

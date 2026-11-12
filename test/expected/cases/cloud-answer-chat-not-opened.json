@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: cloud_open chat_not_opened (never resend; check the app): the session runs\n",
+ "requests": [
+  "{\"version\":1,\"query\":\"capabilities\"}",
+  "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"cloud_open\",\"arguments\":{\"cwd\":\"<ROOT>/work\",\"link\":\"session_01NfjPqrDm5ZNRA1m484J4Kt\"}}"
+ ],
+ "commands": [],
+ "files": {}
+}

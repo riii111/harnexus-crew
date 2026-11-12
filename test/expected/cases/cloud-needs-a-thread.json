@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: CODEX_THREAD_ID is not set; run harnexus-crew from a thread\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

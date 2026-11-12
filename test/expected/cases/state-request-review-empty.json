@@ -1,0 +1,18 @@
+{
+ "keys": [
+  {
+   "text": "<ROOT>/home/.codex/worktrees/ab12/repo\nw1",
+   "length": 16
+  }
+ ],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"kind\":\"review\",\"reviewerThreadId\":null,\"workerThreadId\":\"w1\",\"base\":null,\"head\":null,\"baseBranch\":null,\"prUrl\":null,\"pendingHead\":null,\"requested\":{\"model\":null,\"effort\":null},\"actual\":{\"model\":null,\"effort\":null},\"pending\":null,\"pendingThreadId\":null,\"statePath\":\"<ROOT>/state/harnexus-crew/review/{{key:0}}/state.json\",\"prompt\":null,\"refusedThreadIds\":[]}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/skills/task-session-launch/references/worker.md\", \"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "work/review.json": "{\"taskId\": \"TR1\", \"workerAI\": \"Codex\", \"projectId\": \"project\", \"checkout\": \"<ROOT>/home/.codex/worktrees/ab12/repo\", \"baseBranch\": \"base\", \"documentRefs\": [\"https://example.com/task\"], \"prUrl\": null}"
+ }
+}

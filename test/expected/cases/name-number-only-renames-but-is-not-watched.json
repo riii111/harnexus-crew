@@ -1,0 +1,17 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: 3 is not watched (the thread is named Impl TR1 PR#3): the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>\n",
+ "requests": [
+  "{\"version\":1,\"query\":\"capabilities\"}",
+  "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"name_thread\",\"arguments\":{\"name\":\"Impl TR1 PR#3\"}}"
+ ],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/skills/task-session-launch/references/worker.md\", \"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "state/harnexus-crew/launch/6279de90d3447943/state.json": "{\"threadId\": \"w1\", \"request\": {\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}, \"sent\": {\"tool\": \"create_thread\", \"prompt\": \"P\", \"expected\": {\"model\": \"claude-sonnet-5-5\", \"effort\": \"high\"}, \"actual\": {\"model\": \"claude-sonnet-5-5\", \"effort\": \"high\"}, \"workspace\": {\"type\": \"project\", \"projectId\": \"project\", \"environment\": {\"type\": \"worktree\"}}, \"answer\": {\"outcome\": \"done\", \"threadId\": \"w1\"}}}",
+  "work/launch.json": "{\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}"
+ }
+}

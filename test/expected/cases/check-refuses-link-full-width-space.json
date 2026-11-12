@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: the worker template <ROOT>/templates/worker.md: links to \"　notes/task.md\"; write a relative target without angle brackets, spaces or a title\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/templates/worker.md\"}}"
+ }
+}

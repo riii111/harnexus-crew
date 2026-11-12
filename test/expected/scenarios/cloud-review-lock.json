@@ -1,0 +1,100 @@
+{
+ "keys": [
+  {
+   "text": "<ROOT>/cloud/repo\u0000example",
+   "length": 16
+  }
+ ],
+ "result": [
+  {
+   "code": 1,
+   "stdout": "",
+   "stderr": "harnexus-crew: another review (pid <PID>) is using this session\n"
+  },
+  {
+   "code": 1,
+   "stdout": "",
+   "stderr": "harnexus-crew: another review (pid <PID>) is using this session\n"
+  },
+  {
+   "code": 0,
+   "stdout": {
+    "status": "completed",
+    "verdict": "LGTM",
+    "taskId": "example",
+    "base": "af314261c610837f3606d61aa2dff1981debda94",
+    "head": "a6bc63c9fd9d736a274586bb4a3989bc27297649",
+    "reviewer": "01a18d52-e03a-74c1-a50e-4e697b47172b",
+    "answer": "判定: LGTM",
+    "state": "<ROOT>/state/harnexus-crew/cloud-review/{{key:0}}/state.json"
+   },
+   "stderr": ""
+  },
+  {
+   "code": 0,
+   "stdout": {
+    "status": "completed",
+    "verdict": "修正必要",
+    "taskId": "example",
+    "base": "af314261c610837f3606d61aa2dff1981debda94",
+    "head": "5455abba46706efa2a58a43a55b97e9d40eaa4ec",
+    "reviewer": "01a18d52-e03a-74c1-a50e-4e697b47172b",
+    "answer": "判定: 修正必要",
+    "state": "<ROOT>/state/harnexus-crew/cloud-review/{{key:0}}/state.json"
+   },
+   "stderr": ""
+  },
+  {
+   "lock": false
+  }
+ ],
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-review/{{key:0}}/state.json": {
+   "reviewer": "01a18d52-e03a-74c1-a50e-4e697b47172b",
+   "candidate": {
+    "taskId": "example",
+    "workerAI": "Claude",
+    "checkout": "<ROOT>/cloud/repo",
+    "baseBranch": "base",
+    "documentRefs": [
+     "https://example.com/task"
+    ],
+    "prUrl": null,
+    "workerChatId": "worker-session",
+    "head": "5455abba46706efa2a58a43a55b97e9d40eaa4ec",
+    "base": "af314261c610837f3606d61aa2dff1981debda94"
+   },
+   "verdict": "修正必要",
+   "heads": [
+    "a6bc63c9fd9d736a274586bb4a3989bc27297649",
+    "5455abba46706efa2a58a43a55b97e9d40eaa4ec"
+   ],
+   "updatedAt": "<TIME>"
+  },
+  "fake/args.2": "exec\nresume\n01a18d52-e03a-74c1-a50e-4e697b47172b\n--json\n-c\nsandbox_mode=\"read-only\"\n-\n",
+  "fake/stdin.1": "[$ai-code-review](<ROOT>/skills/ai-code-review/SKILL.md)\nタスクID: example\n参照文書のパス・URL:\n- https://example.com/task\nworkerの担当AI: Claude\nworkerのチャットID: worker-session\nworkerの作業ディレクトリ: <ROOT>/cloud/repo\nレビュー対象のコミット範囲: af314261c610837f3606d61aa2dff1981debda94...a6bc63c9fd9d736a274586bb4a3989bc27297649\nPRのURL: null\n\n[レビュー時の確認事項](<ROOT>/skills/task-review-cycle/SKILL.md#レビュー時の確認事項)と[返却方法](<ROOT>/skills/task-review-cycle/references/reply-Cloud.md)に従ってください。\n",
+  "fake/sleep.1": "2",
+  "fake/cwd.1": "<ROOT>/cloud/repo\n",
+  "fake/out.2": "{\"type\":\"thread.started\",\"thread_id\":\"01a18d52-e03a-74c1-a50e-4e697b47172b\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"判定: 修正必要\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}",
+  "fake/exit.2": "0",
+  "fake/count": "2\n",
+  "fake/args.1": "exec\n--json\n--sandbox\nread-only\n-C\n<ROOT>/cloud/repo\n-m\ngpt-6.1-sol\n-c\nmodel_reasoning_effort=\"medium\"\n-\n",
+  "fake/stdin.2": "[$ai-code-review](<ROOT>/skills/ai-code-review/SKILL.md)\nタスクID: example\n参照文書のパス・URL:\n- https://example.com/task\nworkerの担当AI: Claude\nworkerのチャットID: worker-session\nworkerの作業ディレクトリ: <ROOT>/cloud/repo\nレビュー対象のコミット範囲: af314261c610837f3606d61aa2dff1981debda94...5455abba46706efa2a58a43a55b97e9d40eaa4ec\nPRのURL: null\n\n[レビュー時の確認事項](<ROOT>/skills/task-review-cycle/SKILL.md#レビュー時の確認事項)と[返却方法](<ROOT>/skills/task-review-cycle/references/reply-Cloud.md)に従ってください。\n",
+  "fake/out.1": "{\"type\":\"thread.started\",\"thread_id\":\"01a18d52-e03a-74c1-a50e-4e697b47172b\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"判定: LGTM\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}",
+  "fake/cwd.2": "<ROOT>/cloud/repo\n",
+  "fake/exit.1": "0",
+  "work/review.json": {
+   "taskId": "example",
+   "workerAI": "Claude",
+   "checkout": "<ROOT>/cloud/repo",
+   "baseBranch": "base",
+   "documentRefs": [
+    "https://example.com/task"
+   ],
+   "prUrl": null
+  },
+  "work/ask.md": "B1 はまだ残っていますか"
+ }
+}

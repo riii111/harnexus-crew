@@ -1,0 +1,22 @@
+{
+ "keys": [
+  {
+   "text": "R1\u0000aaa1111\u0000\u0000判定: LGTM aaa1111",
+   "length": 32
+  },
+  {
+   "text": "R1\u0000bbb2222\u0000\u0000判定: LGTM bbb2222",
+   "length": 32
+  }
+ ],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"v\":1,\"type\":\"hello\",\"adapterId\":\"taskctl\",\"bindings\":[]}\n{\"v\":1,\"type\":\"observed\",\"eventId\":\"e1\"}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-observe/sessions/session_01AbC.json": "{\n \"sessionId\": \"session_01AbC\",\n \"parentThreadId\": \"parent-chat\",\n \"baseline\": {\n  \"uuid\": \"u-t-aaa1111-R1\",\n  \"estimated\": true,\n  \"at\": \"<TIME>\"\n },\n \"cursor\": \"u-t-bbb2222-R1\",\n \"excluded\": [\n  \"{{key:0}}\"\n ],\n \"taken\": [\n  \"{{key:1}}\"\n ],\n \"gaps\": []\n}",
+  "state/harnexus-crew/cloud-observe/journal.jsonl": "{\"at\":\"<TIME>\",\"kind\":\"baseline_estimated\",\"sessionId\":\"session_01AbC\",\"shownBefore\":\"u-t-aaa1111-R1\"}\n{\"at\":\"<TIME>\",\"kind\":\"observed_review\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"{{key:1}}\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"bbb2222\",\"answer\":\"判定: LGTM bbb2222\"}}\n"
+ }
+}
