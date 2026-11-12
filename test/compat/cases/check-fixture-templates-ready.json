@@ -1,0 +1,13 @@
+{
+  "name": "check-fixture-templates-ready",
+  "owner": "MB06",
+  "status": "active",
+  "kind": "command",
+  "argv": ["check"],
+  "seed": {
+    "skills": "test/fixtures/task-skills"
+  },
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/skills/task-session-launch/references/worker.md\", \"reviewer\": \"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}"
+  }
+}

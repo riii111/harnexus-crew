@@ -13,7 +13,7 @@ async fn run_command(
     Resolve(_) => not_migrated("resolve")
     Name(_) => not_migrated("name")
     Watch(_) => not_migrated("watch")
-    Check => not_migrated("check")
+    Check => @prompt.check_templates(env)
     Cloud(_) => not_migrated("cloud")
   }
 }

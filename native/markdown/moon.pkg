@@ -1,0 +1,10 @@
+import {
+  "riii111/harnexus-crew/shared/failure",
+  "moonbitlang/core/encoding/utf8",
+}
+
+options(
+  "native-stub": [ "md4c.c", "wrap.c" ],
+)
+
+supported_targets = "+native"

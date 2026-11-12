@@ -15,6 +15,8 @@ moon build --target native --release
 HARNEXUS_CREW_NATIVE=$PWD/_build/native/release/build/cmd/main/main.exe bun test test/compat
 bun test/compat/cli.ts --native _build/native/release/build/cmd/main/main.exe
 HARNEXUS_STORE_PROBE=$PWD/_build/native/release/build/store/probe/probe.exe bun test test/native/store.test.ts
+HARNEXUS_MARKDOWN_PROBE=$PWD/_build/native/release/build/markdown/probe/probe.exe bun test test/native/markdown.test.ts
+HARNEXUS_PROMPT_PROBE=$PWD/_build/native/release/build/prompt/probe/probe.exe bun test test/native/prompt.test.ts
 ```
 
 CIの `native` ジョブは macOS（macos-15）と Linux（ubuntu-24.04）で同じ手順を実行する。
@@ -22,13 +24,13 @@ CIの `native` ジョブは macOS（macos-15）と Linux（ubuntu-24.04）で同
 
 ## 固定版
 
-| 項目                      | 版                                                     | 固定の場所                                                  |
-| ------------------------- | ------------------------------------------------------ | ----------------------------------------------------------- |
-| moon / moonc              | 0.1.20261104 (940aa18) / v0.10.20+65efd5b93            | `flake.nix` が版を名指しし、`flake.lock` が配布元を固定する |
-| MoonBitのcore             | ツールチェーンに同梱                                   | 上と同じ。mooncakesの依存はない                             |
-| Bun（TS版と比較ハーネス） | 1.4.4                                                  | `package.json`                                              |
-| md4c（MB06で同梱）        | v0.6.0 (d4eeb1ace5d0a64d6a1245e97bf9c8105c4f3df7)、MIT | MB06                                                        |
-| 比較基準のTS版            | `51af56c5ee443de97e244be1c9eee97ebb34a6ac`             | この文書                                                    |
+| 項目                      | 版                                                                                                              | 固定の場所                                                  |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| moon / moonc              | 0.1.20261104 (940aa18) / v0.10.20+65efd5b93                                                                     | `flake.nix` が版を名指しし、`flake.lock` が配布元を固定する |
+| MoonBitのcore             | ツールチェーンに同梱                                                                                            | 上と同じ。mooncakesの依存はない                             |
+| Bun（TS版と比較ハーネス） | 1.4.4                                                                                                           | `package.json`                                              |
+| md4c                      | v0.6.0（タグ d4eeb1ace5d0a64d6a1245e97bf9c8105c4f3df7、コミット 7fc1815a5eeba2af7d6120a76202bf59f3b6e6e4）、MIT | `native/markdown/` の `md4c.c`・`md4c.h`・`md4c-LICENSE.md` |
+| 比較基準のTS版            | `51af56c5ee443de97e244be1c9eee97ebb34a6ac`                                                                      | この文書                                                    |
 
 非同期処理は、ツールチェーン同梱の実験的パッケージ `moonbitlang/core/async` を使う（試作と同じ）。
 使うパッケージは `moon.pkg` の `options("allow-experimental-packages": true)` で許可する。
@@ -43,30 +45,33 @@ mooncakesの `moonbitlang/async` は使わない。
 各タスクは自分のパッケージと `cmd/main` の登録箇所だけを変更する。
 共通型の変更が必要なときは、統括が影響する担当を調整してから行う。
 
-| パッケージ        | 内容                                                        | 担当               |
-| ----------------- | ----------------------------------------------------------- | ------------------ |
-| `shared/failure`  | 利用者へメッセージを返す失敗 `TaskFailed`                   | MB01               |
-| `shared/jsonio`   | JSONの読み書き、未知フィールドを残す `Fields`               | MB01               |
-| `shared/call`     | 呼び出し結果 `CallOutcome`、応答 `CallAnswer`               | MB01（利用はMB08） |
-| `shared/boundary` | ソケット・子プロセスの結果型と失敗型                        | MB01（実装はMB02） |
-| `shared/run`      | コマンド実行結果 `CommandRun` と、出力して終了する `finish` | MB01               |
-| `sys`             | 最小のC連携（OS種別、fdへの全量書き込み）                   | MB01               |
-| `store`           | 状態ファイルの読み書き、`records`、排他ロック、状態の保存先 | MB03               |
-| `store/probe`     | `store` を別プロセスで競合させる試験用の実行ファイル        | MB03               |
-| `os/unix`         | errno名と説明、fdを閉じる                                   | MB02               |
-| `os/socket`       | Unixソケットへ1行を送り、答えを受ける                       | MB02               |
-| `os/process`      | 子プロセスの実行（締切・出力上限・プロセス群）              | MB02               |
-| `os/testkit`      | 上の試験が使うサーバー・fd数の確認（試験だけが取り込む）    | MB02               |
-| `cli`             | 振り分け、usage、クラッシュ報告、`environment`・`state`     | MB05               |
-| `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）              | MB05               |
-| `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                         | MB05               |
+| パッケージ        | 内容                                                             | 担当               |
+| ----------------- | ---------------------------------------------------------------- | ------------------ |
+| `shared/failure`  | 利用者へメッセージを返す失敗 `TaskFailed`                        | MB01               |
+| `shared/jsonio`   | JSONの読み書き、未知フィールドを残す `Fields`                    | MB01               |
+| `shared/call`     | 呼び出し結果 `CallOutcome`、応答 `CallAnswer`                    | MB01（利用はMB08） |
+| `shared/boundary` | ソケット・子プロセスの結果型と失敗型                             | MB01（実装はMB02） |
+| `shared/run`      | コマンド実行結果 `CommandRun` と、出力して終了する `finish`      | MB01               |
+| `sys`             | 最小のC連携（OS種別、fdへの全量書き込み）                        | MB01               |
+| `store`           | 状態ファイルの読み書き、`records`、排他ロック、状態の保存先      | MB03               |
+| `store/probe`     | `store` を別プロセスで競合させる試験用の実行ファイル             | MB03               |
+| `os/unix`         | errno名と説明、fdを閉じる                                        | MB02               |
+| `os/socket`       | Unixソケットへ1行を送り、答えを受ける                            | MB02               |
+| `os/process`      | 子プロセスの実行（締切・出力上限・プロセス群）                   | MB02               |
+| `os/testkit`      | 上の試験が使うサーバー・fd数の確認（試験だけが取り込む）         | MB02               |
+| `markdown`        | md4cで判定するMarkdown上のリンク先（C連携とライセンスを含む）    | MB06               |
+| `markdown/probe`  | `markdown` の判定を63件の事例で確かめる試験用の実行ファイル      | MB06               |
+| `prompt`          | テンプレートの展開（リンク解決・値の埋め込み）と `check`         | MB06               |
+| `prompt/probe`    | `prompt` を外側から確かめる試験用の実行ファイル                  | MB06               |
+| `cli`             | 振り分け、usage、クラッシュ報告、`environment`・`state`・`check` | MB05・MB06         |
+| `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）                   | MB05               |
+| `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                              | MB05               |
 
 後続の新しいパッケージは、次の名前を目安にする。
 
 | タスク | パッケージ                                                             |
 | ------ | ---------------------------------------------------------------------- |
 | MB04   | `request`、`config`、`environment`、`args`、`template`、`path`、`text` |
-| MB06   | `markdown`（md4cのCと同梱ライセンスを含む）                            |
 | MB07   | `prwake`                                                               |
 | MB08   | `app`                                                                  |
 | MB09   | `session`                                                              |
@@ -122,7 +127,7 @@ JSONや文字列から型への変換は副作用を持たない。
 | `args`        | コマンドの引数。オプション定義と型付きの `Command`。usageの文面と入口の振り分けはMB05                                                                          |
 | `template`    | `{name}` の埋め込み規則とリンク先に入れる値の制約。Markdownの判定とリンク解決はMB06                                                                            |
 | `path`        | Nodeの `path.posix` と同じ結果の `join`・`normalize`・`dirname`・`resolve`                                                                                     |
-| `text`        | `\p{L}`・`\p{N}`、Pythonの空白、JSの `trim` と文字列の順序                                                                                                     |
+| `text`        | `\p{L}`・`\p{N}`、Pythonの空白、JSの `trim`・`\s` と文字列の順序                                                                                               |
 
 - `request` の注入は `FileProbe`（存在・ディレクトリ判定・実パス）と `GitRunner`（`shared/boundary` の `CommandOutput` を返す）。非同期の関数型なので、同期の関数も渡せる。Gitは安全フラグ付きの `git -C <checkout>` で、`GIT_NO_LAZY_FETCH=1` を渡す。
 - `Env::state_root` が `store::state_directory` の `root` になる。`FileProbe` の存在・ディレクトリ判定・実パスは、`store` の `path_exists`・`is_directory`・`real_path_or_self` で満たせる。
@@ -131,6 +136,27 @@ JSONや文字列から型への変換は副作用を持たない。
 - 実行環境の判定は2段階。`detect` が環境変数だけで決まる結果か、ソケットへの接続を試す相手を返し、接続できたかどうかで `Detected::socket_accepted` か `Detected::undetermined` を選ぶ。
 - `String` の `<` と `compare` は辞書順ではない。JSの並び替えと同じ順序が要るときは `@text.compare_utf16` を使う。
 - `text` の文字分類表は、固定したBunの `\p{L}`・`\p{N}` から `test/native/unicode-tables.ts` が生成する。`bun test test/native` が表との一致を確かめる。
+
+## テンプレートとMarkdown
+
+`prompt::task_prompt` が、設定 `task.json` の指すテンプレートを読み、リンクを解決し、値を埋め込んだ文字列を返す。
+`prompt::check_templates` が `check` の出力を作る。
+TS版と同じく、実在しないファイルや、値の入りうる位置が名前でないリンク先は、送信前に失敗させる。
+
+リンクかどうかはmd4cが決める。
+`](...)` の中身を一意なマーカーへ置き換えたテンプレートをmd4cで読み、リンクまたは画像の宛先になったマーカーの候補だけを解決する。
+コードやコメントの例、見出しなどで区切られた文は、リンクとして扱われない。
+置き換える前の原文を直接読むとエスケープの扱いが変わるため、判定は必ずこのマーカー経由で行う。
+md4cの失敗はリンクなしとして扱わず、`TaskFailed` で返す。
+
+md4cのフラグは、tables・strikethrough・tasklistsに、NOHTMLBLOCKSとNOINDENTEDCODEBLOCKSを加える。
+プロンプトは節をタグで囲み、地の文をインデントするので、タグとインデントは文として読ませる。
+
+検証は3層に分ける。
+
+- `test/native/markdown.test.ts`：TS版（Bun 1.4.4）が下した63件の判定と102件の候補を、`markdown/probe` が再現する。
+- `test/native/prompt.test.ts`：TS版のテンプレート試験22件を、`prompt/probe` で同じ期待のまま通す。シンボリックリンクを使う事例もここで確かめる。
+- `test/compat/cases/check-*.json`：`check` のstdout・stderr・終了コードをTS版と比べる。
 
 ## 所有権の境界
 

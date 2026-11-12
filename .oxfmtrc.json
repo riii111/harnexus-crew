@@ -5,5 +5,5 @@
   "sortImports": {
     "sortSideEffects": false
   },
-  "ignorePatterns": [".claude/**"]
+  "ignorePatterns": [".claude/**", "native/markdown/md4c-LICENSE.md"]
 }

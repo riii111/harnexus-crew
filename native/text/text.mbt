@@ -81,6 +81,12 @@ pub fn js_trim(text : String) -> String {
 }
 
 ///|
+/// True when the text holds a character that JS `\s` matches, which is the set `js_trim` strips.
+pub fn has_js_whitespace(text : String) -> Bool {
+  text.code_units().iter().any(fn(unit) { is_js_whitespace(unit.to_int()) })
+}
+
+///|
 /// JS `<` on strings: code unit by code unit, which differs from code point order for characters above U+FFFF.
 pub fn compare_utf16(left : String, right : String) -> Int32 {
   let a = left.code_units()
