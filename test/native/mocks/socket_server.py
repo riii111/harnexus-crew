@@ -1,5 +1,5 @@
-# Mock bridge for deadline cases: backlog listens without accepting and fills its queue, noread accepts and never reads, drip answers in chunks slower in total than the deadline.
-import os, socket, sys, time
+# Mock bridge for deadline cases: answer replies to the first line and closes, silent reads and never answers, backlog listens without accepting and fills its queue, noread accepts and never reads, drip answers in chunks slower in total than the deadline.
+import json, os, socket, sys, time
 
 path, mode = sys.argv[1], sys.argv[2]
 chunks = int(sys.argv[3]) if len(sys.argv) > 3 else 5
@@ -28,6 +28,16 @@ if mode == "backlog":
         time.sleep(3600)
 
 server.listen(16)
+if mode in ("answer", "silent"):
+    print(f"listening {path} {mode}", flush=True)
+    while True:
+        conn, _ = server.accept()
+        line = conn.recv(65536).decode("utf-8", errors="replace").split("\n")[0]
+        if mode == "answer":
+            reply = json.dumps({"version": 1, "outcome": "done", "echoed": line, "text": "あい🌙"}, ensure_ascii=False, separators=(",", ":"))
+            conn.sendall((reply + "\n").encode("utf-8"))
+            conn.close()
+
 if mode == "noread":
     # Accepts and never reads, so a large request fills the socket buffer and the client's write has to wait.
     print(f"listening {path} noread", flush=True)
