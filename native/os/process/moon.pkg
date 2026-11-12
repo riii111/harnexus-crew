@@ -1,0 +1,22 @@
+import {
+  "riii111/harnexus-crew/shared/boundary",
+  "riii111/harnexus-crew/shared/jsonio",
+  "riii111/harnexus-crew/os/unix",
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/raw_fd",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "riii111/harnexus-crew/os/testkit",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+} for "wbtest"
+
+options(
+  "allow-experimental-packages": true,
+  "native-stub": [ "stub.c" ],
+)
+
+supported_targets = "+native"

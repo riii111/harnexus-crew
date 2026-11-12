@@ -5,7 +5,7 @@ package "riii111/harnexus-crew/shared/boundary"
 
 // Errors
 pub(all) suberror CommandFailed {
-  CommandFailed(command~ : String, message~ : String)
+  CommandFailed(command~ : String, message~ : String, code~ : String?)
 }
 
 pub(all) suberror LineExchangeFailed {

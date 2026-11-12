@@ -53,13 +53,16 @@ mooncakesの `moonbitlang/async` は使わない。
 | `sys`             | 最小のC連携（OS種別、fdへの全量書き込み）                   | MB01               |
 | `store`           | 状態ファイルの読み書き、`records`、排他ロック、状態の保存先 | MB03               |
 | `store/probe`     | `store` を別プロセスで競合させる試験用の実行ファイル        | MB03               |
+| `os/unix`         | errno名と説明、fdを閉じる                                   | MB02               |
+| `os/socket`       | Unixソケットへ1行を送り、答えを受ける                       | MB02               |
+| `os/process`      | 子プロセスの実行（締切・出力上限・プロセス群）              | MB02               |
+| `os/testkit`      | 上の試験が使うサーバー・fd数の確認（試験だけが取り込む）    | MB02               |
 | `cmd/main`        | 入口。現在は未移行を示して失敗するだけ                      | MB05               |
 
 後続の新しいパッケージは、次の名前を目安にする。
 
 | タスク | パッケージ                                                             |
 | ------ | ---------------------------------------------------------------------- |
-| MB02   | `os/socket`、`os/process`                                              |
 | MB04   | `request`、`config`、`environment`、`args`、`template`、`path`、`text` |
 | MB06   | `markdown`（md4cのCと同梱ライセンスを含む）                            |
 | MB07   | `prwake`                                                               |
@@ -163,7 +166,7 @@ fdはすべてclose-on-execで開く。ロックや一時ファイルのfdが、
 試作で得た設計上の判断のうち、実装に残すものは次のとおり。
 
 - ソケットの接続は非ブロッキングで行い、EAGAIN・EINPROGRESS・EALREADY・EINTRのときは10msずつ待って再試行する。接続・書き込み・EOFまでの受信を一つの締切で囲む。
-- execの失敗は、通知用のパイプで判別する。execの直前に書き込み側へCLOEXECを付け、EOFなら成功、「段階 errno」が書かれていれば未実行と確定する。締切で止めた後の報告のないEOFは、未実行と断定せず、起動済みの時間切れとして扱う。複数の子を同時に起動するときの書き込み側の継承はMB02で解決する。
+- execの失敗は、子が書く通知用のパイプで判別する。ただし再execする自身のコピーは使わず、C内でforkしてexecし、結果の判別まで同期して待つ。複数の子を同時に起動しても、通知と書き込み側のfdは起動ごとに閉じるので混ざらない（[os/README.md](os/README.md)）。
 - md4cのフラグは、tables・strikethrough・tasklistsに、NOHTMLBLOCKSとNOINDENTEDCODEBLOCKSを加える。原文を直接パースしたときのエスケープ差は、マーカー経路の一致とは別に扱う。
 - 試作の性能値（バイナリ約0.6MB、実行時間約2.5ms）は合格値にしない。
 

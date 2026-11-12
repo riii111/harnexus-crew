@@ -53,6 +53,7 @@ pub(all) struct CommandOutput {
 
 ///|
 /// A command that could not start or ran past its timeout.
+/// `code` is the error code Node attaches to the failure, such as `ENOENT`; callers that show it append it to the message in parentheses.
 pub(all) suberror CommandFailed {
-  CommandFailed(command~ : String, message~ : String)
+  CommandFailed(command~ : String, message~ : String, code~ : String?)
 }
