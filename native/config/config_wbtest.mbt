@@ -70,3 +70,13 @@ test "the config sits in harnexus's config directory" {
   )
   inspect(template_config_path(env), content="/y/harnexus/task.json")
 }
+
+///|
+test "unknown keys that are array indexes come first in numeric order" {
+  inspect(
+    read(
+      "{\"templates\":{\"2\":0,\"1\":0,\"b\":0,\"a\":0},\"10\":0,\"3\":0,\"z\":0,\"01\":0}",
+    ),
+    content="/c/task.json is invalid: ✖ Unrecognized keys: \"3\", \"10\", \"z\", \"01\"\n✖ Unrecognized keys: \"1\", \"2\", \"b\", \"a\"\n  → at templates",
+  )
+}

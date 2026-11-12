@@ -488,8 +488,33 @@ test "the sample fields are what a check fills the templates with" {
 }
 
 ///|
-test "a saved session is named by project and task, or by checkout and worker chat" {
-  inspect(@jsonio.lossy_text("p\nT"), content="p\nT")
+async test "a saved session is named by project and task, or by checkout and worker chat" {
+  let launched = LaunchRequest::from_json(
+    parsed(
+      "{\"taskId\":\"T\",\"documentRefs\":[\"https://e.com/t\"],\"completionTarget\":\"merge\",\"projectId\":\"p\"}",
+    ),
+    probe(),
+  )
+  inspect(launched.session_key(), content="p\nT")
+  let lone = LaunchRequest::from_json(
+    parsed(
+      "{\"taskId\":\"T\",\"documentRefs\":[\"https://e.com/t\"],\"completionTarget\":\"merge\",\"projectId\":\"\\ud800x\"}",
+    ),
+    probe(),
+  )
+  inspect(lone.session_key(), content="\u{FFFD}x\nT")
+  let git = Git::new(candidate_script({}).runner(), env_of([]))
+  let reviewed = ReviewRequest::from_json(
+    parsed(REVIEW),
+    Worktrees("/fx/wt"),
+    probe(),
+    git,
+  )
+  inspect(reviewed.session_key("w-1"), content="/fx/wt/ab12/repo\nw-1")
+  inspect(
+    reviewed.session_key("w\u{FFFD}"),
+    content="/fx/wt/ab12/repo\nw\u{FFFD}",
+  )
 }
 
 ///|

@@ -118,13 +118,40 @@ fn keys_except(
   members : Map[String, Json],
   known : Array[String],
 ) -> Array[String] {
-  let keys = []
+  let indexes : Array[(Int64, String)] = []
+  let names = []
   for key, _ in members {
-    if !known.contains(key) {
-      keys.push(key)
+    if known.contains(key) {
+      continue
+    }
+    match array_index(key) {
+      Some(index) => indexes.push((index, key))
+      None => names.push(key)
     }
   }
-  keys
+  // JS lists the keys that are array indexes first and in numeric order, so zod prints them that way.
+  indexes.sort_by(fn(a, b) { a.0.compare(b.0) })
+  indexes.map(fn(pair) { pair.1 }) + names
+}
+
+///|
+fn array_index(key : String) -> Int64? {
+  let units = key.code_units()
+  if units.length() == 0 ||
+    units.length() > 10 ||
+    (units.length() > 1 && units[0] == 0x30) ||
+    !units.iter().all(fn(unit) { unit >= 0x30 && unit <= 0x39 }) {
+    return None
+  }
+  let mut value : Int64 = 0
+  for unit in units {
+    value = value * 10 + (unit.to_int() - 0x30).to_int64()
+  }
+  if value < 4294967295L {
+    Some(value)
+  } else {
+    None
+  }
 }
 
 ///|
