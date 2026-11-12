@@ -1,0 +1,7 @@
+{
+  "name": "watch-pr-wake-missing",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "command",
+  "argv": ["watch", "--status"]
+}

@@ -65,6 +65,7 @@ mooncakesの `moonbitlang/async` は使わない。
 | `prompt/probe`    | `prompt` を外側から確かめる試験用の実行ファイル                  | MB06               |
 | `cli`             | 振り分け、usage、クラッシュ報告、`environment`・`state`・`check` | MB05・MB06         |
 | `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）                   | MB05               |
+| `prwake`          | pr-wakeの呼び出しと `watch` コマンド、GitHubのPRのURL判定        | MB07               |
 | `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                              | MB05               |
 
 後続の新しいパッケージは、次の名前を目安にする。

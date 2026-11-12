@@ -76,12 +76,31 @@ export const createSandbox = async (spec: Case): Promise<Sandbox> => {
 };
 
 // A shim records its name, arguments and stdin, then answers as planned; it is a shell wrapper around Bun so no file needs a script extension.
+// A caller that never writes or closes the shim's stdin, as execFile leaves it, would hold the shim until the harness kills it, so stdin is taken once nothing has arrived for STDIN_IDLE_MS.
 const SHIM_SCRIPT = `
 import { appendFileSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+const STDIN_IDLE_MS = 300;
 const [, , dir, name, ...argv] = process.argv;
 const plan = JSON.parse(readFileSync(join(dir, "plan.json"), "utf8"))[name] ?? {};
-const stdin = readFileSync(0, "utf8");
+const stdin = await new Promise((resolve) => {
+  const chunks = [];
+  let timer;
+  const finish = () => {
+    clearTimeout(timer);
+    resolve(Buffer.concat(chunks).toString("utf8"));
+  };
+  const wait = () => {
+    clearTimeout(timer);
+    timer = setTimeout(finish, STDIN_IDLE_MS);
+  };
+  process.stdin.on("data", (chunk) => {
+    chunks.push(chunk);
+    wait();
+  });
+  process.stdin.on("end", finish);
+  wait();
+});
 appendFileSync(join(dir, "..", "records.jsonl"), JSON.stringify({ name, argv, stdin }) + "\\n");
 process.stdout.write(plan.stdout ?? "");
 process.stderr.write(plan.stderr ?? "");

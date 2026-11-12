@@ -1,0 +1,14 @@
+{
+  "name": "watch-engine-exit",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "inherit",
+  "argv": ["watch"],
+  "commands": {
+    "pr-wake": {},
+    "pr-wake-engine": {
+      "stdout": "engine output\n",
+      "exit": 4
+    }
+  }
+}
