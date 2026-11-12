@@ -33,7 +33,7 @@ App側のようにチャットを作らず、`workerChatId` の既定はClaude C
 1. ロックを待たずに取る。別の実行が保持していれば `another review (pid N) is using this session` で失敗する。死んだ実行のロックは取り上げる。
 2. `pending.json` が残っていれば、`--recover discard` がない限り失敗する。`--recover discard` は `pending.json` を消して続ける。残っていないのに指定すると失敗する。
 3. 前回の候補があれば、`taskId`・`workerAI`・`checkout` が同じか確かめる。同じ `head` は、レビュアーが判定した後なら拒否する。`判定保留` と判定の行がない答えの `head` は、もう一度送れる。`verdict` を持たない古い状態は判定済みとして扱う。
-4. 環境変数 `HARNEXUS_CODEX_BIN`・`HARNEXUS_REVIEW_TIMEOUT_MS`・`HARNEXUS_REVIEW_KILL_GRACE_MS` を検査してから、`pending.json` を書く。
+4. 環境変数 `HARNEXUS_CODEX_BIN`・`HARNEXUS_REVIEW_TIMEOUT_MS`・`HARNEXUS_REVIEW_KILL_GRACE_MS` を検査してから、`pending.json` を書く。時間の2つは2147483648以上でも受理し、TS版のタイマーと同じく1msで扱う。締切が1msになった実行は直ちに停止し、`pending.json` を残す。
 5. Codex CLIをチェックアウトの中で実行する。初回は新しいレビュアー（既定は `gpt-6.1-sol`、思考量 `medium`）を `--sandbox read-only` で作り、2回目からは `exec resume` で同じレビュアーを続ける。モデルと思考量は、空文字を未指定として扱う。
 
 実行の結果は次のとおり分かれる。
@@ -69,8 +69,8 @@ Cloud・T3 Codeでは何も送らずに拒否する。
 
 ## TS版との差
 
-- `HARNEXUS_REVIEW_TIMEOUT_MS` と `HARNEXUS_REVIEW_KILL_GRACE_MS` が2147483647を超えると、2147483647として扱う。TS版（Bun）は32ビットに収まらないタイマーを1msにするため、実行が直ちに止まっていた。
 - 非文字列の `workerChatId`（null・数値・配列など）は、プロンプトにはJSの `String(値)` の形で入れ、保存する候補には入力のまま残す。TS版と同じ。
+- 2147483648以上の時間で、TS版が標準エラーへ書くBunの `TimeoutOverflowWarning` は、Native版では書かない。比較事例は、この警告だけを置換して比べる。
 - カレントディレクトリを読めないとき、`cloud` は `cannot read the current directory` で失敗する。TS版は例外で終わる。
 
 ## 試験

@@ -44,8 +44,9 @@ test "a duration is a positive whole number of at most ten digits" {
   assert_eq(milliseconds(env_of([("T", "1")]), "T", 7), 1)
   assert_eq(milliseconds(env_of([("T", "30000")]), "T", 7), 30000)
   assert_eq(milliseconds(env_of([("T", "2147483647")]), "T", 7), 2147483647)
-  // A timer that long cannot be set, so it runs as long as it can.
-  assert_eq(milliseconds(env_of([("T", "9999999999")]), "T", 7), 2147483647)
+  // A timer that long cannot be set, so it runs for 1 millisecond.
+  assert_eq(milliseconds(env_of([("T", "2147483648")]), "T", 7), 1)
+  assert_eq(milliseconds(env_of([("T", "9999999999")]), "T", 7), 1)
   for
     value in [
       "0", "05", "-1", "1.5", "1e3", "soon", " 5", "5 ", "10000000000", "٣", "+5",

@@ -60,7 +60,7 @@ fn configured_binary(
 
 ///|
 /// A positive whole number of milliseconds of at most ten digits.
-/// A value a 32-bit timer cannot hold counts as the longest it can.
+/// A value a 32-bit timer cannot hold runs for 1 millisecond, as the TypeScript build's timers do.
 fn milliseconds(
   env : @environment.Env,
   name : String,
@@ -80,7 +80,7 @@ fn milliseconds(
     total = total * 10L + (unit.to_int() - 48).to_int64()
   }
   if total > 2147483647L {
-    2147483647
+    1
   } else {
     total.to_int()
   }
