@@ -1,0 +1,13 @@
+{
+  "name": "check-values-and-urls-stay",
+  "owner": "MB06",
+  "status": "active",
+  "kind": "command",
+  "argv": ["check"],
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/templates/worker.md\"}}",
+    "templates/linked.md": "",
+    "templates/worker.md": "{{task_id}} is {task_id}\n{document_refs}\n[guide](https://example.com/guide) [local](/nowhere.md) [top](#top) [linked](linked.md) [escaped](../{{task_id}}.md)\n[ref][r]\n\n[r]: linked.md\n[注意]: 先に読むこと\n",
+    "{{task_id}}.md": ""
+  }
+}

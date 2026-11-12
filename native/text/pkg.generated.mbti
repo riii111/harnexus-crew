@@ -6,6 +6,8 @@ pub fn code_points(String) -> Array[Int32]
 
 pub fn compare_utf16(String, String) -> Int32
 
+pub fn has_js_whitespace(String) -> Bool
+
 pub fn has_space(String) -> Bool
 
 pub fn is_blank(String) -> Bool

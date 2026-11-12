@@ -1,0 +1,11 @@
+{
+  "name": "check-refuses-template-that-is-a-directory",
+  "owner": "MB06",
+  "status": "active",
+  "kind": "command",
+  "argv": ["check"],
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/templates\"}}",
+    "templates/worker.md": ""
+  }
+}
