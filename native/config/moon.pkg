@@ -1,0 +1,11 @@
+import {
+  "riii111/harnexus-crew/environment",
+  "riii111/harnexus-crew/path",
+  "riii111/harnexus-crew/shared/failure",
+}
+
+import {
+  "riii111/harnexus-crew/shared/jsonio",
+} for "wbtest"
+
+supported_targets = "+native"
