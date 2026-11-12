@@ -1,0 +1,13 @@
+{
+  "name": "environment-t3-thread",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "T3CODE_THREAD_ID": "t3-thread"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

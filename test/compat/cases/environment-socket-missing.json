@@ -1,0 +1,13 @@
+{
+  "name": "environment-socket-missing",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{root}}/missing.sock"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

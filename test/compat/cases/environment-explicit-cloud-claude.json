@@ -1,0 +1,14 @@
+{
+  "name": "environment-explicit-cloud-claude",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "HARNEXUS_EXECUTION_ENV": "cloud",
+    "CLAUDE_CODE_REMOTE": "true"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

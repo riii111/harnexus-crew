@@ -1,0 +1,13 @@
+{
+  "name": "environment-claude-variable-not-true",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "CLAUDE_CODE_REMOTE": "1"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

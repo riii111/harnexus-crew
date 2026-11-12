@@ -1,0 +1,25 @@
+import {
+  "riii111/harnexus-crew/args",
+  "riii111/harnexus-crew/environment",
+  "riii111/harnexus-crew/os/socket",
+  "riii111/harnexus-crew/path",
+  "riii111/harnexus-crew/shared/failure",
+  "riii111/harnexus-crew/shared/jsonio",
+  "riii111/harnexus-crew/shared/run",
+  "riii111/harnexus-crew/store",
+  "riii111/harnexus-crew/text",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+}
+
+import {
+  "riii111/harnexus-crew/os/testkit",
+  "moonbitlang/core/async",
+} for "wbtest"
+
+options(
+  "allow-experimental-packages": true,
+  "native-stub": [ "stub.c" ],
+)
+
+supported_targets = "+native"

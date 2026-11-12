@@ -1,0 +1,19 @@
+{
+  "name": "environment-t3-over-socket",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "T3CODE_THREAD_ID": "t3-thread",
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}"
+  },
+  "bridge": [
+    {
+      "answer": "silent"
+    }
+  ],
+  "compare": {
+    "stdout": "exact"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "environment-socket-beside-state-path",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "HARNEXUS_STATE_PATH": "{{root}}/missing-dir/threads.json"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

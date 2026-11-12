@@ -1,0 +1,16 @@
+{
+  "name": "state-legacy-cloud",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["state"],
+  "env": {
+    "HARNEXUS_EXECUTION_ENV": "local"
+  },
+  "seed": {
+    "state/harnexus-crew": "test/fixtures/legacy-state/cloud/state/taskctl"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

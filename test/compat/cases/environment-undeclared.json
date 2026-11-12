@@ -1,7 +1,10 @@
 {
   "name": "environment-undeclared",
   "owner": "MB05",
-  "status": "pending",
+  "status": "active",
   "kind": "command",
-  "argv": ["environment"]
+  "argv": ["environment"],
+  "compare": {
+    "stdout": "exact"
+  }
 }

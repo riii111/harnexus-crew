@@ -1,0 +1,7 @@
+{
+  "name": "usage-watch-pr-without-dry-run",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["watch", "--pr", "1"]
+}

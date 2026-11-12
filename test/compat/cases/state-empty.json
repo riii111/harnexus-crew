@@ -1,7 +1,10 @@
 {
   "name": "state-empty",
   "owner": "MB05",
-  "status": "pending",
+  "status": "active",
   "kind": "command",
-  "argv": ["state"]
+  "argv": ["state"],
+  "compare": {
+    "stdout": "exact"
+  }
 }

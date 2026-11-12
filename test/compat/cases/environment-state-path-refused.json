@@ -1,0 +1,13 @@
+{
+  "name": "environment-state-path-refused",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "HARNEXUS_STATE_PATH": "relative/threads.json"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

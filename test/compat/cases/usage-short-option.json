@@ -1,0 +1,7 @@
+{
+  "name": "usage-short-option",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["check", "-x"]
+}

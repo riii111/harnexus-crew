@@ -1,0 +1,7 @@
+{
+  "name": "usage-help-with-bad-option",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "help",
+  "argv": ["launch", "-h", "--nope"]
+}

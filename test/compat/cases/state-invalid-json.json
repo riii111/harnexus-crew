@@ -1,0 +1,13 @@
+{
+  "name": "state-invalid-json",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["state"],
+  "files": {
+    "state/harnexus-crew/review/cccc/state.json": "{not json"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}

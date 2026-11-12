@@ -1,8 +1,13 @@
 {
   "name": "environment-declared-cloud",
   "owner": "MB05",
-  "status": "pending",
+  "status": "active",
   "kind": "command",
   "argv": ["environment"],
-  "env": { "HARNEXUS_EXECUTION_ENV": "cloud" }
+  "env": {
+    "HARNEXUS_EXECUTION_ENV": "cloud"
+  },
+  "compare": {
+    "stdout": "exact"
+  }
 }

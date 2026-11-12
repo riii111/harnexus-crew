@@ -1,0 +1,15 @@
+{
+  "name": "environment-empty-variables-ignored",
+  "owner": "MB05",
+  "status": "active",
+  "kind": "command",
+  "argv": ["environment"],
+  "env": {
+    "HARNEXUS_EXECUTION_ENV": "",
+    "CODEX_ENVIRONMENT_ID": "",
+    "T3CODE_THREAD_ID": ""
+  },
+  "compare": {
+    "stdout": "exact"
+  }
+}
