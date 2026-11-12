@@ -1,9 +1,6 @@
 ///|
 /// Each command has one arm here, which a command's task replaces with a call into its own package.
-async fn run_command(
-  command : @args.Command,
-  env : @environment.Env,
-) -> Json raise @failure.TaskFailed {
+async fn run_command(command : @args.Command, env : @environment.Env) -> Json {
   match command {
     Environment => environment_command(env)
     State({ request: None, }) => state_command(env)

@@ -10,19 +10,17 @@ pub suberror HomeNotFound {
 
 ///|
 /// The environment this process was started with.
-/// The account's home directory is looked up only when HOME is not set.
-pub fn process_env() -> @environment.Env raise {
-  let vars = @env.get_env_vars()
-  let login_home = if vars.contains("HOME") { "" } else { login_home() }
-  @environment.Env::new(vars, login_home~)
+/// The account's home directory is looked up only when HOME is not set and a path needs it.
+pub fn process_env() -> @environment.Env {
+  @environment.Env::deferred_home(@env.get_env_vars(), login_home)
 }
 
 ///|
-fn login_home() -> String raise HomeNotFound {
+fn login_home() -> String? {
   let out : FixedArray[Byte] = FixedArray::make(4096, b'\x00')
   let len = login_home_raw(out, 4096)
   if len <= 0 {
-    raise HomeNotFound
+    return None
   }
-  @utf8.decode_lossy(Bytes::from_array(out[:len]))
+  Some(@utf8.decode_lossy(Bytes::from_array(out[:len])))
 }

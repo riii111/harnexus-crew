@@ -7,7 +7,7 @@ import {
 }
 
 // Values
-pub fn process_env() -> @environment.Env raise
+pub fn process_env() -> @environment.Env
 
 pub async fn run(ArrayView[String], () -> @environment.Env raise) -> @run.CommandRun
 
