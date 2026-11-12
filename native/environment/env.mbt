@@ -2,12 +2,28 @@
 /// `login_home` is used only when HOME is not set.
 pub struct Env {
   priv vars : Map[String, String]
-  priv login_home : String
+  priv login_home : () -> String?
 }
 
 ///|
 pub fn Env::new(vars : Map[String, String], login_home~ : String) -> Env {
+  { vars, login_home: () => Some(login_home), }
+}
+
+///|
+/// An environment whose account home is looked up only if HOME is not set and a path needs it.
+/// A lookup that finds nothing reads as an empty home; `Env::home_known` tells the caller before it relies on one.
+pub fn Env::deferred_home(
+  vars : Map[String, String],
+  login_home : () -> String?,
+) -> Env {
   { vars, login_home, }
+}
+
+///|
+/// False only when HOME is not set and the account has no home to fall back to.
+pub fn Env::home_known(self : Env) -> Bool {
+  self.vars.contains("HOME") || (self.login_home)() is Some(_)
 }
 
 ///|
@@ -37,7 +53,10 @@ pub fn Env::to_map(self : Env) -> Map[String, String] {
 ///|
 /// An empty HOME is used as it is, so paths below it become relative.
 pub fn Env::home(self : Env) -> String {
-  self.vars.get("HOME").unwrap_or(self.login_home)
+  match self.vars.get("HOME") {
+    Some(home) => home
+    None => (self.login_home)().unwrap_or("")
+  }
 }
 
 ///|

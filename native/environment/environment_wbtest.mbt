@@ -225,3 +225,26 @@ test "a relative socket or state path is refused" {
   }
   inspect(state, content="HARNEXUS_STATE_PATH must be an absolute path")
 }
+
+///|
+test "a deferred home is looked up only when HOME is not set" {
+  let looked = Ref(0)
+  let find = () => {
+    looked.val += 1
+    Some("/home/login")
+  }
+  let set = Env::deferred_home({ "HOME": "/home/set" }, find)
+  assert_eq(set.home(), "/home/set")
+  assert_true(set.home_known())
+  assert_eq(looked.val, 0)
+  let unset = Env::deferred_home({}, find)
+  assert_eq(unset.home(), "/home/login")
+}
+
+///|
+test "a deferred home that finds nothing is unknown and reads as empty" {
+  let env = Env::deferred_home({}, () => None)
+  assert_false(env.home_known())
+  assert_eq(env.home(), "")
+  assert_true(Env::deferred_home({ "HOME": "" }, () => None).home_known())
+}
