@@ -24,7 +24,10 @@ export const observe = async (
   const bridge =
     spec.bridge === undefined
       ? undefined
-      : await startBridge(sandbox.bridgeSocket, spec.bridge);
+      : await startBridge(
+          sandbox.bridgeSocket,
+          JSON.parse(sandbox.expand(JSON.stringify(spec.bridge))),
+        );
   try {
     const [file, ...prefix] = implementation.argv;
     if (file === undefined) throw new Error("implementation has no command");

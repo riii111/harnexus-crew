@@ -1,0 +1,47 @@
+{
+  "name": "launch-model-mismatch-odd-settings",
+  "owner": "MB09",
+  "status": "active",
+  "kind": "command",
+  "argv": ["launch", "--request", "launch.json"],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}",
+    "CODEX_THREAD_ID": "caller"
+  },
+  "seed": {
+    "skills": "test/fixtures/task-skills"
+  },
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/skills/task-session-launch/references/worker.md\", \"reviewer\": \"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}",
+    "work/launch.json": "{\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}"
+  },
+  "bridge": [
+    {
+      "match": {
+        "query": "capabilities"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done",
+        "operations": [
+          "list_projects",
+          "create_thread",
+          "send_message_to_thread",
+          "name_thread"
+        ]
+      }
+    },
+    {
+      "match": {
+        "tool": "create_thread"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "model_mismatch",
+        "threadId": "w1",
+        "expected": "x",
+        "actual": 3
+      }
+    }
+  ]
+}

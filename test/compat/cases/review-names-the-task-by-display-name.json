@@ -1,0 +1,103 @@
+{
+  "name": "review-names-the-task-by-display-name",
+  "owner": "MB09",
+  "status": "active",
+  "kind": "command",
+  "argv": ["review", "--request", "review.json"],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}",
+    "CODEX_THREAD_ID": "w1"
+  },
+  "seed": {
+    "skills": "test/fixtures/task-skills"
+  },
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/skills/task-session-launch/references/worker.md\", \"reviewer\": \"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}",
+    "work/review.json": "{\"taskId\": \"TR1\", \"workerAI\": \"Codex\", \"projectId\": \"project\", \"checkout\": \"{{home}}/.codex/worktrees/ab12/repo\", \"baseBranch\": \"base\", \"documentRefs\": [\"https://example.com/task\"], \"prUrl\": \"https://github.com/o/r/pull/3\", \"displayName\": \"Named task\"}"
+  },
+  "git": [
+    ["init", "-q", "{{home}}/.codex/worktrees/ab12/repo"],
+    [
+      "-C",
+      "{{home}}/.codex/worktrees/ab12/repo",
+      "commit",
+      "--allow-empty",
+      "-qm",
+      "test: initial"
+    ],
+    ["-C", "{{home}}/.codex/worktrees/ab12/repo", "branch", "base"],
+    [
+      "-C",
+      "{{home}}/.codex/worktrees/ab12/repo",
+      "commit",
+      "--allow-empty",
+      "-qm",
+      "test: candidate 1"
+    ]
+  ],
+  "bridge": [
+    {
+      "match": {
+        "query": "capabilities"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done",
+        "operations": [
+          "list_projects",
+          "create_thread",
+          "send_message_to_thread",
+          "name_thread"
+        ]
+      }
+    },
+    {
+      "match": {
+        "tool": "list_projects"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done",
+        "result": {
+          "projects": [
+            {
+              "projectId": "p-other",
+              "path": "{{home}}/elsewhere"
+            },
+            {
+              "projectId": "p-review",
+              "path": "{{home}}/review-home"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "match": {
+        "query": "capabilities"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done",
+        "operations": [
+          "list_projects",
+          "create_thread",
+          "send_message_to_thread",
+          "name_thread"
+        ]
+      }
+    },
+    {
+      "match": {
+        "tool": "create_thread"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done",
+        "threadId": "r1",
+        "model": "gpt-6.1-sol",
+        "effort": "medium"
+      }
+    }
+  ]
+}

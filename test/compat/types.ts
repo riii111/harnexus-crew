@@ -58,6 +58,8 @@ export const CaseSchema = z.strictObject({
   files: z.record(z.string(), z.string()).default({}),
   // Directories copied from the repository under the sandbox root before the run, as target: source.
   seed: z.record(z.string(), z.string()).default({}),
+  // git commands run in the sandbox root before the run, such as to make a repository with fixed commits; the placeholders of files apply.
+  git: z.array(z.array(z.string())).default([]),
   bridge: z.array(BridgeStep).optional(),
   commands: z.record(z.string(), Shim).default({}),
   snapshot: z

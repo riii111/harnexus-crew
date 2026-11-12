@@ -11,7 +11,7 @@ pub struct Host {
   // The variable naming the thread a command runs in.
   thread_variable : String
   // Sends an App operation as the caller's thread: caller, tool, arguments.
-  call : async (String, String, Map[String, Json]) -> @call.CallAnswer
+  call : async (String, String, Map[String, Json]) -> @call.CallAnswer noraise
   // The project a reviewer is started in, as the app's create_thread target names it.
   review_project : async (String) -> String raise @failure.TaskFailed
   // The folder whose <id>/<name> folders are worker worktrees.

@@ -76,3 +76,5 @@ jobs:
         run: HARNEXUS_PROMPT_PROBE="$PWD/_build/native/release/build/prompt/probe/probe.exe" bun test test/native/prompt.test.ts
       - name: Run the adapter as a process
         run: HARNEXUS_CREW_NATIVE="$PWD/_build/native/release/build/cmd/main/main.exe" bun test test/native/adapter.test.ts
+      - name: Run the session commands as processes
+        run: HARNEXUS_CREW_NATIVE="$PWD/_build/native/release/build/cmd/main/main.exe" bun test test/native/session.test.ts
