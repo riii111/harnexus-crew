@@ -1,8 +1,8 @@
+import { createHash } from "node:crypto";
 import {
   chmod,
   cp,
   mkdir,
-  mkdtemp,
   readdir,
   readFile,
   realpath,
@@ -25,9 +25,53 @@ export type Sandbox = {
   cleanup: () => Promise<void>;
 };
 
+// The root is named by the case and this process, so the implementations a process runs one after the other work under the same path.
+// A state key made from a path in the root is then the same for each, and the next run starts from an empty root.
+const emptyRoot = async (spec: Case) => {
+  const name = createHash("sha1").update(spec.name).digest("hex").slice(0, 8);
+  const root = join(await realpath(tmpdir()), `hxc-${name}-${process.pid}`);
+  await rm(root, { recursive: true, force: true });
+  await mkdir(root, { recursive: true });
+  return root;
+};
+
+// Commits are dated, so a repository made twice has the same commits.
+const GIT_FIXED = {
+  GIT_AUTHOR_NAME: "Test",
+  GIT_AUTHOR_EMAIL: "test@example.com",
+  GIT_COMMITTER_NAME: "Test",
+  GIT_COMMITTER_EMAIL: "test@example.com",
+  GIT_AUTHOR_DATE: "2026-11-01T00:00:00Z",
+  GIT_COMMITTER_DATE: "2026-11-01T00:00:00Z",
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_NOSYSTEM: "1",
+};
+
+// Runs git for the sandbox's own setup, outside the implementation under test.
+export const runGit = (root: string, argv: string[]) => {
+  const ran = Bun.spawnSync(
+    [
+      "git",
+      "-c",
+      "commit.gpgsign=false",
+      "-c",
+      "init.defaultBranch=main",
+      ...argv,
+    ],
+    {
+      cwd: root,
+      env: { PATH: process.env.PATH ?? "/usr/bin:/bin", ...GIT_FIXED },
+      stderr: "pipe",
+    },
+  );
+  if (ran.exitCode !== 0)
+    throw new Error(`git ${argv.join(" ")}: ${ran.stderr.toString()}`);
+  return ran.stdout.toString().trim();
+};
+
 // Each run gets its own home, config, state and temporary directories, so two implementations never share state.
 export const createSandbox = async (spec: Case): Promise<Sandbox> => {
-  const root = await realpath(await mkdtemp(join(tmpdir(), "hxc-")));
+  const root = await emptyRoot(spec);
   const dirs = {
     home: join(root, "home"),
     config: join(root, "config"),
@@ -57,6 +101,7 @@ export const createSandbox = async (spec: Case): Promise<Sandbox> => {
     await writeFile(target, expand(text));
   }
 
+  for (const argv of spec.git) runGit(root, argv.map(expand));
   await writeShims(dirs.bin, spec);
   const env: Record<string, string> = {
     // The shims come first, so a command the implementation starts by name is the recorded one.

@@ -20,6 +20,7 @@ bun test/compat/cli.ts --native BINARY [--case NAME] [--include-pending]
 | `kind`                             | `command`（1回で答える）、`help`（使い方）、`session`（adapterのように行で往復する）、`inherit`（外部コマンドが標準入出力を引き継ぐ） |
 | `argv` / `env` / `stdin` / `steps` | 入力。`steps` は `session` の送信（`send`）と、標準出力が指定行数に達するまでの待機（`wait`）                                         |
 | `files` / `seed`                   | 実行前に一時領域へ置く内容。`seed` はリポジトリ内のディレクトリを `target: source` で複製する                                         |
+| `git`                              | 実行前にサンドボックスの根で順に走らせる git の引数。日付とコミッターが固定されるため、同じ手順なら同じコミットになる                 |
 | `bridge`                           | 模擬ブリッジの応答計画。接続ごとの要求を記録し、`drop`（応答せず切断）や `silent`（無応答）も返せる                                   |
 | `commands`                         | PATH先頭に置く外部コマンドの模擬。引数と標準入力を記録する。標準入力は、300ms届かなければ空として扱う                                 |
 | `snapshot`                         | 比較する状態ディレクトリ（既定は config、state、work、home/.local、home/.config）                                                     |
@@ -27,8 +28,10 @@ bun test/compat/cli.ts --native BINARY [--case NAME] [--include-pending]
 | `compare`                          | `stdout` と `stderr` の比較方法（`json`、`lines`、`exact`）。既定は `kind` ごとに決まる                                               |
 
 一時領域は、home、config、state、tmp、work、bin を持つ。
+根の位置は事例名とプロセスIDで決まり、同じプロセスが続けて動かすTS版とNative版は同じ根を使う。
+そのため、根の下のパスから作られる状態のキー（レビューのセッションなど）も両者で一致する。
 環境変数は PATH、HOME、XDG_CONFIG_HOME、XDG_STATE_HOME、TMPDIR と、事例の `env` だけを渡す。
-`env`、`files`、`steps` の `send` では `{{root}}`、`{{bridge}}`、`{{home}}`、`{{config}}`、`{{state}}`、`{{tmp}}`、`{{work}}` が一時領域のパスに展開される。
+`env`、`files`、`bridge`、`steps` の `send` と `git` では `{{root}}`、`{{bridge}}`、`{{home}}`、`{{config}}`、`{{state}}`、`{{tmp}}`、`{{work}}` が一時領域のパスに展開される。
 
 ## 比較と置換の規則
 
