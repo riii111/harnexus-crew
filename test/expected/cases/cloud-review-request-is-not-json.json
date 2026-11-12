@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: review.json is not valid JSON\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\":{\"reviewer\":\"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "work/review.json": "{"
+ }
+}

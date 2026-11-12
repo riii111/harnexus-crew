@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: CODEX_THREAD_ID must be a nonempty single-line string\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: <ROOT>/config/harnexus/task.json is not valid JSON\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{"
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "keys": [
+  {
+   "text": "R1\u0000aaa1111\u0000\u0000判定: LGTM aaa1111",
+   "length": 32
+  }
+ ],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"v\":1,\"type\":\"hello\",\"adapterId\":\"taskctl\",\"bindings\":[]}\n{\"v\":1,\"type\":\"observed\",\"eventId\":\"e1\"}\n{\"v\":1,\"type\":\"observed\",\"eventId\":\"e2\"}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-observe/sessions/session_01AbC.json": "{\n \"sessionId\": \"session_01AbC\",\n \"parentThreadId\": \"parent-chat\",\n \"baseline\": {\n  \"uuid\": \"u-gone\",\n  \"estimated\": true,\n  \"at\": \"<TIME>\"\n },\n \"cursor\": \"u-t-aaa1111-R1\",\n \"excluded\": [\n  \"{{key:0}}\"\n ],\n \"taken\": [],\n \"gaps\": []\n}",
+  "state/harnexus-crew/cloud-observe/sessions/session_other.json": "{\n \"sessionId\": \"session_other\",\n \"parentThreadId\": \"parent-chat\",\n \"baseline\": {\n  \"uuid\": \"u-also-gone\",\n  \"estimated\": false,\n  \"at\": \"<TIME>\"\n },\n \"cursor\": null,\n \"excluded\": [],\n \"taken\": [],\n \"gaps\": []\n}",
+  "state/harnexus-crew/cloud-observe/journal.jsonl": "{\"at\":\"<TIME>\",\"kind\":\"baseline_estimated\",\"sessionId\":\"session_01AbC\",\"shownBefore\":\"u-gone\"}\n{\"at\":\"<TIME>\",\"kind\":\"baseline_missing\",\"sessionId\":\"session_01AbC\",\"base\":\"u-gone\"}\n{\"at\":\"<TIME>\",\"kind\":\"baseline_missing\",\"sessionId\":\"session_other\",\"base\":\"u-also-gone\"}\n"
+ }
+}

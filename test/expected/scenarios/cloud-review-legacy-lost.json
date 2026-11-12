@@ -1,0 +1,96 @@
+{
+ "keys": [
+  {
+   "text": "<ROOT>/cloud/repo\u0000lost",
+   "length": 16
+  },
+  {
+   "text": "<ROOT>/cloud/repo\u0000judged",
+   "length": 16
+  }
+ ],
+ "result": [
+  {
+   "code": 1,
+   "stdout": "",
+   "stderr": "harnexus-crew: the review of head a6bc63c9fd9d736a274586bb4a3989bc27297649 did not report back: its result is unknown, so it is not sent again on its own. Check the reviewer, then rerun with --recover discard to send the candidate again\n"
+  },
+  {
+   "code": 0,
+   "stdout": {
+    "status": "completed",
+    "verdict": "\u4fee\u6b63\u5fc5\u8981",
+    "taskId": "lost",
+    "base": "af314261c610837f3606d61aa2dff1981debda94",
+    "head": "a6bc63c9fd9d736a274586bb4a3989bc27297649",
+    "reviewer": "01a18d52-e03a-74c1-a50e-4e697b47172b",
+    "answer": "\u5224\u5b9a: \u4fee\u6b63\u5fc5\u8981",
+    "state": "<ROOT>/state/harnexus-crew/cloud-review/{{key:0}}/state.json"
+   },
+   "stderr": ""
+  }
+ ],
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-review/{{key:1}}/state.json": {
+   "reviewer": "01a18d52-e03a-74c1-a50e-4e697b47172b",
+   "candidate": {
+    "taskId": "judged",
+    "workerAI": "Claude",
+    "checkout": "<ROOT>/cloud/repo",
+    "baseBranch": "base",
+    "documentRefs": [
+     "https://example.com/task"
+    ],
+    "prUrl": null,
+    "workerChatId": "worker-session",
+    "head": "a6bc63c9fd9d736a274586bb4a3989bc27297649",
+    "base": "af314261c610837f3606d61aa2dff1981debda94"
+   },
+   "verdict": "\u4fee\u6b63\u5fc5\u8981",
+   "heads": [
+    "a6bc63c9fd9d736a274586bb4a3989bc27297649"
+   ],
+   "updatedAt": "<TIME>"
+  },
+  "state/harnexus-crew/cloud-review/{{key:0}}/state.json": {
+   "reviewer": "01a18d52-e03a-74c1-a50e-4e697b47172b",
+   "candidate": {
+    "taskId": "lost",
+    "workerAI": "Claude",
+    "checkout": "<ROOT>/cloud/repo",
+    "baseBranch": "base",
+    "documentRefs": [
+     "https://example.com/task"
+    ],
+    "prUrl": null,
+    "workerChatId": "worker-session",
+    "head": "a6bc63c9fd9d736a274586bb4a3989bc27297649",
+    "base": "af314261c610837f3606d61aa2dff1981debda94"
+   },
+   "verdict": "\u4fee\u6b63\u5fc5\u8981",
+   "heads": [
+    "a6bc63c9fd9d736a274586bb4a3989bc27297649"
+   ],
+   "updatedAt": "<TIME>"
+  },
+  "fake/stdin.1": "[$ai-code-review](<ROOT>/skills/ai-code-review/SKILL.md)\n\u30bf\u30b9\u30afID: lost\n\u53c2\u7167\u6587\u66f8\u306e\u30d1\u30b9\u30fbURL:\n- https://example.com/task\nworker\u306e\u62c5\u5f53AI: Claude\nworker\u306e\u30c1\u30e3\u30c3\u30c8ID: worker-session\nworker\u306e\u4f5c\u696d\u30c7\u30a3\u30ec\u30af\u30c8\u30ea: <ROOT>/cloud/repo\n\u30ec\u30d3\u30e5\u30fc\u5bfe\u8c61\u306e\u30b3\u30df\u30c3\u30c8\u7bc4\u56f2: af314261c610837f3606d61aa2dff1981debda94...a6bc63c9fd9d736a274586bb4a3989bc27297649\nPR\u306eURL: null\n\n[\u30ec\u30d3\u30e5\u30fc\u6642\u306e\u78ba\u8a8d\u4e8b\u9805](<ROOT>/skills/task-review-cycle/SKILL.md#\u30ec\u30d3\u30e5\u30fc\u6642\u306e\u78ba\u8a8d\u4e8b\u9805)\u3068[\u8fd4\u5374\u65b9\u6cd5](<ROOT>/skills/task-review-cycle/references/reply-Cloud.md)\u306b\u5f93\u3063\u3066\u304f\u3060\u3055\u3044\u3002\n",
+  "fake/cwd.1": "<ROOT>/cloud/repo\n",
+  "fake/count": "1\n",
+  "fake/args.1": "exec\n--json\n--sandbox\nread-only\n-C\n<ROOT>/cloud/repo\n-m\ngpt-6.1-sol\n-c\nmodel_reasoning_effort=\"medium\"\n-\n",
+  "fake/out.1": "{\"type\":\"thread.started\",\"thread_id\":\"01a18d52-e03a-74c1-a50e-4e697b47172b\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"\u5224\u5b9a: \u4fee\u6b63\u5fc5\u8981\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}",
+  "fake/exit.1": "0",
+  "work/review.json": {
+   "taskId": "lost",
+   "workerAI": "Claude",
+   "checkout": "<ROOT>/cloud/repo",
+   "baseBranch": "base",
+   "documentRefs": [
+    "https://example.com/task"
+   ],
+   "prUrl": null
+  },
+  "work/ask.md": "B1 \u306f\u307e\u3060\u6b8b\u3063\u3066\u3044\u307e\u3059\u304b"
+ }
+}

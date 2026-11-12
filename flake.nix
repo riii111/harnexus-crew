@@ -39,6 +39,7 @@
             # The toolchain version is named, not "latest", so a lock update never changes it silently.
             packages = [
               pkgs.moonbit-bin."v0.10.20+65efd5b93+940aa18"
+              pkgs.python3
               pkgs.lefthook
               pkgs.actionlint
             ];

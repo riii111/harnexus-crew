@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"v\":1,\"type\":\"hello\",\"adapterId\":\"taskctl\",\"bindings\":[{\"conversationId\":\"R1\",\"threadId\":\"chat-r1\"},{\"conversationId\":\"R2\",\"threadId\":\"chat-r2\"}]}\n{\"v\":1,\"type\":\"response\",\"id\":\"settle\",\"outcome\":\"done\",\"entries\":[]}\n{\"v\":1,\"type\":\"request\",\"id\":\"harnexus-crew-1\",\"op\":\"cloud_send\",\"sessionId\":\"session_01AbC\",\"text\":\"The user sent this to your Codex reviewer `R1` from its Review chat in the Codex App:\\n\\nB1 は？\\n\\nPass it to the same reviewer: write it to a file and run `harnexus-crew review --request <your review request file> --ask <that file>`, then reply with the reviewer's answer as it is.\"}\n{\"v\":1,\"type\":\"turn_output\",\"turnId\":\"t1\",\"text\":\"Sent to the worker running this reviewer, which passes it on; the reviewer's answer appears here once the worker's session is copied.\",\"phase\":\"final\"}\n{\"v\":1,\"type\":\"turn_end\",\"turnId\":\"t1\",\"status\":\"completed\"}\n{\"v\":1,\"type\":\"turn_output\",\"turnId\":\"t2\",\"text\":\"The Cloud session that ran this reviewer is not shown in a chat here, so its answer could not come back and the message was not sent. Link the worker's session with /cloud, or ask in the worker's chat.\",\"phase\":\"final\"}\n{\"v\":1,\"type\":\"turn_end\",\"turnId\":\"t2\",\"status\":\"completed\"}\n{\"v\":1,\"type\":\"turn_output\",\"turnId\":\"t3\",\"text\":\"判定: LGTM aaa1111\\n\\n_Codex reviewer `R1` on `aaa1111`, run in a Cloud session. Ask for changes in the worker's chat._\",\"phase\":\"final\"}\n{\"v\":1,\"type\":\"turn_end\",\"turnId\":\"t3\",\"status\":\"completed\"}\n{\"v\":1,\"type\":\"turn_output\",\"turnId\":\"t4\",\"text\":\"This review is no longer kept on this Mac, so it cannot be shown here.\",\"phase\":\"final\"}\n{\"v\":1,\"type\":\"turn_end\",\"turnId\":\"t4\",\"status\":\"completed\"}\n{\"v\":1,\"type\":\"response\",\"id\":\"h1\",\"outcome\":\"done\",\"entries\":[{\"role\":\"assistant\",\"text\":\"判定: LGTM aaa1111\\n\\n_Codex reviewer `R1` on `aaa1111`, run in a Cloud session. Ask for changes in the worker's chat._\",\"at\":\"<TIME>\"},{\"role\":\"user\",\"text\":\"B1 は？\",\"at\":\"<TIME>\"},{\"role\":\"assistant\",\"text\":\"Sent to the worker running this reviewer, which passes it on; the reviewer's answer appears here once the worker's session is copied.\",\"at\":\"<TIME>\"}]}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-observe/pending.json": "[]"
+ }
+}

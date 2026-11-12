@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"v\":1,\"type\":\"hello\",\"adapterId\":\"taskctl\",\"bindings\":[]}\n{\"v\":1,\"type\":\"request\",\"id\":\"harnexus-crew-1\",\"op\":\"post\",\"conversationId\":\"R1\",\"text\":\"first review text\"}\n{\"v\":1,\"type\":\"response\",\"id\":\"h1\",\"outcome\":\"done\",\"entries\":[]}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-observe/pending.json": "[]",
+  "home/.local/state/harnexus/cloud-reviews/chats.json": "{\"R1\":{\"threadId\":\"chat-r1\",\"session\":\"session_01AbC\"}}"
+ }
+}

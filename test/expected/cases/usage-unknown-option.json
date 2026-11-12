@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 2,
+ "signal": null,
+ "stdout": "",
+ "stderr": "usage:\n  harnexus-crew state [--request REQUEST]\nharnexus-crew: Unknown option '--bogus'\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

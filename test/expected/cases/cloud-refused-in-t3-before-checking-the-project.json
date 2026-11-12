@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: cloud needs the Codex App and is unavailable in T3 Code. Open a Cloud session from the Codex App instead\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

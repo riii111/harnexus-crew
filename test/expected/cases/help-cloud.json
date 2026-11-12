@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "usage:\n  harnexus-crew cloud (--link SESSION_OR_URL | --prompt-file FILE) [--project PROJECT_ID] [--title TITLE] [--model MODEL] [--thinking THINKING]\nTo report a bug, open an issue at https://github.com/riii111/taskctl/issues with the command you ran and its output.\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

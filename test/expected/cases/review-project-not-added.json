@@ -1,0 +1,16 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: add <ROOT>/home/review-home to the Codex app as a project, so reviewers run there instead of in a worktree of their own\n",
+ "requests": [
+  "{\"version\":1,\"query\":\"capabilities\"}",
+  "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"list_projects\",\"arguments\":{}}"
+ ],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/skills/task-session-launch/references/worker.md\", \"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "work/review.json": "{\"taskId\": \"TR1\", \"workerAI\": \"Codex\", \"projectId\": \"project\", \"checkout\": \"<ROOT>/home/.codex/worktrees/ab12/repo\", \"baseBranch\": \"base\", \"documentRefs\": [\"https://example.com/task\"], \"prUrl\": null}"
+ }
+}

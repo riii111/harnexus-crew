@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"environment\":\"cloud\",\"source\":\"explicit\",\"host\":\"claude\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

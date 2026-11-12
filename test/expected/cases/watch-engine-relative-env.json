@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: HARNEXUS_CREW_PR_WAKE must be an absolute path\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

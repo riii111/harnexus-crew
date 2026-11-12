@@ -1,0 +1,178 @@
+"""The acceptance harness itself: a difference it is meant to find must show, and a repeated request or a lost result must not be hidden."""
+
+import json
+import os
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+from harness import expected
+from harness.binaries import binary
+from harness.cases import load_cases, make_case, parse_case, InvalidCase
+from harness.compare import compare
+from harness.execute import observe
+from harness.normalize import normalize
+
+# A stand-in CLI: it writes the state files, sends the requests, runs the command, prints and exits as its options say.
+STUB = r'''
+import json, os, socket, subprocess, sys
+options = json.loads(sys.argv[1])
+for path, text in options.get("state", {}).items():
+    target = os.path.join(os.environ["XDG_STATE_HOME"], path)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with open(target, "w") as written:
+        written.write(text)
+for line in options.get("requests", []):
+    connection = socket.socket(socket.AF_UNIX)
+    try:
+        connection.connect(os.environ["HARNEXUS_CALL_SOCKET"])
+        connection.sendall((line + "\n").encode())
+        while connection.recv(4096):
+            pass
+    except OSError:
+        pass
+    finally:
+        connection.close()
+if options.get("command"):
+    subprocess.run(options["command"], input=b"prompt", capture_output=True)
+sys.stdout.write(options.get("stdout", ""))
+sys.stderr.write(options.get("stderr", ""))
+sys.exit(options.get("exit", 0))
+'''
+
+BASE = {
+    "stdout": '{"a":1,"b":[1,2]}\n',
+    "stderr": "note\n",
+    "exit": 0,
+    "state": {"taskctl/k1/state.json": '{"x":1}'},
+    "requests": ['{"tool":"create_thread"}'],
+    "command": ["codex", "review"],
+}
+
+
+def spec(**overrides):
+    fields = {
+        "name": "stub-case",
+        "env": {"HARNEXUS_CALL_SOCKET": "{{bridge}}"},
+        "bridge": [{"answer": {"outcome": "done"}}, {"answer": {"outcome": "done"}}],
+        "commands": {"codex": {"stdout": "ok\n"}},
+    }
+    return make_case(**{**fields, **overrides})
+
+
+class Harness(unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.mkdtemp(prefix="hxc-stub-")
+        self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
+        self.stub_path = Path(directory) / "stub.py"
+        self.stub_path.write_text(STUB, encoding="utf-8")
+
+    def stub(self, options):
+        return [sys.executable, "-I", str(self.stub_path), json.dumps(options)]
+
+    def differences(self, case, expected_options, actual_options):
+        first, first_root = observe(self.stub(expected_options), case)
+        second, second_root = observe(self.stub(actual_options), case)
+        return compare(case, normalize(first, case, first_root), normalize(second, case, second_root))
+
+    def fields(self, found):
+        return [difference["field"] for difference in found]
+
+    def test_two_runs_of_the_same_behaviour_agree(self):
+        self.assertEqual([], self.differences(spec(), BASE, BASE))
+
+    def test_json_compares_by_meaning_not_by_member_order(self):
+        reordered = {**BASE, "stdout": '{"b":[1,2],"a":1}\n'}
+        self.assertEqual([], self.differences(spec(), BASE, reordered))
+
+    def test_a_boolean_is_not_a_number(self):
+        self.assertNotEqual([], self.differences(spec(), {**BASE, "stdout": '{"a":1}\n'}, {**BASE, "stdout": '{"a":true}\n'}))
+
+    def test_detects_a_different_result(self):
+        for name, change, field in (
+            ("stdout meaning", {"stdout": '{"a":2,"b":[1,2]}\n'}, "stdout"),
+            ("stderr text", {"stderr": "other\n"}, "stderr"),
+            ("exit code", {"exit": 3}, "exitCode"),
+            ("state content", {"state": {"taskctl/k1/state.json": '{"x":2}'}}, "files.state/taskctl/k1/state.json"),
+            ("state key", {"state": {"taskctl/k2/state.json": '{"x":1}'}}, "files.state/taskctl/k1/state.json"),
+            ("request body", {"requests": ['{"tool":"send_message_to_thread"}']}, "requests[0]"),
+            ("command arguments", {"command": ["codex", "resume"]}, "commands[0]"),
+        ):
+            with self.subTest(name):
+                found = self.differences(spec(), BASE, {**BASE, **change})
+                self.assertIn(field, self.fields(found))
+
+    def test_detects_a_request_sent_twice(self):
+        twice = {**BASE, "requests": [*BASE["requests"], *BASE["requests"]]}
+        found = self.differences(spec(), BASE, twice)
+        self.assertIn({"field": "requests.count", "expected": 1, "actual": 2}, found)
+
+    def test_a_time_placeholder_hides_the_time_but_not_a_duplicate(self):
+        normalizing = spec(
+            normalize=[{"pattern": r"\d{4}-\d{2}-\d{2}T[\d:.]+Z", "with": "<TIME>", "scopes": ["requests"]}]
+        )
+
+        def at(time):
+            return {**BASE, "requests": ['{"asked":"%s"}' % time]}
+
+        self.assertEqual([], self.differences(normalizing, at("2026-11-13T01:02:03.000Z"), at("2026-11-13T09:09:09.999Z")))
+        doubled = {**BASE, "requests": ['{"asked":"2026-11-13T09:09:09.999Z"}'] * 2}
+        found = self.differences(normalizing, at("2026-11-13T01:02:03.000Z"), doubled)
+        self.assertIn("requests.count", self.fields(found))
+
+    def test_a_replacement_in_file_contents_leaves_state_keys_visible(self):
+        keyed = spec(normalize=[{"pattern": r"k\d", "with": "K", "scopes": ["files"]}])
+        found = self.differences(keyed, BASE, {**BASE, "state": {"taskctl/k2/state.json": '{"x":1}'}})
+        self.assertEqual(
+            ["files.state/taskctl/k1/state.json", "files.state/taskctl/k2/state.json"], sorted(self.fields(found))
+        )
+
+    def test_lines_keep_their_boundaries_in_a_session(self):
+        session = spec(kind="session", bridge=None, commands={}, env={})
+        found = self.differences(session, {"stdout": '{"id":1}\n{"id":2}\n'}, {"stdout": '{"id":1}{"id":2}\n'})
+        self.assertIn("stdout.lines", self.fields(found))
+
+    def test_a_session_passes_each_stdin_line_to_stdout_in_order(self):
+        session = spec(
+            kind="session",
+            bridge=None,
+            commands={},
+            env={},
+            steps=[{"send": '{"id":1}'}, {"wait": 1}, {"send": '{"id":2}'}],
+        )
+        observation, _ = observe(["/bin/cat"], session)
+        self.assertEqual('{"id":1}\n{"id":2}\n', observation["stdout"])
+        self.assertEqual(0, observation["exitCode"])
+
+    def test_a_case_with_an_unknown_member_is_refused(self):
+        with self.assertRaises(InvalidCase):
+            parse_case({"name": "x", "owner": "MB12", "status": "active", "kind": "command", "argv": [], "extra": 1})
+
+
+class CasesAndRecordings(unittest.TestCase):
+    def test_every_case_has_a_recording_and_every_recording_has_a_case(self):
+        names = {case.name for case in load_cases()}
+        recorded = {path.stem for path in (expected.EXPECTED / "cases").glob("*.json")}
+        self.assertEqual(names, recorded)
+        self.assertEqual(383, len(names))
+
+    def test_the_native_build_runs_under_the_harness_and_a_different_observation_shows_as_a_difference(self):
+        cases = {case.name: case for case in load_cases()}
+        asked = cases["help"]
+        native, root = observe([binary("HARNEXUS_CREW_NATIVE")], cases["usage-unknown-subcommand"])
+        fields = [
+            difference["field"]
+            for difference in compare(
+                asked, expected.expected_for("cases", "help", root), normalize(native, asked, root)
+            )
+        ]
+        self.assertIn("exitCode", fields)
+        self.assertIn("stdout", fields)
+
+
+if __name__ == "__main__":
+    unittest.main()

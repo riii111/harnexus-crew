@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: the worker template <ROOT>/nonexistent/worker.md: cannot read <ROOT>/nonexistent/worker.md (ENOENT)\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/nonexistent/worker.md\"}}"
+ }
+}

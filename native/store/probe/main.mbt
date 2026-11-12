@@ -1,5 +1,5 @@
 ///|
-/// A test driver for the store: `test/native/store.test.ts` starts several of these at once to race them on one directory.
+/// A test driver for the store: `test/test_store.py` starts several of these at once to race them on one directory.
 /// Each command prints one JSON object and exits; it is not part of the CLI.
 async fn main {
   let args = @env.args()

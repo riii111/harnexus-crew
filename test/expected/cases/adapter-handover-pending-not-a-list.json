@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: <ROOT>/state/harnexus-crew/cloud-observe/pending.json is not a list\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-observe/pending.json": "{}"
+ }
+}

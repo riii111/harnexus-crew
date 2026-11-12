@@ -1,0 +1,22 @@
+{
+ "keys": [
+  {
+   "text": "R1\u0000aaa1111\u0000\u0000判定: LGTM aaa1111",
+   "length": 32
+  }
+ ],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"v\":1,\"type\":\"hello\",\"adapterId\":\"taskctl\",\"bindings\":[{\"conversationId\":\"R1\",\"threadId\":\"chat-old\"}]}\n{\"v\":1,\"type\":\"response\",\"id\":\"settle\",\"outcome\":\"done\",\"entries\":[]}\n{\"v\":1,\"type\":\"observed\",\"eventId\":\"e1\"}\n{\"v\":1,\"type\":\"observed\",\"eventId\":\"e2\"}\n{\"v\":1,\"type\":\"request\",\"id\":\"harnexus-crew-1\",\"op\":\"post\",\"conversationId\":\"R1\",\"text\":\"判定: LGTM aaa1111\\n\\n_Codex reviewer `R1` on `aaa1111`, run in a Cloud session. Ask for changes in the worker's chat._\"}\n{\"v\":1,\"type\":\"request\",\"id\":\"harnexus-crew-2\",\"op\":\"list_projects\",\"callerThreadId\":\"parent-chat\"}\n{\"v\":1,\"type\":\"request\",\"id\":\"harnexus-crew-3\",\"op\":\"create_conversation\",\"conversationId\":\"R1\",\"callerThreadId\":\"parent-chat\",\"arguments\":{\"target\":{\"type\":\"project\",\"projectId\":\"review-home\",\"environment\":{\"type\":\"local\"}},\"title\":\"☁️ Review｜harnexus-1\",\"model\":\"claude-sonnet-5-5\"}}\n{\"v\":1,\"type\":\"turn_output\",\"turnId\":\"t1\",\"text\":\"判定: LGTM aaa1111\\n\\n_Codex reviewer `R1` on `aaa1111`, run in a Cloud session. Ask for changes in the worker's chat._\",\"phase\":\"final\"}\n{\"v\":1,\"type\":\"turn_end\",\"turnId\":\"t1\",\"status\":\"completed\"}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-observe/sessions/session_01AbC.json": "{\n \"sessionId\": \"session_01AbC\",\n \"parentThreadId\": \"parent-chat\",\n \"baseline\": {\n  \"uuid\": null,\n  \"estimated\": false,\n  \"at\": \"<TIME>\"\n },\n \"cursor\": \"u-t-aaa1111-R1\",\n \"excluded\": [],\n \"taken\": [\n  \"{{key:0}}\"\n ],\n \"gaps\": []\n}",
+  "state/harnexus-crew/cloud-observe/journal.jsonl": "{\"at\":\"<TIME>\",\"kind\":\"review_taken\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"{{key:0}}\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\"}}\n{\"at\":\"<TIME>\",\"kind\":\"delivered\",\"key\":\"{{key:0}}\",\"outcome\":\"done\"}\n",
+  "state/harnexus-crew/cloud-observe/pending.json": "[]",
+  "home/.local/state/harnexus/cloud-reviews/chats.json": "{\"R1\":{\"threadId\":\"chat-new\",\"session\":\"session_01AbC\"}}",
+  "home/.local/state/harnexus/cloud-reviews/{{key:0}}.json": "{\"key\":\"{{key:0}}\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\",\"sent\":true,\"threadId\":\"chat-new\",\"shownAt\":\"<TIME>\"}",
+  "home/.local/state/harnexus/cloud-reviews/{{key:0}}.reserved": "{\"reservedAt\":\"<TIME>\"}"
+ }
+}

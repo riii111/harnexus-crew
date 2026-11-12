@@ -1,0 +1,19 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"sender\":\"ok\"}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [
+  {
+   "name": "pr-wake",
+   "argv": [
+    "watch",
+    "sender"
+   ],
+   "stdin": ""
+  }
+ ],
+ "files": {}
+}

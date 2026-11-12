@@ -4,8 +4,8 @@
   "socket": {
     "defaults": { "timeoutMs": 1000, "line": "{\"x\":1}" },
     "servers": {
-      "answer": "bun mocks/socket_server.ts PATH answer",
-      "silent": "bun mocks/socket_server.ts PATH silent",
+      "answer": "python3 mocks/socket_server.py PATH answer",
+      "silent": "python3 mocks/socket_server.py PATH silent",
       "backlog": "python3 mocks/socket_server.py PATH backlog",
       "drip": "python3 mocks/socket_server.py PATH drip 5 0.3",
       "noread": "python3 mocks/socket_server.py PATH noread",

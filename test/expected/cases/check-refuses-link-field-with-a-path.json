@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: the worker template <ROOT>/templates/worker.md: {document_refs} may hold only letters, digits, _ and - inside a link target\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/templates/worker.md\"}}"
+ }
+}

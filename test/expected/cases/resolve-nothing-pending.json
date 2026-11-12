@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: nothing is pending\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/skills/task-session-launch/references/worker.md\", \"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "work/launch.json": "{\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}"
+ }
+}

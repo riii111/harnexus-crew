@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: review needs the Codex App and is unavailable in Cloud. Cloud cannot create or resume other tasks or threads from here; PR notifications are not built for Cloud, so check the PR with gh\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\":{\"reviewer\":\"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "work/review.json": "{\"taskId\":\"example\",\"workerAI\":\"Claude\",\"checkout\":\"<ROOT>/home/repo\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null}"
+ }
+}

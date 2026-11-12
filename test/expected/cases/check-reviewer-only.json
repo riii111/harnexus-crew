@@ -1,0 +1,12 @@
+{
+ "keys": [],
+ "exitCode": 0,
+ "signal": null,
+ "stdout": "{\"templates\":{\"worker\":null,\"reviewer\":\"<ROOT>/skills/task-review-cycle/references/reviewer.md\"},\"t3\":{\"ready\":true}}\n",
+ "stderr": "",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}"
+ }
+}

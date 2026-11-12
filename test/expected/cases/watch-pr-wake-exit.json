@@ -1,0 +1,20 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: pr-wake watch status --json failed with exit 3: denied\n",
+ "requests": [],
+ "commands": [
+  {
+   "name": "pr-wake",
+   "argv": [
+    "watch",
+    "status",
+    "--json"
+   ],
+   "stdin": ""
+  }
+ ],
+ "files": {}
+}

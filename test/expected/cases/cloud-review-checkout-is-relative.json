@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: checkout must be the absolute path of a repository's top level\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\":{\"reviewer\":\"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "work/review.json": "{\"taskId\":\"example\",\"workerAI\":\"Claude\",\"checkout\":\"repo\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null}"
+ }
+}

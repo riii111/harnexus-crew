@@ -30,4 +30,4 @@ PATH上のコマンド探索 `which` は呼び出し側が注入する（`cli/re
 代役は引数と環境を記録し、計画した出力・終了コード・待ちを返す。
 締切の試験は、`call` の内側の関数に短い締切を渡す。
 
-CLI全体の比較は `test/compat/cases/watch-*.json`（TS版との比較）で行う。
+CLI全体の照合は `test/cases/watch-*.json`（TS版の出力を固定した期待値）で行う。

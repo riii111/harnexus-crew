@@ -1,0 +1,18 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "engine output\n",
+ "stderr": "harnexus-crew: <ROOT>/bin/pr-wake-engine watch exited with 4\n",
+ "requests": [],
+ "commands": [
+  {
+   "name": "pr-wake-engine",
+   "argv": [
+    "watch"
+   ],
+   "stdin": ""
+  }
+ ],
+ "files": {}
+}

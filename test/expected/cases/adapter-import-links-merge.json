@@ -1,0 +1,14 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: cannot read {{work}}/links.json (ENOENT)\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "state/harnexus-crew/cloud-chats/session_B.json": "{\"threadId\":null,\"startedAt\":\"2026-11-02T00:00:00Z\"}",
+  "state/harnexus-crew/cloud-chats/session_A.json": "{\"threadId\":\"chat-a\",\"openedAt\":\"2026-11-01T00:00:00Z\"}",
+  "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"session_A\",\"threadId\":null,\"reservedAt\":\"2026-11-05T00:00:00Z\"},{\"sessionId\":\"session_B\",\"threadId\":\"chat-b\",\"reservedAt\":\"2026-11-03T00:00:00Z\"},{\"sessionId\":\"session_C\",\"threadId\":null,\"reservedAt\":\"2026-11-04T00:00:00Z\"}]}"
+ }
+}

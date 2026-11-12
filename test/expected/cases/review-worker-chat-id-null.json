@@ -1,0 +1,13 @@
+{
+ "keys": [],
+ "exitCode": 1,
+ "signal": null,
+ "stdout": "",
+ "stderr": "harnexus-crew: workerChatId in the request must equal CODEX_THREAD_ID\n",
+ "requests": [],
+ "commands": [],
+ "files": {
+  "config/harnexus/task.json": "{\"templates\": {\"worker\": \"<ROOT>/skills/task-session-launch/references/worker.md\", \"reviewer\": \"<ROOT>/skills/task-review-cycle/references/reviewer.md\"}}",
+  "work/review.json": "{\"taskId\": \"TR1\", \"workerAI\": \"Codex\", \"projectId\": \"project\", \"checkout\": \"<ROOT>/home/.codex/worktrees/ab12/repo\", \"baseBranch\": \"base\", \"documentRefs\": [\"https://example.com/task\"], \"prUrl\": null, \"workerChatId\": null}"
+ }
+}

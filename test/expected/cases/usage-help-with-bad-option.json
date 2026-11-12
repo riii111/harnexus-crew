@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 2,
+ "signal": null,
+ "stdout": "",
+ "stderr": "usage:\n  harnexus-crew launch --request REQUEST [--model MODEL] [--thinking THINKING]\nharnexus-crew: Unknown option '--nope'\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

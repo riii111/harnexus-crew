@@ -1,7 +1,6 @@
 # Native版
 
-MoonBit Native移行の後続タスクが参照する、配置・固定版・共通型・比較ハーネスの取り決め。
-移行中もTS版を既定のまま残し、Native版は別の開発用生成物として検証する。
+MoonBit Nativeで書かれたCLIの、配置・固定版・共通型・受入試験の取り決め。
 
 ## 開発環境
 
@@ -12,15 +11,11 @@ moon check --deny-warn
 moon info              # 公開インターフェース native/**/pkg.generated.mbti を更新する
 moon test
 moon build --target native --release
-HARNEXUS_CREW_NATIVE=$PWD/_build/native/release/build/cmd/main/main.exe bun test test/compat
-bun test/compat/cli.ts --native _build/native/release/build/cmd/main/main.exe
-HARNEXUS_STORE_PROBE=$PWD/_build/native/release/build/store/probe/probe.exe bun test test/native/store.test.ts
-HARNEXUS_MARKDOWN_PROBE=$PWD/_build/native/release/build/markdown/probe/probe.exe bun test test/native/markdown.test.ts
-HARNEXUS_PROMPT_PROBE=$PWD/_build/native/release/build/prompt/probe/probe.exe bun test test/native/prompt.test.ts
-HARNEXUS_CREW_NATIVE=$PWD/_build/native/release/build/cmd/main/main.exe bun test test/native/adapter.test.ts
-HARNEXUS_CREW_NATIVE=$PWD/_build/native/release/build/cmd/main/main.exe bun test test/native/session.test.ts
-HARNEXUS_CREW_NATIVE=$PWD/_build/native/release/build/cmd/main/main.exe bun test test/native/cloud.test.ts
+python3 -m unittest discover -s test
 ```
+
+`python3 -m unittest discover -s test` は、リリースビルドの実行ファイルを外側から動かす受入試験で、[test/README.md](../test/README.md) に説明がある。
+別のビルドを試すときは、`HARNEXUS_CREW_NATIVE`・`HARNEXUS_STORE_PROBE`・`HARNEXUS_MARKDOWN_PROBE`・`HARNEXUS_PROMPT_PROBE` で実行ファイルを指す。
 
 CIの `native` ジョブは macOS（macos-15）と Linux（ubuntu-24.04）で同じ手順を実行する。
 `lefthook install` で、コミット前に `moon fmt` が走る。
@@ -31,16 +26,16 @@ CIの `native` ジョブは macOS（macos-15）と Linux（ubuntu-24.04）で同
 | ------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | moon / moonc              | 0.1.20261104 (940aa18) / v0.10.20+65efd5b93                                                                     | `flake.nix` が版を名指しし、`flake.lock` が配布元を固定する |
 | MoonBitのcore             | ツールチェーンに同梱                                                                                            | 上と同じ。mooncakesの依存はない                             |
-| Bun（TS版と比較ハーネス） | 1.4.4                                                                                                           | `package.json`                                              |
+| Python（受入試験の実行器） | nixpkgsの `python3`（標準ライブラリだけを使う）                                                                 | `flake.nix` が名指しし、`flake.lock` が配布元を固定する     |
 | md4c                      | v0.6.0（タグ d4eeb1ace5d0a64d6a1245e97bf9c8105c4f3df7、コミット 7fc1815a5eeba2af7d6120a76202bf59f3b6e6e4）、MIT | `native/markdown/` の `md4c.c`・`md4c.h`・`md4c-LICENSE.md` |
-| 比較基準のTS版            | `51af56c5ee443de97e244be1c9eee97ebb34a6ac`                                                                      | この文書                                                    |
+| 期待値の元になったTS版    | `51af56c5ee443de97e244be1c9eee97ebb34a6ac`（Bun 1.4.4で実行）                                                    | [test/README.md](../test/README.md)                         |
 
 非同期処理は、ツールチェーン同梱の実験的パッケージ `moonbitlang/core/async` を使う（試作と同じ）。
 使うパッケージは `moon.pkg` の `options("allow-experimental-packages": true)` で許可する。
 mooncakesの `moonbitlang/async` は使わない。
 ツールチェーンを上げるときは、`flake.nix` の版名と、この表と、`moon info` の差分を同じ変更で更新する。
 
-後続のTS修正を基準へ含める場合は、基準SHAと対応する比較事例を一緒に更新する。
+TS版は撤去済みで、期待値は固定したまま使う。契約を変える場合は、期待値と対応する事例を同じ変更で更新する。
 
 ## パッケージの境界と担当
 
@@ -142,7 +137,7 @@ JSONや文字列から型への変換は副作用を持たない。
 - セッションの保存先は、`LaunchRequest::session_key` と `ReviewRequest::session_key` が返す文字列のSHA256で決まる。JSのUTF-8符号化に合わせて `lossy_text` を通してある。
 - 実行環境の判定は2段階。`detect` が環境変数だけで決まる結果か、ソケットへの接続を試す相手を返し、接続できたかどうかで `Detected::socket_accepted` か `Detected::undetermined` を選ぶ。
 - `String` の `<` と `compare` は辞書順ではない。JSの並び替えと同じ順序が要るときは `@text.compare_utf16` を使う。
-- `text` の文字分類表は、固定したBunの `\p{L}`・`\p{N}` から `test/native/unicode-tables.ts` が生成する。`bun test test/native` が表との一致を確かめる。
+- `text` の文字分類表は、Bun 1.4.4の `\p{L}`・`\p{N}` から生成した固定のデータで、再生成の手段は持たない。`test/native/unicode-classes.json` の件数とSHA-256が、表の書き換えを検出する。
 
 ## テンプレートとMarkdown
 
@@ -161,9 +156,9 @@ md4cのフラグは、tables・strikethrough・tasklistsに、NOHTMLBLOCKSとNOI
 
 検証は3層に分ける。
 
-- `test/native/markdown.test.ts`：TS版（Bun 1.4.4）が下した63件の判定と102件の候補を、`markdown/probe` が再現する。
-- `test/native/prompt.test.ts`：TS版のテンプレート試験22件を、`prompt/probe` で同じ期待のまま通す。シンボリックリンクを使う事例もここで確かめる。
-- `test/compat/cases/check-*.json`：`check` のstdout・stderr・終了コードをTS版と比べる。
+- `test/test_markdown.py`：TS版（Bun 1.4.4）が下した63件の判定と102件の候補を、`markdown/probe` が再現する。
+- `test/test_prompt.py`：TS版のテンプレート試験22件を、`prompt/probe` で同じ期待のまま通す。シンボリックリンクを使う事例もここで確かめる。
+- `test/cases/check-*.json`：`check` のstdout・stderr・終了コードを、TS版の出力を固定した期待値と照らす。
 
 ## 所有権の境界
 
@@ -196,7 +191,7 @@ fdはすべてclose-on-execで開く。ロックや一時ファイルのfdが、
 
 `store` の試験は2種類ある。
 単一プロセスの試験は `moon test` が実行する。
-競合・強制終了・TS版が書く内容との一致は、`store/probe` を複数起動する `test/native/store.test.ts` が確かめる。
+競合・強制終了・TS版が書く内容との一致は、`store/probe` を複数起動する `test/test_store.py` が確かめる。
 
 ## 試作から取り込んだ資料
 
@@ -206,10 +201,10 @@ fdはすべてclose-on-execで開く。ロックや一時ファイルのfdが、
 | ファイル                                   | 内容                                                                                        | 使う担当 |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------- | -------- |
 | `test/native/boundary-cases.json`          | ソケット11件、プロセス10件の入力と期待。注入を要する事例は `seam` に必要な条件を書いた      | MB02     |
-| `test/native/mocks/`                       | 事例が使う模擬サーバー（Bun・Python）と模擬コマンド                                         | MB02     |
+| `test/native/mocks/`                       | 事例が使う模擬サーバー（Python）と模擬コマンド                                              | MB02     |
 | `test/native/markdown-link-judgement.json` | リンク判定63件と候補102件。期待はTS版（Bun 1.4.4）の判定で、md4c v0.6.0の判定と一致していた | MB06     |
 
-`test/native/imported-cases.test.ts` が、件数と参照先の存在を確かめる。
+`test/test_imported.py` が、件数と参照先の存在を確かめる。
 
 試作で得た設計上の判断のうち、実装に残すものは次のとおり。
 
@@ -218,9 +213,9 @@ fdはすべてclose-on-execで開く。ロックや一時ファイルのfdが、
 - md4cのフラグは、tables・strikethrough・tasklistsに、NOHTMLBLOCKSとNOINDENTEDCODEBLOCKSを加える。原文を直接パースしたときのエスケープ差は、マーカー経路の一致とは別に扱う。
 - 試作の性能値（バイナリ約0.6MB、実行時間約2.5ms）は合格値にしない。
 
-## 比較ハーネス
+## 受入試験
 
-TS版とNative版を別の一時状態で動かして比べる仕組みは、[test/compat/README.md](../test/compat/README.md) にある。
+事例を別の一時状態で動かして期待値と照らす仕組みは、[test/README.md](../test/README.md) にある。
 
 ## 配置の規約
 

@@ -1,0 +1,10 @@
+{
+ "keys": [],
+ "exitCode": 2,
+ "signal": null,
+ "stdout": "",
+ "stderr": "usage:\n  harnexus-crew review --request REQUEST [--model MODEL] [--thinking THINKING] [--update-base] [--recover discard] [--ask FILE]\nharnexus-crew: Option '--update-base' does not take an argument\n",
+ "requests": [],
+ "commands": [],
+ "files": {}
+}

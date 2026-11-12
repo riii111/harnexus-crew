@@ -1,7 +1,6 @@
-node_modules/
-dist/
 .reviewctl/
 .DS_Store
 _build/
 .mooncakes/
 .direnv/
+__pycache__/

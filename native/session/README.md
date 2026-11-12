@@ -52,5 +52,5 @@ Cloudレビューは `taskId`・`workerAI`・`checkout` を、Appのレビュー
 ## 試験
 
 - `moon test` の `session`: 模擬のApp・Git・テンプレート・pr-wakeを注入し、実際のファイルへ状態を保存して、送信の順序、排他作成の競合、状態が書き換わった場合、記録を残す失敗、拒否、`resolve`、レビューの継続、`name` を確かめる。
-- `test/compat/cases`: `launch-*`、`resolve-*`、`state-request-*`、`name-*`、`review-*` をTS版と比べる（stdout・stderr・終了コード・状態・Appへの要求・pr-wakeとT3 CLIの呼び出し）。
-- `test/native/session.test.ts`: 複数の実行にまたがる流れ（結果不明からの再開、レビューの継続、拒否、送信中に死んだ実行、同時起動、`test/fixtures/legacy-state` のApp側の記録）をTS版と同じ根で動かして比べる。
+- `test/cases`: `launch-*`、`resolve-*`、`state-request-*`、`name-*`、`review-*` を、TS版の出力を固定した期待値と照らす（stdout・stderr・終了コード・状態・Appへの要求・pr-wakeとT3 CLIの呼び出し）。
+- `test/test_session.py`: 複数の実行にまたがる流れ（結果不明からの再開、レビューの継続、拒否、送信中に死んだ実行、同時起動、`test/fixtures/legacy-state` のApp側の記録）を、同じ期待値と照らす。
