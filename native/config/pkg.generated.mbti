@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/config"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/environment",
+  "riii111/harnexus-crew/shared/failure",
+}
+
+// Values
+pub fn template_config_path(@environment.Env) -> String
+
+// Errors
+
+// Types and methods
+pub struct TemplateConfig {
+  worker : String?
+  reviewer : String?
+}
+pub fn TemplateConfig::from_json(String, @json.Json) -> Self raise @failure.TaskFailed
+
+// Type aliases
+
+// Traits

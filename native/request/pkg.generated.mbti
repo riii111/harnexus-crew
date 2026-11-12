@@ -1,0 +1,106 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/request"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/environment",
+  "riii111/harnexus-crew/shared/boundary",
+  "riii111/harnexus-crew/shared/failure",
+}
+
+// Values
+pub fn caller_id(@environment.Env) -> String raise @failure.TaskFailed
+
+pub fn chat_id(String, String) -> String raise @failure.TaskFailed
+
+pub fn sample_reviewer_fields(String) -> Map[String, String]
+
+pub fn sample_worker_fields() -> Map[String, String]
+
+pub fn single_line(String, String) -> String raise @failure.TaskFailed
+
+// Errors
+
+// Types and methods
+pub enum CompletionTarget {
+  Implementation
+  DraftPr
+  Merge
+}
+pub fn CompletionTarget::name(Self) -> String
+
+pub(all) struct FileProbe {
+  path_exists : async (String) -> Bool noraise
+  is_directory : async (String) -> Bool noraise
+  real_path_or_self : async (String) -> String noraise
+}
+
+pub struct Git {
+  // private fields
+}
+pub fn Git::new(GitRunner, @environment.Env) -> Self
+pub async fn Git::run(Self, String, Array[String]) -> String raise @failure.TaskFailed
+
+pub(all) struct GitRunner {
+  run : async (Array[String], Map[String, String]) -> @boundary.CommandOutput raise @boundary.CommandFailed
+}
+
+pub struct LaunchRequest {
+  task_id : String
+  display_name : OptionalText
+  project_id : String
+  starting_branch : OptionalText
+  document_refs : Array[String]
+  completion_target : CompletionTarget
+}
+pub async fn LaunchRequest::from_json(@json.Json, FileProbe) -> Self raise @failure.TaskFailed
+pub fn LaunchRequest::session_key(Self) -> String
+pub fn LaunchRequest::to_json(Self) -> @json.Json
+pub async fn LaunchRequest::worker_fields(Self, FileProbe) -> Map[String, String] raise @failure.TaskFailed
+
+pub enum OptionalText {
+  Absent
+  Null
+  Text(String)
+}
+pub fn OptionalText::text(Self) -> String?
+
+pub struct ReviewCandidate {
+  request : ReviewRequest
+  head : String
+  base : String
+}
+pub async fn ReviewCandidate::reviewer_fields(Self, String, FileProbe) -> Map[String, String] raise @failure.TaskFailed
+pub fn ReviewCandidate::to_json(Self) -> @json.Json
+
+pub struct ReviewRequest {
+  task_id : String
+  worker_ai : WorkerAi
+  project_id : String?
+  checkout : String
+  base_branch : String
+  document_refs : Array[String]
+  display_name : OptionalText
+  pr_url : String?
+  worker_chat_id : @json.Json?
+}
+pub async fn ReviewRequest::candidate(Self, Map[String, @json.Json]?, Bool, Git) -> ReviewCandidate raise @failure.TaskFailed
+pub async fn ReviewRequest::from_json(@json.Json, ReviewScope, FileProbe, Git) -> Self raise @failure.TaskFailed
+pub fn ReviewRequest::session_key(Self, String) -> String
+pub fn ReviewRequest::to_json(Self) -> @json.Json
+pub fn ReviewRequest::with_worker_chat_id(Self, String) -> Self
+
+pub(all) enum ReviewScope {
+  Worktrees(String)
+  Cloud
+}
+
+pub enum WorkerAi {
+  Claude
+  Codex
+}
+pub fn WorkerAi::name(Self) -> String
+
+// Type aliases
+
+// Traits
