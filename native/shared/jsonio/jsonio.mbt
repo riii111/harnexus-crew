@@ -5,18 +5,17 @@ pub suberror JsonError {
 }
 
 ///|
-/// Parses like JS `JSON.parse`: a repeated key keeps its last value and numbers go through a double.
-/// An unpaired surrogate escape such as "\ud800" is accepted and written back unchanged; see `hold_unpaired`.
+/// Parses like JS `JSON.parse`: a repeated key keeps its last value, numbers go through a double, and a string may hold an unpaired surrogate.
+/// Nesting deeper than 1024 levels is refused.
 pub fn parse(text : String) -> Json raise JsonError {
-  @json.parse(hold_unpaired(text), reject_duplicate_keys=false) catch {
-    error => raise JsonError("invalid JSON: \{error}")
-  }
+  parse_document(text)
 }
 
 ///|
 /// One line, no indentation, written as JS `JSON.stringify` writes a parsed value.
 /// A number is written from its double, never from the text it was read from, so 9007199254740993 becomes 9007199254740992 and 1e400 becomes null.
 /// Keys that are array indexes come first in ascending order, then the others in the order they were added.
+/// An unpaired surrogate is written as its escape, so what was read is written back as it was.
 pub fn stringify(value : Json) -> String {
   let out = StringBuilder()
   write_value(out, value)
@@ -24,231 +23,24 @@ pub fn stringify(value : Json) -> String {
 }
 
 ///|
-fn write_value(out : StringBuilder, value : Json) -> Unit {
-  match value {
-    Null => out.write_string("null")
-    True => out.write_string("true")
-    False => out.write_string("false")
-    Number(number, ..) => out.write_string(number_text(number))
-    String(text) => write_quoted(out, text)
-    Array(items) => {
-      out.write_char('[')
-      for index, item in items {
-        if index > 0 {
-          out.write_char(',')
-        }
-        write_value(out, item)
-      }
-      out.write_char(']')
-    }
-    Object(entries) => {
-      out.write_char('{')
-      let mut first = true
-      for key in js_key_order(entries) {
-        if !first {
-          out.write_char(',')
-        }
-        first = false
-        write_quoted(out, key)
-        out.write_char(':')
-        write_value(out, entries[key])
-      }
-      out.write_char('}')
-    }
-  }
-}
-
-///|
-fn number_text(number : Double) -> String {
-  // JSON.stringify writes -0 as 0 and a number JSON cannot hold as null.
-  if number == 0.0 {
-    "0"
-  } else if number.is_nan() || number.is_inf() {
-    "null"
-  } else {
-    // Double::to_string already writes the shortest digits in JS's layout, including the exponent form from 1e21 and below 1e-6.
-    number.to_string()
-  }
-}
-
-///|
-fn write_quoted(out : StringBuilder, text : String) -> Unit {
-  out.write_char('"')
-  for char in text {
-    match char {
-      '"' => out.write_string("\\\"")
-      '\\' => out.write_string("\\\\")
-      '\n' => out.write_string("\\n")
-      '\r' => out.write_string("\\r")
-      '\t' => out.write_string("\\t")
-      '\u{08}' => out.write_string("\\b")
-      '\u{0C}' => out.write_string("\\f")
-      _ =>
-        if char.to_int() >= RESERVED_START {
-          write_unit_escape(out, 0xD800 + char.to_int() - RESERVED_START)
-        } else if char.to_int() < 0x20 {
-          write_unit_escape(out, char.to_int())
-        } else {
-          out.write_char(char)
-        }
-    }
-  }
-  out.write_char('"')
-}
-
-///|
-fn write_unit_escape(out : StringBuilder, unit : Int32) -> Unit {
-  // JS writes the code in lower-case hexadecimal.
-  out.write_string("\\u")
-  out.write_char(hex_digit(unit / 4096))
-  out.write_char(hex_digit(unit / 256 % 16))
-  out.write_char(hex_digit(unit / 16 % 16))
-  out.write_char(hex_digit(unit % 16))
-}
-
-///|
-fn hex_digit(value : Int32) -> Char {
-  "0123456789abcdef"[value].to_char().unwrap()
-}
-
-///|
-/// A MoonBit String cannot hold an unpaired surrogate, which JS accepts in a JSON string.
-/// The boundary holds each one as a code point of the last 2048 of plane 16, U+10F800 to U+10FFFF, and writes it back as the surrogate escape.
-/// Text that really contains such a code point is refused, so the two can never be confused.
-const RESERVED_START : Int32 = 0x10F800
-
-///|
-/// Turns every unpaired surrogate escape into its reserved code point before the text is parsed.
-fn hold_unpaired(text : String) -> String raise JsonError {
-  let chars = text.to_array()
-  let count = chars.length()
-  let out = StringBuilder()
-  let mut at = 0
-  while at < count {
-    let char = chars[at]
-    if char.to_int() >= RESERVED_START {
-      raise JsonError(
-        "invalid JSON: U+10F800 to U+10FFFF are reserved for unpaired surrogates",
-      )
-    }
-    if char != '\\' || at + 1 >= count {
-      out.write_char(char)
-      at += 1
-      continue
-    }
-    if chars[at + 1] != 'u' {
-      // The escaped character is copied with its backslash, so an escaped backslash never starts a \u escape.
-      out.write_char(char)
-      out.write_char(chars[at + 1])
-      at += 2
-      continue
-    }
-    match unit_at(chars, at + 2) {
-      Some(unit) if unit >= 0xD800 && unit <= 0xDFFF => {
-        let low = if unit <= 0xDBFF &&
-          at + 7 < count &&
-          chars[at + 6] == '\\' &&
-          chars[at + 7] == 'u' {
-          unit_at(chars, at + 8)
-        } else {
-          None
-        }
-        match low {
-          Some(low) if low >= 0xDC00 && low <= 0xDFFF => {
-            if unit >= 0xDBFE {
-              raise JsonError(
-                "invalid JSON: U+10F800 to U+10FFFF are reserved for unpaired surrogates",
-              )
-            }
-            for index in at..<(at + 12) {
-              out.write_char(chars[index])
-            }
-            at += 12
-          }
-          _ => {
-            out.write_char((RESERVED_START + unit - 0xD800).unsafe_to_char())
-            at += 6
-          }
-        }
-      }
-      _ => {
-        out.write_char(char)
-        at += 1
-      }
-    }
-  }
-  out.to_string()
-}
-
-///|
-/// The value of the four hex digits that start at `at`, or None.
-fn unit_at(chars : Array[Char], at : Int32) -> Int32? {
-  if at + 4 > chars.length() {
-    return None
-  }
-  let mut value = 0
-  for index in at..<(at + 4) {
-    let digit = match chars[index] {
-      '0'..<='9' as c => c.to_int() - '0'.to_int()
-      'a'..<='f' as c => c.to_int() - 'a'.to_int() + 10
-      'A'..<='F' as c => c.to_int() - 'A'.to_int() + 10
-      _ => return None
-    }
-    value = value * 16 + digit
-  }
-  Some(value)
-}
-
-///|
 /// For text that leaves JSON, such as standard output or a hash input: each unpaired surrogate becomes U+FFFD, which is what UTF-8 encoding does to it in JS.
 pub fn lossy_text(text : String) -> String {
+  let units = text.code_units()
   let out = StringBuilder()
-  for char in text {
-    if char.to_int() >= RESERVED_START {
+  let mut at = 0
+  while at < units.length() {
+    let width = char_width(units, at)
+    if width == 0 {
       out.write_char('\u{FFFD}')
+      at += 1
     } else {
-      out.write_char(char)
+      for index in at..<(at + width) {
+        out.write_char(units[index].to_int().unsafe_to_char())
+      }
+      at += width
     }
   }
   out.to_string()
-}
-
-///|
-/// The order JS lists the keys of an object in: array indexes ascending, then the rest as added.
-fn js_key_order(entries : Map[String, Json]) -> Array[String] {
-  let indexes : Array[(Int64, String)] = []
-  let others : Array[String] = []
-  for key, _ in entries {
-    match array_index(key) {
-      Some(index) => indexes.push((index, key))
-      None => others.push(key)
-    }
-  }
-  indexes.sort_by_key(pair => pair.0)
-  let ordered = indexes.map(pair => pair.1)
-  ordered.append(others)
-  ordered
-}
-
-///|
-/// The array index a key stands for: decimal digits without a leading zero, up to 2^32 - 2.
-fn array_index(key : String) -> Int64? {
-  let length = key.length()
-  if length == 0 || length > 10 || (length > 1 && key[0] == '0') {
-    return None
-  }
-  let mut value : Int64 = 0L
-  for unit in key.code_units() {
-    if unit < '0' || unit > '9' {
-      return None
-    }
-    value = value * 10L + (unit - '0').to_int64()
-  }
-  if value <= 4294967294L {
-    Some(value)
-  } else {
-    None
-  }
 }
 
 ///|

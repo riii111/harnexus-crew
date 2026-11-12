@@ -136,10 +136,68 @@ test "unpaired surrogate escapes survive a round trip as JS writes them" {
 }
 
 ///|
-test "text the boundary reserves for unpaired surrogates is refused" {
-  let raw = "\"" + (0x10F800).unsafe_to_char().to_string() + "\""
-  let pair = "\"\\udbfe\\udc00\""
-  for text in [raw, pair] {
+test "code points near the old reserved range and unpaired surrogates stay apart" {
+  let cases : Array[(String, String)] = [
+    ("\"\u{10f800}\"", "\"\u{10f800}\""),
+    ("\"\u{10ffff}\"", "\"\u{10ffff}\""),
+    ("\"\u{10f900}\"", "\"\u{10f900}\""),
+    ("\"\\udbfe\\udc00\"", "\"\u{10f800}\""),
+    ("\"\\udbff\\udfff\"", "\"\u{10ffff}\""),
+    ("\"\\udbfe\\udd00\"", "\"\u{10f900}\""),
+    (
+      "{\"\u{10f800}\":1,\"\\udbff\\udfff\":2,\"\\ud800\":3}", "{\"\u{10f800}\":1,\"\u{10ffff}\":2,\"\\ud800\":3}",
+    ),
+    ("\"\\udbfe\\udc00\\ud800\"", "\"\u{10f800}\\ud800\""),
+    ("\"\\ud800\\udbfe\\udc00\"", "\"\\ud800\u{10f800}\""),
+    ("\"\u{10f800}\\udc00\u{10ffff}\"", "\"\u{10f800}\\udc00\u{10ffff}\""),
+    ("\"\\udbff\\udfff\\udbff\"", "\"\u{10ffff}\\udbff\""),
+  ]
+  for pair in cases {
+    let (input, expected) = pair
+    inspect(stringify(parse(input)), content=expected)
+  }
+}
+
+///|
+test "a string built in code keeps every code point" {
+  inspect(
+    stringify(Json::string("\u{10F800}\u{10FFFF}")),
+    content="\"\u{10f800}\u{10ffff}\"",
+  )
+}
+
+///|
+test "an unpaired surrogate behaves as an ordinary string value" {
+  let one = parse("\"\\ud800\"")
+  let two = parse("{\"\\ud800\":1}")
+  match (one, two) {
+    (String(text), Object(entries)) => {
+      inspect(text == string_from_units([0xD800]), content="true")
+      inspect(entries.get(text) is Some(Number(1.0, ..)), content="true")
+      inspect(text.length(), content="1")
+      inspect((text + "x").length(), content="2")
+    }
+    _ => fail("unexpected shape")
+  }
+}
+
+///|
+test "lossy_text turns an unpaired surrogate into U+FFFD as UTF-8 encoding does" {
+  match parse("\"a\\ud800b\\udc00\\ud83c\\udf19\"") {
+    String(value) =>
+      inspect(lossy_text(value), content="a\u{fffd}b\u{fffd}\u{1f319}")
+    _ => fail("not a string")
+  }
+}
+
+///|
+test "malformed JSON is refused" {
+  let bad = [
+    "", "{", "[1,]", "{\"a\":}", "01", "1.", ".5", "+1", "\"a", "\"\\x\"", "\"\\u12\"",
+    "tru", "nul", "[1] 2", "{'a':1}", "\"\u{01}\"", "[", "{\"a\" 1}", "-", "1e",
+    "NaN",
+  ]
+  for text in bad {
     let refused = try {
       parse(text) |> ignore
       false
@@ -151,10 +209,14 @@ test "text the boundary reserves for unpaired surrogates is refused" {
 }
 
 ///|
-test "lossy_text turns an unpaired surrogate into U+FFFD as UTF-8 encoding does" {
-  let text = parse("\"a\\ud800b\\udc00\"")
-  match text {
-    String(value) => inspect(lossy_text(value), content="a\u{fffd}b\u{fffd}")
-    _ => fail("not a string")
+test "nesting past the limit is refused and the limit itself is accepted" {
+  let deep = fn(depth : Int32) { "[".repeat(depth) + "]".repeat(depth) }
+  inspect(stringify(parse(deep(1024))).length(), content="2048")
+  let refused = try {
+    parse(deep(1025)) |> ignore
+    false
+  } catch {
+    JsonError(_) => true
   }
+  inspect(refused, content="true")
 }
