@@ -89,7 +89,6 @@ async test "commands no task has moved fail and never fall back" {
     (["resolve", "--request", "r", "--sent"], "resolve"),
     (["name", "--pr", "1"], "name"),
     (["watch"], "watch"),
-    (["check"], "check"),
     (["cloud", "--link", "l"], "cloud"),
   ]
   for pair in cases {

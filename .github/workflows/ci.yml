@@ -70,5 +70,9 @@ jobs:
         run: bun test/compat/cli.ts --native "$PWD/_build/native/release/build/cmd/main/main.exe"
       - name: Race the state store between processes
         run: HARNEXUS_STORE_PROBE="$PWD/_build/native/release/build/store/probe/probe.exe" bun test test/native/store.test.ts
+      - name: Judge Markdown links as the TypeScript baseline does
+        run: HARNEXUS_MARKDOWN_PROBE="$PWD/_build/native/release/build/markdown/probe/probe.exe" bun test test/native/markdown.test.ts
+      - name: Fill templates as the TypeScript baseline tests expect
+        run: HARNEXUS_PROMPT_PROBE="$PWD/_build/native/release/build/prompt/probe/probe.exe" bun test test/native/prompt.test.ts
       - name: Run the adapter as a process
         run: HARNEXUS_CREW_NATIVE="$PWD/_build/native/release/build/cmd/main/main.exe" bun test test/native/adapter.test.ts

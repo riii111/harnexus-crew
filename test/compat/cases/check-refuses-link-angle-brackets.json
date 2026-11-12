@@ -1,0 +1,12 @@
+{
+  "name": "check-refuses-link-angle-brackets",
+  "owner": "MB06",
+  "status": "active",
+  "kind": "command",
+  "argv": ["check"],
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/templates/worker.md\"}}",
+    "templates/notes/task.md": "",
+    "templates/worker.md": "[n](<notes/task.md>)\n"
+  }
+}
