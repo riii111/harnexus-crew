@@ -9,11 +9,14 @@ pub async fn run_command(
   env : Map[String, String],
   timeout_ms~ : Int32 = 10000,
 ) -> @boundary.CommandOutput raise @boundary.CommandFailed {
-  let failed = (message : String) => {
-    @boundary.CommandFailed(command=file, message~)
+  let failed = (message : String, code : String?) => {
+    @boundary.CommandFailed(command=file, message~, code~)
   }
   let child = spawn(file, args, env, "", piped=true, new_session=false) catch {
-    _ => raise failed("cannot run \{file}")
+    SpawnFailed(errno~) =>
+      raise failed("cannot run \{file}", Some(@unix.errno_name(errno)))
+    InvalidArgument =>
+      raise failed("cannot run \{file}", Some("ERR_INVALID_ARG_VALUE"))
   }
   defer {
     child.stop_and_reap()
@@ -48,19 +51,24 @@ pub async fn run_command(
     reading_err.wait()
     exit.val = waiting.wait()
   }) catch {
-    _ => raise failed("cannot run \{file}")
+    _ => raise failed("cannot run \{file}", None)
   }
   if stopped.val {
-    raise failed("\{file} was stopped after \{timeout_ms} ms")
+    raise failed("\{file} was stopped after \{timeout_ms} ms", None)
   }
   match exit.val {
-    Code(status) if !overflowed.val =>
+    _ if overflowed.val =>
+      raise failed(
+        "cannot run \{file}",
+        Some("ERR_CHILD_PROCESS_STDIO_MAXBUFFER"),
+      )
+    Code(status) =>
       {
         status,
         stdout: @utf8.decode_lossy(capture.stdout.to_bytes()),
         stderr: @utf8.decode_lossy(capture.stderr.to_bytes()),
       }
-    _ => raise failed("cannot run \{file}")
+    Signaled(_) => raise failed("cannot run \{file}", None)
   }
 }
 
@@ -74,8 +82,18 @@ pub async fn run_inherited(
   env : Map[String, String],
 ) -> Int32 raise @boundary.CommandFailed {
   let child = spawn(file, args, env, "", piped=false, new_session=false) catch {
-    _ =>
-      raise @boundary.CommandFailed(command=file, message="cannot run \{file}")
+    SpawnFailed(errno~) =>
+      raise @boundary.CommandFailed(
+        command=file,
+        message="cannot run \{file}",
+        code=Some(@unix.errno_name(errno)),
+      )
+    InvalidArgument =>
+      raise @boundary.CommandFailed(
+        command=file,
+        message="cannot run \{file}",
+        code=Some("ERR_INVALID_ARG_VALUE"),
+      )
   }
   match child.wait_exit(patience_ms=50) {
     Code(status) => status

@@ -559,3 +559,43 @@ test "the caller is the thread of the app the command runs in" {
     content="CODEX_THREAD_ID must be a confirmed chat ID without whitespace",
   )
 }
+
+///|
+async test "a git that cannot run is shown with the error code, as the TS CLI shows it" {
+  let git = Git::new(
+    {
+      run: (_, _) => {
+        raise @boundary.CommandFailed(
+          command="git",
+          message="cannot run git",
+          code=Some("ENOENT"),
+        )
+      },
+    },
+    env_of([]),
+  )
+  let shown = try git.run("/w", ["rev-parse", "HEAD"]) catch {
+    @failure.TaskFailed(message) => message
+  } noraise {
+    _ => "no failure"
+  }
+  assert_eq(shown, "cannot run git (ENOENT)")
+  let stopped = Git::new(
+    {
+      run: (_, _) => {
+        raise @boundary.CommandFailed(
+          command="git",
+          message="git was stopped after 10000 ms",
+          code=None,
+        )
+      },
+    },
+    env_of([]),
+  )
+  let plain = try stopped.run("/w", ["status"]) catch {
+    @failure.TaskFailed(message) => message
+  } noraise {
+    _ => "no failure"
+  }
+  assert_eq(plain, "git was stopped after 10000 ms")
+}

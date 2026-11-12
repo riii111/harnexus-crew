@@ -36,7 +36,13 @@ pub async fn Git::run(
   let env = self.env.to_map()
   env["GIT_NO_LAZY_FETCH"] = "1"
   let output = (self.runner.run)(argv, env) catch {
-    @boundary.CommandFailed(message~, ..) => @failure.fail(message)
+    @boundary.CommandFailed(message~, code~, ..) =>
+      @failure.fail(
+        match code {
+          Some(code) => "\{message} (\{code})"
+          None => message
+        },
+      )
   }
   if output.status != 0 {
     @failure.fail(

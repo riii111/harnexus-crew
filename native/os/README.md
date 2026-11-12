@@ -36,6 +36,7 @@ TS版の `src/lib/socket.boundary.ts`、`process.boundary.ts`、`run.boundary.ts
 `run_command`（`execFile` の挙動）:
 
 - どの終了コードも結果として返す。起動の失敗、締切、片方のストリームが16MiB超え、シグナル死は `CommandFailed`。上限は `execFile` と同じく、標準出力と標準エラーそれぞれに適用する。
+- 失敗の `code` は、Nodeが失敗に付けるコードに対応する（起動できないときのerrno名、出力超えの `ERR_CHILD_PROCESS_STDIO_MAXBUFFER`）。締切とシグナル死には付かない。TS版でコードを括弧で添えて表示する呼び出し側（git）だけが `メッセージ (コード)` にする。
 - 標準入力は書かれない開いたパイプのままで、締切ではSIGTERMを1回送るだけ。SIGTERMを無視する子は終わるまで待つ。群は作らない。
 
 `run_inherited`:

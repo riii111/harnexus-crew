@@ -439,7 +439,7 @@ async test "run_command stops a command that runs past the timeout" {
     try
       run_command("/bin/sleep", ["5"], plain_env(), timeout_ms=50) |> ignore
     catch {
-      @boundary.CommandFailed(command~, message~) => {
+      @boundary.CommandFailed(command~, message~, ..) => {
         assert_eq(command, "/bin/sleep")
         assert_eq(message, "/bin/sleep was stopped after 50 ms")
       }
@@ -631,5 +631,26 @@ async test "B3 a relative PATH entry is looked up under the working directory" {
     // An entry that exists only under the parent's directory is not a candidate.
     let missing = outcome("hxc-cmd", [], cwd="/", env={ "PATH": "./bin" })
     assert_true(missing.has_prefix("failed started=false: "))
+  })
+}
+
+///|
+async test "run_command keeps the error code Node attaches, only where Node has one" {
+  serial(() => {
+    let code_of = (file : String, args : Array[String], timeout_ms : Int32) => {
+      try run_command(file, args, plain_env(), timeout_ms~) |> ignore catch {
+        @boundary.CommandFailed(code~, ..) => code.unwrap_or("none")
+      } noraise {
+        _ => "no failure"
+      }
+    }
+    assert_eq(code_of("/nonexistent/cmd", [], 1000), "ENOENT")
+    assert_eq(code_of("git-not-here", [], 1000), "ENOENT")
+    assert_eq(code_of("/bin/sleep", ["5"], 50), "none")
+    assert_eq(code_of("/bin/sh", ["-c", "kill -9 $$"], 1000), "none")
+    assert_eq(
+      code_of("/bin/sh", ["-c", "head -c 17000000 /dev/zero"], 20000),
+      "ERR_CHILD_PROCESS_STDIO_MAXBUFFER",
+    )
   })
 }
