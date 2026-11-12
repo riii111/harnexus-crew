@@ -49,6 +49,8 @@ pub fn save_json(String, @json.Json, exclusive~ : Bool) -> Unit raise @failure.T
 
 pub fn settle_pending(Records, Recover?, blocked~ : (@json.Json) -> String, nothing_pending~ : String) -> Unit raise @failure.TaskFailed
 
+pub fn sha256_hex(String) -> String
+
 pub fn state_directory(String, String, String) -> String
 
 pub async fn[T] with_lock(String, String, async () -> T raise @failure.TaskFailed, wait_ms? : Int32) -> T raise @failure.TaskFailed

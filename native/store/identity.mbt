@@ -52,7 +52,8 @@ pub fn process_alive(pid : Double) -> Bool {
 }
 
 ///|
-fn sha256_hex(text : String) -> String {
+/// The SHA-256 of the UTF-8 text in lower-case hex, as `createHash("sha256")` writes it.
+pub fn sha256_hex(text : String) -> String {
   let bytes = @utf8.encode(@jsonio.lossy_text(text))
   let digest : FixedArray[Byte] = FixedArray::make(32, b'\x00')
   sha256_raw(bytes, bytes.length(), digest)
