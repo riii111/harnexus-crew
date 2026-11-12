@@ -205,3 +205,23 @@ test "the Cloud mark is the cloud and its variation selector" {
   inspect(CLOUD_MARK.length(), content="2")
   inspect(json_text(Json::string(CLOUD_MARK)), content="\"\u{2601}\u{FE0F}\"")
 }
+
+///|
+test "a head shorter than seven units is shown whole" {
+  let review : CloudReview = {
+    key: "k",
+    reviewer: "r1",
+    verdict: None,
+    task_id: None,
+    head: Some("abc"),
+    answer: "ok",
+  }
+  inspect(
+    review_text(review),
+    content="ok\n\n_Codex reviewer `r1` on `abc`, run in a Cloud session. Ask for changes in the worker's chat._",
+  )
+  inspect(
+    review_text({ ..review, head: Some("abcdefg"), }).contains("`abcdefg`"),
+    content="true",
+  )
+}

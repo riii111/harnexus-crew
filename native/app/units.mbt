@@ -2,6 +2,9 @@
 /// The first `count` UTF-16 units, as `slice(0, count)` takes them: a surrogate pair cut in two leaves its first half unpaired.
 /// A String is only built with an unpaired surrogate by reading JSON, so the units go through a JSON string of escapes.
 fn utf16_prefix(text : String, count : Int32) -> String {
+  if text.length() <= count {
+    return text
+  }
   let units = text.code_units()
   let escaped = StringBuilder()
   escaped.write_char('"')
