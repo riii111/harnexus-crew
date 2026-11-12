@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, setDefaultTimeout, test } from "bun:test";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
@@ -18,6 +18,9 @@ import {
 import { type Case, CaseSchema, type Implementation } from "../compat/types.ts";
 
 const binary = process.env["HARNEXUS_CREW_NATIVE"];
+
+// Each scenario runs the TypeScript build and the Native build, several times each; the 5 second default is too short on a slow runner.
+setDefaultTimeout(120_000);
 
 type Ran = { code: number | null; stdout: string; stderr: string };
 
