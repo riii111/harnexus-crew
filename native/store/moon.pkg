@@ -1,0 +1,15 @@
+import {
+  "riii111/harnexus-crew/shared/failure",
+  "riii111/harnexus-crew/shared/jsonio",
+  "moonbitlang/core/async",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+}
+
+options(
+  "native-stub": [ "stub.c" ],
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"

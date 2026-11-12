@@ -14,6 +14,7 @@ moon test
 moon build --target native --release
 HARNEXUS_CREW_NATIVE=$PWD/_build/native/release/build/cmd/main/main.exe bun test test/compat
 bun test/compat/cli.ts --native _build/native/release/build/cmd/main/main.exe
+HARNEXUS_STORE_PROBE=$PWD/_build/native/release/build/store/probe/probe.exe bun test test/native/store.test.ts
 ```
 
 CIの `native` ジョブは macOS（macos-15）と Linux（ubuntu-24.04）で同じ手順を実行する。
@@ -50,6 +51,8 @@ mooncakesの `moonbitlang/async` は使わない。
 | `shared/boundary` | ソケット・子プロセスの結果型と失敗型                        | MB01（実装はMB02） |
 | `shared/run`      | コマンド実行結果 `CommandRun` と、出力して終了する `finish` | MB01               |
 | `sys`             | 最小のC連携（OS種別、fdへの全量書き込み）                   | MB01               |
+| `store`           | 状態ファイルの読み書き、`records`、排他ロック、状態の保存先 | MB03               |
+| `store/probe`     | `store` を別プロセスで競合させる試験用の実行ファイル        | MB03               |
 | `cmd/main`        | 入口。現在は未移行を示して失敗するだけ                      | MB05               |
 
 後続の新しいパッケージは、次の名前を目安にする。
@@ -57,7 +60,6 @@ mooncakesの `moonbitlang/async` は使わない。
 | タスク | パッケージ                                                             |
 | ------ | ---------------------------------------------------------------------- |
 | MB02   | `os/socket`、`os/process`                                              |
-| MB03   | `store`（`records`、`run-lock`、ファイル境界）                         |
 | MB04   | `request`、`config`、`environment`、`args`、`template`、`path`、`text` |
 | MB06   | `markdown`（md4cのCと同梱ライセンスを含む）                            |
 | MB07   | `prwake`                                                               |
@@ -105,6 +107,7 @@ JSONや文字列から型への変換は副作用を持たない。
 | `text`        | `\p{L}`・`\p{N}`、Pythonの空白、JSの `trim` と文字列の順序                                                                                                     |
 
 - `request` の注入は `FileProbe`（存在・ディレクトリ判定・実パス）と `GitRunner`（`shared/boundary` の `CommandOutput` を返す）。非同期の関数型なので、同期の関数も渡せる。Gitは安全フラグ付きの `git -C <checkout>` で、`GIT_NO_LAZY_FETCH=1` を渡す。
+- `Env::state_root` が `store::state_directory` の `root` になる。`FileProbe` の存在・ディレクトリ判定・実パスは、`store` の `path_exists`・`is_directory`・`real_path_or_self` で満たせる。
 - 保存する要求は、受け取ったメンバーを保つ。`startingBranch` や `displayName` のnullと欠落は区別し、`prUrl` は欠落でもnullで保存する。メンバーの順序は保存しない。
 - セッションの保存先は、`LaunchRequest::session_key` と `ReviewRequest::session_key` が返す文字列のSHA256で決まる。JSのUTF-8符号化に合わせて `lossy_text` を通してある。
 - 実行環境の判定は2段階。`detect` が環境変数だけで決まる結果か、ソケットへの接続を試す相手を返し、接続できたかどうかで `Detected::socket_accepted` か `Detected::undetermined` を選ぶ。
@@ -118,6 +121,31 @@ JSONや文字列から型への変換は副作用を持たない。
 - 子プロセス: 起動した境界が、結果を返すまでプロセス群の終了を保証する。結果を返した後に残るプロセスはない。
 - Cへ渡す領域: `#borrow` で借りるだけで、Cは保持しない。Cが返す値は整数（fd、errno）にとどめ、確保した領域を返さない。
 - 状態ファイル: 書き込みはMB03の `store` だけが行う。他は読み込みと型への変換を行う。
+
+## 状態保存と排他ロック
+
+`store` は、状態ファイルを書く唯一のパッケージである。
+読み書きの失敗は用途で型を分ける。
+
+- ファイル単位の操作は `FileFailed` を `raise` する。`action` が `Sync` のときは、内容は置き換わったがディレクトリの同期に失敗しており、再起動後に残る保証がない。
+- `records`・ロック・`save_json` は、利用者へ見せる `TaskFailed` を `raise` する。ファイルの失敗は「cannot write パス (ENOENT)」の形のメッセージにする。
+- 同期できなかった操作を成功として返さない。
+
+排他の根拠:
+
+- 新規作成は、一時ファイルに書いて同期してから `link()` で置く。置き先がすでにあれば `link()` が失敗するので、競合した書き手のうち1つだけが、完成した内容で作る。
+- 置き換えは、一時ファイルを同期してから `rename()` する。読み手は、古い内容か新しい内容の全体のどちらかを見る。書き手が途中で終了しても、残るのは一時ファイルだけである。
+- ロックの保持者は、pid・token・開始時刻を持つ。保持者のpidが死んでいるときだけ、`<ロック>.reap` を排他作成した1つの実行がロックを回収する。この回収用ファイルを残したまま実行が終了した場合、ロックは回収されず、消す手順を示して失敗する。
+- 解除は、自分のtokenのロックだけを消す。
+- 待機付きロック `with_lock` は `moonbitlang/core/async` の `sleep` で待つため、待っている間も他の非同期処理は進む。
+
+状態の保存先のルート（`$XDG_STATE_HOME/harnexus-crew`）の決定はMB04の担当で、`state_directory` はそのルートを受け取る。
+
+fdはすべてclose-on-execで開く。ロックや一時ファイルのfdが、後から起動する子へ継承されない。
+
+`store` の試験は2種類ある。
+単一プロセスの試験は `moon test` が実行する。
+競合・強制終了・TS版が書く内容との一致は、`store/probe` を複数起動する `test/native/store.test.ts` が確かめる。
 
 ## 試作から取り込んだ資料
 
