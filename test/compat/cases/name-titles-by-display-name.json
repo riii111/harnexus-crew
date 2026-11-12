@@ -1,0 +1,50 @@
+{
+  "name": "name-titles-by-display-name",
+  "owner": "MB09",
+  "status": "active",
+  "kind": "command",
+  "argv": ["name", "--pr", "https://github.com/o/r/pull/3"],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}",
+    "CODEX_THREAD_ID": "w1"
+  },
+  "seed": {
+    "skills": "test/fixtures/task-skills"
+  },
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/skills/task-session-launch/references/worker.md\", \"reviewer\": \"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}",
+    "work/launch.json": "{\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}",
+    "state/harnexus-crew/launch/6279de90d3447943/state.json": "{\"threadId\": \"w1\", \"request\": {\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\", \"displayName\": \"Named task\"}, \"sent\": {\"tool\": \"create_thread\", \"prompt\": \"P\", \"expected\": {\"model\": \"claude-sonnet-5-5\", \"effort\": \"high\"}, \"actual\": {\"model\": \"claude-sonnet-5-5\", \"effort\": \"high\"}, \"workspace\": {\"type\": \"project\", \"projectId\": \"project\", \"environment\": {\"type\": \"worktree\"}}, \"answer\": {\"outcome\": \"done\", \"threadId\": \"w1\"}}}"
+  },
+  "bridge": [
+    {
+      "match": {
+        "query": "capabilities"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done",
+        "operations": [
+          "list_projects",
+          "create_thread",
+          "send_message_to_thread",
+          "name_thread"
+        ]
+      }
+    },
+    {
+      "match": {
+        "tool": "name_thread"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done"
+      }
+    }
+  ],
+  "commands": {
+    "pr-wake": {
+      "stdout": "{\"watched\":\"https://github.com/o/r/pull/3\"}\n"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "name-bad-pr-values",
+  "owner": "MB09",
+  "status": "active",
+  "kind": "command",
+  "argv": ["name", "--pr", "0"],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}",
+    "CODEX_THREAD_ID": "w1"
+  },
+  "seed": {
+    "skills": "test/fixtures/task-skills"
+  },
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/skills/task-session-launch/references/worker.md\", \"reviewer\": \"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}",
+    "work/launch.json": "{\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}"
+  }
+}

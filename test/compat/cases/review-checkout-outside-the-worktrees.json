@@ -1,0 +1,31 @@
+{
+  "name": "review-checkout-outside-the-worktrees",
+  "owner": "MB09",
+  "status": "active",
+  "kind": "command",
+  "argv": ["review", "--request", "review.json"],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}",
+    "CODEX_THREAD_ID": "w1"
+  },
+  "seed": {
+    "skills": "test/fixtures/task-skills"
+  },
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/skills/task-session-launch/references/worker.md\", \"reviewer\": \"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}",
+    "work/review.json": "{\"taskId\": \"TR1\", \"workerAI\": \"Codex\", \"projectId\": \"project\", \"checkout\": \"{{work}}/repo\", \"baseBranch\": \"base\", \"documentRefs\": [\"https://example.com/task\"], \"prUrl\": null}"
+  },
+  "git": [
+    ["init", "-q", "{{work}}/repo"],
+    ["-C", "{{work}}/repo", "commit", "--allow-empty", "-qm", "test: initial"],
+    ["-C", "{{work}}/repo", "branch", "base"],
+    [
+      "-C",
+      "{{work}}/repo",
+      "commit",
+      "--allow-empty",
+      "-qm",
+      "test: candidate 1"
+    ]
+  ]
+}

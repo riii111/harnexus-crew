@@ -1,7 +1,7 @@
 {
   "name": "state-legacy-app",
   "owner": "MB09",
-  "status": "pending",
+  "status": "active",
   "kind": "command",
   "argv": ["state"],
   "env": { "HARNEXUS_EXECUTION_ENV": "local" },

@@ -1,0 +1,17 @@
+{
+  "name": "launch-t3-refuses-thinking",
+  "owner": "MB09",
+  "status": "active",
+  "kind": "command",
+  "argv": ["launch", "--request", "launch.json", "--thinking", "high"],
+  "env": {
+    "T3CODE_THREAD_ID": "t3-caller"
+  },
+  "seed": {
+    "skills": "test/fixtures/task-skills"
+  },
+  "files": {
+    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/skills/task-session-launch/references/worker.md\", \"reviewer\": \"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}",
+    "work/launch.json": "{\"taskId\": \"TR1\", \"documentRefs\": [\"https://example.com/task\"], \"completionTarget\": \"draft_pr\", \"projectId\": \"project\"}"
+  }
+}
