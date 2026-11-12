@@ -39,11 +39,6 @@
       "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
       "with": "<TIME>",
       "scopes": ["files", "stderr", "stdout"]
-    },
-    {
-      "pattern": "\\(node:\\d+\\) TimeoutOverflowWarning: [^\\n]*\\nTimeout duration was set to 1\\.\\n\\(Use `bun --trace-warnings \\.\\.\\.` to show where the warning was created\\)\\n",
-      "with": "",
-      "scopes": ["stderr"]
     }
   ]
 }

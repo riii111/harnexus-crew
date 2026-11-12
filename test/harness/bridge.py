@@ -58,6 +58,10 @@ class Bridge:
             if line is None:
                 with self._lock:
                     self.requests.append(data.decode("utf-8", errors="replace"))
+            with self._lock:
+                held = connection in self._held
+            if not held:
+                connection.close()
 
     def _answer(self, connection, line):
         parsed = jsonvalue.try_loads(line)
