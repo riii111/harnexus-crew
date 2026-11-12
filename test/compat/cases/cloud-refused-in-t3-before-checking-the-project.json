@@ -1,0 +1,18 @@
+{
+  "name": "cloud-refused-in-t3-before-checking-the-project",
+  "owner": "MB10",
+  "status": "active",
+  "kind": "command",
+  "argv": [
+    "cloud",
+    "--link",
+    "session_01NfjPqrDm5ZNRA1m484J4Kt",
+    "--project",
+    "a\nb"
+  ],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}",
+    "CODEX_THREAD_ID": "w1",
+    "T3CODE_THREAD_ID": "t1"
+  }
+}

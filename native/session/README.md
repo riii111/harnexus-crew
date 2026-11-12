@@ -2,7 +2,7 @@
 
 `launch`・`review`（AppとT3 Code）・`state --request`・`resolve`・`name` と、それらが共有するセッションの状態遷移。
 TS版の `src/task/session.ts` と `src/task/cli.ts` の該当コマンドに対応する。
-Cloudでのレビュー（Codex CLI）と `cloud` コマンドは含まず、`review` が `cloud` 引数で受け取る関数（MB10が差し替える）に渡す。
+Cloudでのレビュー（Codex CLI）と `cloud` コマンドは含まず、`review` が `cloud` 引数で受け取る関数（`cloud` パッケージ）に渡す。
 
 | 公開する関数・型                      | TS版                                              |
 | ------------------------------------- | ------------------------------------------------- |

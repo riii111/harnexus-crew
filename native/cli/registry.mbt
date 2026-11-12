@@ -8,26 +8,15 @@ async fn run_command(command : @args.Command, env : @environment.Env) -> Json {
       @session.state_request(request, env, which=@which.in_env(env))
     Launch(args) => @session.launch(args, env, which=@which.in_env(env))
     Review(args) =>
-      @session.review(args, env, which=@which.in_env(env), cloud=_ => {
-        not_migrated("review in a Claude Code cloud session")
+      @session.review(args, env, which=@which.in_env(env), cloud=args => {
+        @cloud.review(args, env)
       })
     Resolve(args) => @session.resolve(args, env, which=@which.in_env(env))
     Name(args) => @session.name(args, env, which=@which.in_env(env))
     Watch(args) => @prwake.watch(args, env, which=@which.in_env(env))
     Check => @prompt.check_templates(env)
-    Cloud(_) => not_migrated("cloud")
+    Cloud(args) => @cloud.open_chat(args, env, which=@which.in_env(env))
   }
-}
-
-///|
-/// A command no task has moved to the native build fails here, and never falls back to the TypeScript build.
-fn[T] not_migrated(name : String) -> T raise @failure.TaskFailed {
-  @failure.fail(not_migrated_message(name))
-}
-
-///|
-fn not_migrated_message(name : String) -> String {
-  "\{name} is not available in this native build yet"
 }
 
 ///|
