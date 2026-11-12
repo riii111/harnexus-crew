@@ -57,16 +57,16 @@ mooncakesの `moonbitlang/async` は使わない。
 
 後続の新しいパッケージは、次の名前を目安にする。
 
-| タスク | パッケージ                                  |
-| ------ | ------------------------------------------- |
-| MB02   | `os/socket`、`os/process`                   |
-| MB04   | `request`、`config`、`environment`          |
-| MB06   | `markdown`（md4cのCと同梱ライセンスを含む） |
-| MB07   | `prwake`                                    |
-| MB08   | `app`                                       |
-| MB09   | `session`                                   |
-| MB10   | `cloud`                                     |
-| MB11   | `adapter`                                   |
+| タスク | パッケージ                                                             |
+| ------ | ---------------------------------------------------------------------- |
+| MB02   | `os/socket`、`os/process`                                              |
+| MB04   | `request`、`config`、`environment`、`args`、`template`、`path`、`text` |
+| MB06   | `markdown`（md4cのCと同梱ライセンスを含む）                            |
+| MB07   | `prwake`                                                               |
+| MB08   | `app`                                                                  |
+| MB09   | `session`                                                              |
+| MB10   | `cloud`                                                                |
+| MB11   | `adapter`                                                              |
 
 Cのソースは、それを使うパッケージの `native-stub` に置く。
 `sys` へ追加するのは、複数のタスクが共用する最小の関数だけにする。
@@ -90,6 +90,29 @@ JSONの境界:
 
 `shared/run` の `finish` は、標準出力、標準エラーの順に書いてから終了コードで終わる。
 書き込めなかった結果は成功として返さず、終了コード1にする。
+
+## 要求・設定・環境変数の境界
+
+JSONや文字列から型への変換は副作用を持たない。
+ファイルの存在・実パスの確認と、Gitの照会は、呼び出し側が注入する。
+
+| パッケージ    | 提供するもの                                                                                                                                                   |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `environment` | 環境変数 `Env`、App/T3の判定、各種ディレクトリ、call socketとharnexus状態ファイルのパス、実行環境の判定（`detect`）、Cloud・T3での拒否                         |
+| `request`     | 起動要求 `LaunchRequest`、レビュー要求 `ReviewRequest`、固定base/headを持つ `ReviewCandidate`、チャットIDの検証、テンプレートへ渡す値、Gitの実行器 `GitRunner` |
+| `config`      | テンプレート設定 `task.json` の検査                                                                                                                            |
+| `args`        | コマンドの引数。オプション定義と型付きの `Command`。usageの文面と入口の振り分けはMB05                                                                          |
+| `template`    | `{name}` の埋め込み規則とリンク先に入れる値の制約。Markdownの判定とリンク解決はMB06                                                                            |
+| `path`        | Nodeの `path.posix` と同じ結果の `join`・`normalize`・`dirname`・`resolve`                                                                                     |
+| `text`        | `\p{L}`・`\p{N}`、Pythonの空白、JSの `trim` と文字列の順序                                                                                                     |
+
+- `request` の注入は `FileProbe`（存在・ディレクトリ判定・実パス）と `GitRunner`（`shared/boundary` の `CommandOutput` を返す）。非同期の関数型なので、同期の関数も渡せる。Gitは安全フラグ付きの `git -C <checkout>` で、`GIT_NO_LAZY_FETCH=1` を渡す。
+- `Env::state_root` が `store::state_directory` の `root` になる。`FileProbe` の存在・ディレクトリ判定・実パスは、`store` の `path_exists`・`is_directory`・`real_path_or_self` で満たせる。
+- 保存する要求は、受け取ったメンバーを保つ。`startingBranch` や `displayName` のnullと欠落は区別し、`prUrl` は欠落でもnullで保存する。メンバーの順序は保存しない。
+- セッションの保存先は、`LaunchRequest::session_key` と `ReviewRequest::session_key` が返す文字列のSHA256で決まる。JSのUTF-8符号化に合わせて `lossy_text` を通してある。
+- 実行環境の判定は2段階。`detect` が環境変数だけで決まる結果か、ソケットへの接続を試す相手を返し、接続できたかどうかで `Detected::socket_accepted` か `Detected::undetermined` を選ぶ。
+- `String` の `<` と `compare` は辞書順ではない。JSの並び替えと同じ順序が要るときは `@text.compare_utf16` を使う。
+- `text` の文字分類表は、固定したBunの `\p{L}`・`\p{N}` から `test/native/unicode-tables.ts` が生成する。`bun test test/native` が表との一致を確かめる。
 
 ## 所有権の境界
 

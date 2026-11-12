@@ -1,0 +1,110 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/environment"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/shared/failure",
+}
+
+// Values
+pub const CLAUDE_CLOUD_VARIABLE : String = "CLAUDE_CODE_REMOTE"
+
+pub const CODEX_CLOUD_VARIABLE : String = "CODEX_ENVIRONMENT_ID"
+
+pub const CODEX_THREAD_VARIABLE : String = "CODEX_THREAD_ID"
+
+pub const EXECUTION_VARIABLE : String = "HARNEXUS_EXECUTION_ENV"
+
+pub const NAME : String = "harnexus-crew"
+
+pub const T3_THREAD_VARIABLE : String = "T3CODE_THREAD_ID"
+
+pub fn app_of(Env) -> App
+
+pub fn call_socket_path(Env) -> String raise @failure.TaskFailed
+
+pub fn caller_socket(Env) -> String? raise @failure.TaskFailed
+
+pub fn declared_environment(Env) -> Detected? raise @failure.TaskFailed
+
+pub fn detect(Env) -> Detection raise @failure.TaskFailed
+
+pub fn harnexus_state_path(Env) -> String raise @failure.TaskFailed
+
+pub fn refuse_in_cloud(Env, String) -> Unit raise @failure.TaskFailed
+
+pub fn refuse_in_t3(Env, String, String) -> Unit raise @failure.TaskFailed
+
+pub fn thread_variable(App) -> String
+
+// Errors
+
+// Types and methods
+pub enum App {
+  Codex
+  T3
+}
+pub fn App::name(Self) -> String
+
+pub enum CloudHost {
+  CodexCloud
+  ClaudeCloud
+}
+pub fn CloudHost::name(Self) -> String
+
+pub struct Detected {
+  environment : ExecutionEnvironment
+  source : Source
+  runner : Runner
+  note : String
+}
+pub fn Detected::socket_accepted() -> Self
+pub fn Detected::to_json(Self) -> @json.Json
+pub fn Detected::undetermined() -> Self
+
+pub enum Detection {
+  Settled(Detected)
+  AskSocket(String)
+  NothingToAsk
+}
+
+pub struct Env {
+  // private fields
+}
+pub fn Env::codex_home(Self) -> String
+pub fn Env::config_home(Self) -> String
+pub fn Env::get(Self, String) -> String?
+pub fn Env::get_nonempty(Self, String) -> String?
+pub fn Env::home(Self) -> String
+pub fn Env::new(Map[String, String], login_home~ : String) -> Self
+pub fn Env::state_root(Self) -> String
+pub fn Env::t3_home(Self) -> String
+pub fn Env::to_map(Self) -> Map[String, String]
+pub fn Env::worktrees(Self, App) -> String
+
+pub enum ExecutionEnvironment {
+  Cloud
+  Local
+  Unknown
+}
+pub fn ExecutionEnvironment::name(Self) -> String
+
+pub enum Runner {
+  Unnamed
+  InCloud(CloudHost?)
+  OnMachine(App)
+}
+
+pub enum Source {
+  Explicit
+  CodexCloudVariable
+  ClaudeCloudVariable
+  T3ThreadVariable
+  HarnexusSocket
+  NoSource
+}
+pub fn Source::name(Self) -> String
+
+// Type aliases
+
+// Traits
