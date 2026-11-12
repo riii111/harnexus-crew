@@ -34,13 +34,11 @@ fn usage_line(command : String) -> String {
 }
 
 ///|
-/// The help text goes to stdout and ends the run with 0.
 fn help_run(usage : String) -> @run.CommandRun {
   { code: 0, stdout: "\{usage}\{feedback_hint}\n", stderr: "", }
 }
 
 ///|
-/// A usage error goes to stderr and ends the run with 2.
 fn usage_error_run(
   usage : String,
   name : String,
