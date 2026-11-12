@@ -58,6 +58,7 @@ mooncakesの `moonbitlang/async` は使わない。
 | `os/process`      | 子プロセスの実行（締切・出力上限・プロセス群）              | MB02               |
 | `os/testkit`      | 上の試験が使うサーバー・fd数の確認（試験だけが取り込む）    | MB02               |
 | `cli`             | 振り分け、usage、クラッシュ報告、`environment`・`state`     | MB05               |
+| `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）              | MB05               |
 | `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                         | MB05               |
 
 後続の新しいパッケージは、次の名前を目安にする。
@@ -104,6 +105,8 @@ usageの文面、`-h` と使い方エラー（終了コード2）、成功時の
 
 後続のコマンド担当は、自分のパッケージと `cli/registry.mbt` の自分の分岐だけを変更する。
 まだ移していないコマンド（`adapter` を含む）は「is not available in this native build yet」で終了コード1になり、TS版へは委譲しない。
+PATH上のコマンド探索が要る担当（`app` のT3 CLI探索、MB07のpr-wake探索）は、`(String) -> String?` の引数を受け取り、`cli/registry.mbt` の分岐が `@which.in_env(env)` を渡す。
+実体は `which` パッケージにあり、相対のPATH要素と空の要素、実行できない通常ファイルの扱いを `Bun.which` に合わせている。
 `state --request` も同じ扱いで、`state` の一覧は `launch`・`review`・`cloud-review` の状態ファイルだけを読む（pr-wakeの `watch` は読まない）。
 
 ## 要求・設定・環境変数の境界
