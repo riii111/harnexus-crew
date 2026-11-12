@@ -14,13 +14,15 @@ import {
 pub struct CallAnswer {
   outcome : String
   fields : Map[String, @json.Json]
+  // private fields
 }
 pub fn CallAnswer::failed(CallOutcome, error~ : String) -> Self
 pub fn CallAnswer::is_unsent(Self) -> Bool
+pub fn CallAnswer::new(CallOutcome, Array[(String, @json.Json)]) -> Self
 pub fn CallAnswer::of_json(@json.Json) -> Self raise @jsonio.JsonError
 pub fn CallAnswer::to_json(Self) -> @json.Json
 
-pub enum CallOutcome {
+pub(all) enum CallOutcome {
   Done
   ToolError
   NotSent

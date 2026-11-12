@@ -30,7 +30,35 @@ test "an answer keeps the fields it was not asked about" {
   )
   inspect(
     @jsonio.stringify(answer.to_json()),
-    content="{\"later\":[1],\"threadId\":\"t\",\"outcome\":\"done\"}",
+    content="{\"outcome\":\"done\",\"later\":[1],\"threadId\":\"t\"}",
+  )
+}
+
+///|
+test "an answer prints its outcome where the bridge wrote it" {
+  for
+    text in [
+      "{\"later\":[1],\"outcome\":\"done\",\"threadId\":\"t\"}", "{\"later\":[1],\"threadId\":\"t\",\"outcome\":\"done\"}",
+      "{\"outcome\":\"done\"}",
+    ] {
+    let answer = CallAnswer::of_json(@jsonio.parse(text))
+    inspect(@jsonio.stringify(answer.to_json()), content=text)
+  }
+}
+
+///|
+test "an answer made here puts the outcome first" {
+  let answer = CallAnswer::new(Done, [
+    ("threadId", Json::string("t")),
+    ("model", Json::null()),
+  ])
+  inspect(
+    @jsonio.stringify(answer.to_json()),
+    content="{\"outcome\":\"done\",\"threadId\":\"t\",\"model\":null}",
+  )
+  inspect(
+    @jsonio.stringify(CallAnswer::failed(NotSent, error="x").to_json()),
+    content="{\"outcome\":\"not_sent\",\"error\":\"x\"}",
   )
 }
 
