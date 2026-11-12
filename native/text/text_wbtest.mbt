@@ -70,6 +70,14 @@ test "trim removes JS whitespace, which has U+FEFF and lacks U+0085" {
 }
 
 ///|
+test "a JS whitespace character anywhere in the text is found" {
+  inspect(has_js_whitespace("a\u{FEFF}b"), content="true")
+  inspect(has_js_whitespace("a\u{3000}"), content="true")
+  inspect(has_js_whitespace("a\u{85}b\u{1F}"), content="false")
+  inspect(has_js_whitespace(""), content="false")
+}
+
+///|
 test "strings compare by code unit as JS sorts them" {
   let lone = unpaired("\\ud83d")
   inspect(compare_utf16("\u{1F600}", "\u{FF5E}"), content="-1")
