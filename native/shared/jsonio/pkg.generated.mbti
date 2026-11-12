@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn lossy_text(String) -> String
+
 pub fn object_with_extra(Array[(String, @json.Json)], Map[String, @json.Json]) -> @json.Json
 
 pub fn parse(String) -> @json.Json raise JsonError

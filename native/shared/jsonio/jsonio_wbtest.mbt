@@ -109,13 +109,52 @@ test "a round trip gives what JSON.parse then JSON.stringify give in JS" {
 }
 
 ///|
-test "an unpaired surrogate escape is refused, not changed" {
-  let refused = try {
-    parse("\"\\ud800\"") |> ignore
-    false
-  } catch {
-    JsonError(_) => true
+test "unpaired surrogate escapes survive a round trip as JS writes them" {
+  let cases : Array[(String, String)] = [
+    ("\"\\ud800\"", "\"\\ud800\""),
+    ("\"\\udc00\"", "\"\\udc00\""),
+    ("\"\\udbff\"", "\"\\udbff\""),
+    ("\"\\udfff\"", "\"\\udfff\""),
+    ("\"\\udc00\\ud800\"", "\"\\udc00\\ud800\""),
+    ("\"a\\ud800b\"", "\"a\\ud800b\""),
+    (
+      "{\"\\ud800\":1,\"\\udc00\":2,\"x\":3}", "{\"\\ud800\":1,\"\\udc00\":2,\"x\":3}",
+    ),
+    ("\"\\ud83c\\udf19\"", "\"🌙\""),
+    ("\"\\ud83c\\u0041\"", "\"\\ud83cA\""),
+    ("\"\\\\ud800\"", "\"\\\\ud800\""),
+    ("\"\\ud800\\ud83c\\udf19\"", "\"\\ud800🌙\""),
+    ("\"\\ud83c\\udf19\\udf19\"", "\"🌙\\udf19\""),
+    ("[\"\\ud800\",\"\\udfff\"]", "[\"\\ud800\",\"\\udfff\"]"),
+    ("\"\\udbfd\\udfff\"", "\"􏟿\""),
+    ("\"\\uD800\"", "\"\\ud800\""),
+  ]
+  for pair in cases {
+    let (input, expected) = pair
+    inspect(stringify(parse(input)), content=expected)
   }
-  inspect(refused, content="true")
-  inspect(stringify(parse("\"\\ud83c\\udf19\"")), content="\"🌙\"")
+}
+
+///|
+test "text the boundary reserves for unpaired surrogates is refused" {
+  let raw = "\"" + (0x10F800).unsafe_to_char().to_string() + "\""
+  let pair = "\"\\udbfe\\udc00\""
+  for text in [raw, pair] {
+    let refused = try {
+      parse(text) |> ignore
+      false
+    } catch {
+      JsonError(_) => true
+    }
+    inspect(refused, content="true")
+  }
+}
+
+///|
+test "lossy_text turns an unpaired surrogate into U+FFFD as UTF-8 encoding does" {
+  let text = parse("\"a\\ud800b\\udc00\"")
+  match text {
+    String(value) => inspect(lossy_text(value), content="a\u{fffd}b\u{fffd}")
+    _ => fail("not a string")
+  }
 }

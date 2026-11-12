@@ -6,9 +6,9 @@ pub suberror JsonError {
 
 ///|
 /// Parses like JS `JSON.parse`: a repeated key keeps its last value and numbers go through a double.
-/// A string with an unpaired surrogate escape such as "\ud800" is refused with a JsonError, because a MoonBit String cannot hold one.
+/// An unpaired surrogate escape such as "\ud800" is accepted and written back unchanged; see `hold_unpaired`.
 pub fn parse(text : String) -> Json raise JsonError {
-  @json.parse(text, reject_duplicate_keys=false) catch {
+  @json.parse(hold_unpaired(text), reject_duplicate_keys=false) catch {
     error => raise JsonError("invalid JSON: \{error}")
   }
 }
@@ -84,11 +84,10 @@ fn write_quoted(out : StringBuilder, text : String) -> Unit {
       '\u{08}' => out.write_string("\\b")
       '\u{0C}' => out.write_string("\\f")
       _ =>
-        if char.to_int() < 0x20 {
-          // JS writes the code in lower-case hexadecimal.
-          out.write_string("\\u00")
-          out.write_char(hex_digit(char.to_int() / 16))
-          out.write_char(hex_digit(char.to_int() % 16))
+        if char.to_int() >= RESERVED_START {
+          write_unit_escape(out, 0xD800 + char.to_int() - RESERVED_START)
+        } else if char.to_int() < 0x20 {
+          write_unit_escape(out, char.to_int())
         } else {
           out.write_char(char)
         }
@@ -98,8 +97,120 @@ fn write_quoted(out : StringBuilder, text : String) -> Unit {
 }
 
 ///|
+fn write_unit_escape(out : StringBuilder, unit : Int32) -> Unit {
+  // JS writes the code in lower-case hexadecimal.
+  out.write_string("\\u")
+  out.write_char(hex_digit(unit / 4096))
+  out.write_char(hex_digit(unit / 256 % 16))
+  out.write_char(hex_digit(unit / 16 % 16))
+  out.write_char(hex_digit(unit % 16))
+}
+
+///|
 fn hex_digit(value : Int32) -> Char {
   "0123456789abcdef"[value].to_char().unwrap()
+}
+
+///|
+/// A MoonBit String cannot hold an unpaired surrogate, which JS accepts in a JSON string.
+/// The boundary holds each one as a code point of the last 2048 of plane 16, U+10F800 to U+10FFFF, and writes it back as the surrogate escape.
+/// Text that really contains such a code point is refused, so the two can never be confused.
+const RESERVED_START : Int32 = 0x10F800
+
+///|
+/// Turns every unpaired surrogate escape into its reserved code point before the text is parsed.
+fn hold_unpaired(text : String) -> String raise JsonError {
+  let chars = text.to_array()
+  let count = chars.length()
+  let out = StringBuilder()
+  let mut at = 0
+  while at < count {
+    let char = chars[at]
+    if char.to_int() >= RESERVED_START {
+      raise JsonError(
+        "invalid JSON: U+10F800 to U+10FFFF are reserved for unpaired surrogates",
+      )
+    }
+    if char != '\\' || at + 1 >= count {
+      out.write_char(char)
+      at += 1
+      continue
+    }
+    if chars[at + 1] != 'u' {
+      // The escaped character is copied with its backslash, so an escaped backslash never starts a \u escape.
+      out.write_char(char)
+      out.write_char(chars[at + 1])
+      at += 2
+      continue
+    }
+    match unit_at(chars, at + 2) {
+      Some(unit) if unit >= 0xD800 && unit <= 0xDFFF => {
+        let low = if unit <= 0xDBFF &&
+          at + 7 < count &&
+          chars[at + 6] == '\\' &&
+          chars[at + 7] == 'u' {
+          unit_at(chars, at + 8)
+        } else {
+          None
+        }
+        match low {
+          Some(low) if low >= 0xDC00 && low <= 0xDFFF => {
+            if unit >= 0xDBFE {
+              raise JsonError(
+                "invalid JSON: U+10F800 to U+10FFFF are reserved for unpaired surrogates",
+              )
+            }
+            for index in at..<(at + 12) {
+              out.write_char(chars[index])
+            }
+            at += 12
+          }
+          _ => {
+            out.write_char((RESERVED_START + unit - 0xD800).unsafe_to_char())
+            at += 6
+          }
+        }
+      }
+      _ => {
+        out.write_char(char)
+        at += 1
+      }
+    }
+  }
+  out.to_string()
+}
+
+///|
+/// The value of the four hex digits that start at `at`, or None.
+fn unit_at(chars : Array[Char], at : Int32) -> Int32? {
+  if at + 4 > chars.length() {
+    return None
+  }
+  let mut value = 0
+  for index in at..<(at + 4) {
+    let digit = match chars[index] {
+      '0'..<='9' as c => c.to_int() - '0'.to_int()
+      'a'..<='f' as c => c.to_int() - 'a'.to_int() + 10
+      'A'..<='F' as c => c.to_int() - 'A'.to_int() + 10
+      _ => return None
+    }
+    value = value * 16 + digit
+  }
+  Some(value)
+}
+
+///|
+/// For text that leaves JSON, such as standard output or a hash input: each unpaired surrogate becomes U+FFFD, which is what UTF-8 encoding does to it in JS.
+pub fn lossy_text(text : String) -> String {
+  let out = StringBuilder()
+  for char in text {
+    if char.to_int() >= RESERVED_START {
+      out.write_char('\u{FFFD}')
+    } else {
+      out.write_char(char)
+    }
+  }
+  out.to_string()
 }
 
 ///|
