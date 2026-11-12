@@ -24,7 +24,10 @@ class ScenarioAsserts:
     def assertSameJson(self, expected, actual):
         if not jsonvalue.same(expected, actual):
             self.assertEqual(expected, actual)
+            # Python treats True as 1, so values that differ only in type are equal to assertEqual but not here.
+            self.fail(f"the values differ in type: {expected!r} != {actual!r}")
 
     def assertMatches(self, actual, subset):
         if not matches(actual, subset):
             self.assertEqual(subset, actual, "the value does not hold the expected members")
+            self.fail(f"the values differ in type: {subset!r} != {actual!r}")

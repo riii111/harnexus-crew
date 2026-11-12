@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 from . import expected, jsonvalue
 from .binaries import binary
-from .cases import make_case
+from .cases import REPO, make_case
 from .execute import Running, RUN_TIMEOUT_SECONDS, start_bridge
 from .normalize import ROOT_MARK
 from .sandbox import create_sandbox, read_commands, run_git, snapshot_files
@@ -96,9 +96,13 @@ def with_rig(fields, body, timeout=RUN_TIMEOUT_SECONDS):
         )
 
 
+REPO_MARK = "<REPO>"
+
+
 def _replace_root(node, root):
+    """The sandbox root and the checkout this suite runs from are named alike, as neither is the same on every machine."""
     if isinstance(node, str):
-        return node.replace(root, ROOT_MARK)
+        return node.replace(root, ROOT_MARK).replace(str(REPO), REPO_MARK)
     if isinstance(node, list):
         return [_replace_root(item, root) for item in node]
     if isinstance(node, dict):

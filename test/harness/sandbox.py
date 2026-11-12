@@ -131,7 +131,7 @@ def read_commands(root):
 
 
 def snapshot_files(root, dirs):
-    """Regular files under the snapshot directories, by path relative to the root. Sockets and links are not state."""
+    """Regular files under the snapshot directories, by path relative to the root. Sockets and links are not state, and neither is what git keeps in .git, which differs between git versions."""
     files = {}
 
     def walk(relative):
@@ -142,7 +142,8 @@ def snapshot_files(root, dirs):
         for entry in entries:
             path = os.path.join(relative, entry.name)
             if entry.is_dir(follow_symlinks=False):
-                walk(path)
+                if entry.name != ".git":
+                    walk(path)
             elif entry.is_file(follow_symlinks=False):
                 with open(os.path.join(root, path), encoding="utf-8", errors="replace", newline="") as read:
                     files[path] = read.read()

@@ -59,7 +59,7 @@
    },
    "sent": {
     "tool": "create_thread",
-    "prompt": "タスクID: TR1\n参照文書のパス・URL:\n- https://example.com/task\n進めてよい範囲: draft_pr\n\n[$task-worker](/Users/a81803/.codex/worktrees/5850/harnexus-crew/test/fixtures/task-skills/task-worker/SKILL.md)\n",
+    "prompt": "タスクID: TR1\n参照文書のパス・URL:\n- https://example.com/task\n進めてよい範囲: draft_pr\n\n[$task-worker](<REPO>/test/fixtures/task-skills/task-worker/SKILL.md)\n",
     "expected": {
      "model": "claude-sonnet-5-5",
      "effort": "high"

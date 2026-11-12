@@ -366,8 +366,12 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
     def test_send_once_when_runs_for_the_same_task_start_together(self):
         fields = {
             "name": "session-launch-race",
+            # Each of the four runs may ask for the capabilities first, so each has an answer; the create is planned once.
             **launch_fields(
                 [
+                    CAPS,
+                    CAPS,
+                    CAPS,
                     CAPS,
                     answer(
                         "create_thread",
