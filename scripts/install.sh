@@ -7,13 +7,14 @@ set -euo pipefail
 prefix=${HARNEXUS_CREW_PREFIX:-$HOME/.local/bin}
 repo=${HARNEXUS_CREW_REPO:-}
 rev=${HARNEXUS_CREW_REV:-}
-bun_bin=bun
+moon_bin=
 
 usage() {
   cat >&2 <<'MSG'
-usage: scripts/install.sh [--prefix ABSOLUTE_DIR] [--repo URL_OR_PATH --rev COMMIT] [--bun ABSOLUTE_PATH_TO_BUN]
+usage: scripts/install.sh [--prefix ABSOLUTE_DIR] [--repo URL_OR_PATH --rev COMMIT] [--moon ABSOLUTE_PATH_TO_MOON]
   --prefix                 where harnexus-crew goes (default: $HARNEXUS_CREW_PREFIX or ~/.local/bin)
   --repo, --rev            build that commit of that repository (default: $HARNEXUS_CREW_REPO, $HARNEXUS_CREW_REV; this checkout as it is committed when neither is set)
+  --moon                   the MoonBit toolchain to build with (default: moon on PATH, else the one flake.nix pins, through nix)
 MSG
   exit 2
 }
@@ -23,7 +24,7 @@ while [[ $# -gt 0 ]]; do
     --prefix) [[ $# -ge 2 ]] || usage; prefix=$2; shift 2 ;;
     --repo) [[ $# -ge 2 ]] || usage; repo=$2; shift 2 ;;
     --rev) [[ $# -ge 2 ]] || usage; rev=$2; shift 2 ;;
-    --bun) [[ $# -ge 2 ]] || usage; bun_bin=$2; shift 2 ;;
+    --moon) [[ $# -ge 2 ]] || usage; moon_bin=$2; shift 2 ;;
     *) usage ;;
   esac
 done
@@ -31,13 +32,12 @@ done
 fail() { echo "install: $1" >&2; exit "${2:-1}"; }
 
 [[ $prefix == /* ]] || fail "--prefix must be an absolute path" 2
-if [[ $bun_bin != bun && $bun_bin != /* ]]; then
-  fail "--bun must be an absolute path" 2
+if [[ -n $moon_bin && $moon_bin != /* ]]; then
+  fail "--moon must be an absolute path" 2
 fi
 if [[ -n $repo && -z $rev ]]; then
   fail "--repo needs --rev, so the installed commit is the one asked for" 2
 fi
-command -v "$bun_bin" >/dev/null 2>&1 || fail "Bun is not available; install the Bun that package.json pins, or name it with --bun"
 command -v git >/dev/null 2>&1 || fail "git is not available"
 
 here=$(cd "$(dirname "$0")/.." && pwd)
@@ -60,24 +60,34 @@ else
 fi
 git -C "$work/src" checkout --quiet --detach "$wanted"
 
-bun_dir=$(dirname "$(command -v "$bun_bin")")
+# flake.nix pins the toolchain, so a build without a moon of its own goes through nix rather than through whatever moon is installed.
+if [[ -n $moon_bin ]]; then
+  [[ -x $moon_bin ]] || fail "$moon_bin is not an executable"
+  build=("$moon_bin")
+elif command -v moon >/dev/null 2>&1; then
+  build=(moon)
+elif command -v nix >/dev/null 2>&1; then
+  build=(nix develop --no-write-lock-file "$work/src" --command moon)
+else
+  fail "MoonBit is not available; install the toolchain flake.nix pins, run this inside 'nix develop', or name moon with --moon"
+fi
+
 (
   cd "$work/src"
-  # The build starts bun by name, so the chosen one comes first on PATH.
-  export PATH="$bun_dir:$PATH"
-  "$bun_bin" install --frozen-lockfile >/dev/null
-  "$bun_bin" --no-env-file --config=/dev/null src/cli/check-bun.ts
-  "$bun_bin" build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig src/cli/task.ts --outfile "$work/harnexus-crew" >/dev/null
-)
+  "${build[@]}" build --target native --release >"$work/build.log" 2>&1
+) || fail "the build failed; nothing was replaced: $(tail -n 20 "$work/build.log")"
+built="$work/src/_build/native/release/build/cmd/main/main.exe"
+[[ -x $built ]] || fail "the build made no harnexus-crew; nothing was replaced"
 
 # A binary that cannot start, or cannot fill the worker and reviewer templates task.json names, is never installed, so the set in use stays whole.
-"$work/harnexus-crew" --help | head -n 1 | grep -qx 'usage:' || fail "the built harnexus-crew did not start; nothing was replaced"
-checked=$("$work/harnexus-crew" check 2>&1) || fail "the built harnexus-crew cannot use the configured templates; nothing was replaced: $checked"
+usage_text=$("$built" --help 2>&1) || fail "the built harnexus-crew did not start; nothing was replaced"
+[[ ${usage_text%%$'\n'*} == "usage:" ]] || fail "the built harnexus-crew did not start; nothing was replaced"
+checked=$("$built" check 2>&1) || fail "the built harnexus-crew cannot use the configured templates; nothing was replaced: $checked"
 
 # Everything is staged beside its target first, so each switch is one rename, and a failed switch puts back what was there.
 mkdir -p "$prefix"
 staged=$(mktemp "$prefix/.harnexus-crew.XXXXXX")
-install -m 0755 "$work/harnexus-crew" "$staged"
+install -m 0755 "$built" "$staged"
 previous=
 if [[ -e $prefix/harnexus-crew ]]; then
   previous=$(mktemp -u "$prefix/.harnexus-crew.previous.XXXXXX")
