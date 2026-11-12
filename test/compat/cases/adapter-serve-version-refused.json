@@ -1,0 +1,31 @@
+{
+  "name": "adapter-serve-version-refused",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "session",
+  "argv": ["adapter", "serve", "--id", "taskctl"],
+  "steps": [
+    {
+      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"mode\":\"write\",\"versions\":[2,3]}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"ready\",\"bridgeId\":\"b1\",\"bindings\":[],\"conflicts\":[]}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"session_records\",\"eventId\":\"e1\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"link\":\"parent-chat\",\"shownBefore\":null,\"phase\":\"linked\",\"linkedAt\":null,\"records\":[]}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t1\",\"threadId\":\"x\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"hi\"}"
+    },
+    {
+      "wait": 2
+    }
+  ],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ]
+}

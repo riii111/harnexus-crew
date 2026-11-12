@@ -1,0 +1,40 @@
+{
+  "name": "adapter-serve-write-missed-opening",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "session",
+  "argv": ["adapter", "serve", "--id", "taskctl"],
+  "steps": [
+    {
+      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"adapterId\":\"taskctl\",\"mode\":\"write\",\"versions\":[1]}"
+    },
+    {
+      "wait": 1
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"ready\",\"bridgeId\":\"b1\",\"bindings\":[{\"conversationId\":\"R1\",\"threadId\":\"chat-r1\"}],\"pending\":[],\"conflicts\":[]}"
+    },
+    {
+      "wait": 2
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-1\",\"bridgeId\":\"b1\",\"outcome\":\"done\"}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"request\",\"id\":\"h1\",\"op\":\"history\",\"conversationId\":\"R1\",\"threadId\":\"chat-r1\"}"
+    },
+    {
+      "wait": 3
+    }
+  ],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ],
+  "files": {
+    "state/harnexus-crew/cloud-observe/opening/a791366f6f620125.json": "{\"key\":\"7419687f80b7267449159b3d2b775812\",\"text\":\"first review text\",\"sessionId\":\"session_01AbC\",\"showing\":false}"
+  }
+}

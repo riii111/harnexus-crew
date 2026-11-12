@@ -1,0 +1,72 @@
+{
+  "name": "adapter-serve-ask-reviewer",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "session",
+  "argv": ["adapter", "serve", "--id", "taskctl"],
+  "steps": [
+    {
+      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"adapterId\":\"taskctl\",\"mode\":\"write\",\"versions\":[1]}"
+    },
+    {
+      "wait": 1
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"ready\",\"bridgeId\":\"b1\",\"bindings\":[],\"pending\":[],\"conflicts\":[]}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"request\",\"id\":\"settle\",\"op\":\"history\",\"threadId\":\"none\"}"
+    },
+    {
+      "wait": 2
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t1\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"B1 は？\"}"
+    },
+    {
+      "wait": 3
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-1\",\"bridgeId\":\"b1\",\"outcome\":\"done\"}"
+    },
+    {
+      "wait": 5
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t2\",\"threadId\":\"chat-r2\",\"conversationId\":\"R2\",\"kind\":\"input\",\"text\":\"hello\"}"
+    },
+    {
+      "wait": 7
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t3\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"/cloud-review 7419687f80b7267449159b3d2b775812\"}"
+    },
+    {
+      "wait": 9
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t4\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"/cloud-review nothere\"}"
+    },
+    {
+      "wait": 11
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"request\",\"id\":\"h1\",\"op\":\"history\",\"conversationId\":\"R1\",\"threadId\":\"chat-r1\"}"
+    },
+    {
+      "wait": 12
+    }
+  ],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ],
+  "snapshot": ["state"],
+  "files": {
+    "home/.local/state/harnexus/cloud-reviews/chats.json": "{\"R1\":{\"threadId\":\"chat-r1\",\"session\":\"session_01AbC\"},\"R2\":\"chat-r2\"}",
+    "home/.local/state/harnexus/cloud-reviews/7419687f80b7267449159b3d2b775812.json": "{\"key\":\"7419687f80b7267449159b3d2b775812\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\",\"sent\":true,\"threadId\":\"chat-r1\",\"shownAt\":\"2026-11-01T00:00:00.000Z\"}"
+  }
+}

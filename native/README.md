@@ -17,6 +17,7 @@ bun test/compat/cli.ts --native _build/native/release/build/cmd/main/main.exe
 HARNEXUS_STORE_PROBE=$PWD/_build/native/release/build/store/probe/probe.exe bun test test/native/store.test.ts
 HARNEXUS_MARKDOWN_PROBE=$PWD/_build/native/release/build/markdown/probe/probe.exe bun test test/native/markdown.test.ts
 HARNEXUS_PROMPT_PROBE=$PWD/_build/native/release/build/prompt/probe/probe.exe bun test test/native/prompt.test.ts
+HARNEXUS_CREW_NATIVE=$PWD/_build/native/release/build/cmd/main/main.exe bun test test/native/adapter.test.ts
 ```
 
 CIの `native` ジョブは macOS（macos-15）と Linux（ubuntu-24.04）で同じ手順を実行する。
@@ -67,6 +68,7 @@ mooncakesの `moonbitlang/async` は使わない。
 | `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）                   | MB05               |
 | `prwake`          | pr-wakeの呼び出しと `watch` コマンド、GitHubのPRのURL判定        | MB07               |
 | `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                              | MB05               |
+| `adapter`         | `adapter` コマンド（serve・handover・リンクの出入力）            | MB11               |
 
 後続の新しいパッケージは、次の名前を目安にする。
 
@@ -110,7 +112,7 @@ usageの文面、`-h` と使い方エラー（終了コード2）、成功時の
 環境変数は引数が受理されてから読む。HOMEがないときだけアカウントのホームを調べ、見つからなければクラッシュとして報告する。
 
 後続のコマンド担当は、自分のパッケージと `cli/registry.mbt` の自分の分岐だけを変更する。
-まだ移していないコマンド（`adapter` を含む）は「is not available in this native build yet」で終了コード1になり、TS版へは委譲しない。
+まだ移していないコマンドは「is not available in this native build yet」で終了コード1になり、TS版へは委譲しない。
 PATH上のコマンド探索が要る担当（`app` のT3 CLI探索、MB07のpr-wake探索）は、`(String) -> String?` の引数を受け取り、`cli/registry.mbt` の分岐が `@which.in_env(env)` を渡す。
 実体は `which` パッケージにあり、相対のPATH要素と空の要素、実行できない通常ファイルの扱いを `Bun.which` に合わせている。
 `state --request` も同じ扱いで、`state` の一覧は `launch`・`review`・`cloud-review` の状態ファイルだけを読む（pr-wakeの `watch` は読まない）。

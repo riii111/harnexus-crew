@@ -1,0 +1,18 @@
+{
+  "name": "adapter-import-links-unreadable-existing",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "command",
+  "argv": ["adapter", "import-links", "{{work}}/links.json"],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ],
+  "files": {
+    "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"session_A\",\"threadId\":\"chat-a\",\"reservedAt\":\"2026-11-05T00:00:00Z\"}]}",
+    "state/harnexus-crew/cloud-chats/session_A.json": "{\"unrelated\":true}"
+  }
+}

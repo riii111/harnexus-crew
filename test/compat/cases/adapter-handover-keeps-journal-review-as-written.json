@@ -1,0 +1,17 @@
+{
+  "name": "adapter-handover-keeps-journal-review-as-written",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "command",
+  "argv": ["adapter", "handover"],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ],
+  "files": {
+    "state/harnexus-crew/cloud-observe/journal.jsonl": "{\"at\":\"2026-11-01T00:00:00.000Z\",\"kind\":\"legacy_unsent\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"7419687f80b7267449159b3d2b775812\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\",\"extra\":{\"nested\":[1,2]}}}\n"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "adapter-usage-help",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "help",
+  "argv": ["adapter", "-h"],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ]
+}
