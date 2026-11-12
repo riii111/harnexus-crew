@@ -32,5 +32,11 @@ async fn adapter_run(
   argv : ArrayView[String],
   read_env : () -> @environment.Env raise,
 ) -> @run.CommandRun {
-  @adapter.run(argv, read_env)
+  @adapter.run(argv, () => {
+    let env = read_env()
+    if !env.home_known() {
+      raise HomeNotFound
+    }
+    env
+  })
 }

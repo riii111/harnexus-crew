@@ -205,3 +205,14 @@ async test "a command that needs the home fails as a crash when there is none" {
     assert_true(run.stderr.contains("HomeNotFound"))
   }
 }
+
+///|
+async test "adapter operations that need the home fail as a crash when there is none, while usage and help need none" {
+  for argv in [["adapter", "export-links"], ["adapter", "handover"]] {
+    let run = run(argv[:], homeless_env([]))
+    assert_eq(run.code, 1)
+    assert_true(run.stderr.contains("HomeNotFound"))
+  }
+  assert_eq(run(["adapter", "-h"][:], homeless_env([])).code, 0)
+  assert_eq(run(["adapter", "bogus"][:], homeless_env([])).code, 2)
+}
