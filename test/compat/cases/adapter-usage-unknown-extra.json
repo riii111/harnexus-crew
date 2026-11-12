@@ -1,0 +1,14 @@
+{
+  "name": "adapter-usage-unknown-extra",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "command",
+  "argv": ["adapter", "bogus", "x"],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ]
+}

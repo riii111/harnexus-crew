@@ -1,0 +1,40 @@
+{
+  "name": "adapter-serve-write-bound-event",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "session",
+  "argv": ["adapter", "serve", "--id", "taskctl"],
+  "steps": [
+    {
+      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"adapterId\":\"taskctl\",\"mode\":\"write\",\"versions\":[1]}"
+    },
+    {
+      "wait": 1
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"ready\",\"bridgeId\":\"b1\",\"bindings\":[{\"conversationId\":\"R3\",\"threadId\":\"chat-r3\"},{\"conversationId\":\"R4\",\"threadId\":\"chat-r4\"}],\"pending\":[],\"conflicts\":[\"chat-x\"]}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"conversation_bound\",\"conversationId\":\"R5\",\"threadId\":\"chat-r5\"}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"conversation_bound\",\"conversationId\":\"R3\",\"threadId\":\"chat-r3\"}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"request\",\"id\":\"h1\",\"op\":\"history\",\"conversationId\":\"R5\",\"threadId\":\"chat-r5\"}"
+    },
+    {
+      "wait": 2
+    }
+  ],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ],
+  "files": {
+    "home/.local/state/harnexus/cloud-reviews/chats.json": "{\"R4\":\"chat-different\"}"
+  }
+}

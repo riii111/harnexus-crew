@@ -28,3 +28,12 @@ fn[T] not_migrated(name : String) -> T raise @failure.TaskFailed {
 fn not_migrated_message(name : String) -> String {
   "\{name} is not available in this native build yet"
 }
+
+///|
+/// `adapter` is apart from the task commands: it can serve a bridge for as long as the bridge keeps it, and has its own usage.
+async fn adapter_run(
+  argv : ArrayView[String],
+  read_env : () -> @environment.Env raise,
+) -> @run.CommandRun {
+  @adapter.run(argv, read_env)
+}

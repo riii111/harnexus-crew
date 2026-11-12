@@ -70,3 +70,5 @@ jobs:
         run: bun test/compat/cli.ts --native "$PWD/_build/native/release/build/cmd/main/main.exe"
       - name: Race the state store between processes
         run: HARNEXUS_STORE_PROBE="$PWD/_build/native/release/build/store/probe/probe.exe" bun test test/native/store.test.ts
+      - name: Run the adapter as a process
+        run: HARNEXUS_CREW_NATIVE="$PWD/_build/native/release/build/cmd/main/main.exe" bun test test/native/adapter.test.ts

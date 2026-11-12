@@ -1,0 +1,31 @@
+{
+  "name": "adapter-serve-observe-refuses-turns",
+  "owner": "MB11",
+  "status": "active",
+  "kind": "session",
+  "argv": ["adapter", "serve", "--id", "taskctl"],
+  "steps": [
+    {
+      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"adapterId\":\"taskctl\",\"mode\":\"observe\",\"versions\":[1]}"
+    },
+    {
+      "wait": 1
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"ready\",\"bridgeId\":\"b1\",\"bindings\":[],\"pending\":[],\"conflicts\":[]}"
+    },
+    {
+      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t1\",\"threadId\":\"x\",\"conversationId\":\"R1\",\"kind\":\"opened\",\"text\":\"\"}"
+    },
+    {
+      "wait": 2
+    }
+  ],
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ]
+}

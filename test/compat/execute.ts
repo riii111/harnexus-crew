@@ -57,7 +57,7 @@ export const observe = async (
     const timer = setTimeout(() => child.kill("SIGKILL"), RUN_TIMEOUT_MS);
     if (spec.kind === "session") {
       for (const step of spec.steps) {
-        if ("send" in step) child.stdin.write(`${step.send}\n`);
+        if ("send" in step) child.stdin.write(`${sandbox.expand(step.send)}\n`);
         else await waitFor(() => lines >= step.wait, `${step.wait} lines`);
       }
     } else child.stdin.write(spec.stdin);

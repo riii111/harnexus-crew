@@ -28,7 +28,7 @@ bun test/compat/cli.ts --native BINARY [--case NAME] [--include-pending]
 
 一時領域は、home、config、state、tmp、work、bin を持つ。
 環境変数は PATH、HOME、XDG_CONFIG_HOME、XDG_STATE_HOME、TMPDIR と、事例の `env` だけを渡す。
-`env` と `files` では `{{root}}`、`{{bridge}}`、`{{home}}`、`{{config}}`、`{{state}}`、`{{tmp}}`、`{{work}}` が一時領域のパスに展開される。
+`env`、`files`、`steps` の `send` では `{{root}}`、`{{bridge}}`、`{{home}}`、`{{config}}`、`{{state}}`、`{{tmp}}`、`{{work}}` が一時領域のパスに展開される。
 
 ## 比較と置換の規則
 

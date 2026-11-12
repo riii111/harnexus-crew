@@ -91,8 +91,6 @@ async test "commands no task has moved fail and never fall back" {
     (["watch"], "watch"),
     (["check"], "check"),
     (["cloud", "--link", "l"], "cloud"),
-    (["adapter"], "adapter"),
-    (["adapter", "serve"], "adapter"),
   ]
   for pair in cases {
     let run = run_with(pair.0, [])
