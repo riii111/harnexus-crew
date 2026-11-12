@@ -1,9 +1,6 @@
 ///|
 /// Each command has one arm here, which a command's task replaces with a call into its own package.
-async fn run_command(
-  command : @args.Command,
-  env : @environment.Env,
-) -> Json raise @failure.TaskFailed {
+async fn run_command(command : @args.Command, env : @environment.Env) -> Json {
   match command {
     Environment => environment_command(env)
     State({ request: None, }) => state_command(env)
@@ -12,7 +9,7 @@ async fn run_command(
     Review(_) => not_migrated("review")
     Resolve(_) => not_migrated("resolve")
     Name(_) => not_migrated("name")
-    Watch(_) => not_migrated("watch")
+    Watch(args) => @prwake.watch(args, env, which=@which.in_env(env))
     Check => @prompt.check_templates(env)
     Cloud(_) => not_migrated("cloud")
   }

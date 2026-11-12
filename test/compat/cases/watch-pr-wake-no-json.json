@@ -1,0 +1,12 @@
+{
+  "name": "watch-pr-wake-no-json",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "command",
+  "argv": ["watch", "--status"],
+  "commands": {
+    "pr-wake": {
+      "stdout": "not json\n"
+    }
+  }
+}

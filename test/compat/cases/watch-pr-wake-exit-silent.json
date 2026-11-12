@@ -1,0 +1,12 @@
+{
+  "name": "watch-pr-wake-exit-silent",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "command",
+  "argv": ["watch", "--sender"],
+  "commands": {
+    "pr-wake": {
+      "exit": 2
+    }
+  }
+}

@@ -21,7 +21,7 @@ bun test/compat/cli.ts --native BINARY [--case NAME] [--include-pending]
 | `argv` / `env` / `stdin` / `steps` | 入力。`steps` は `session` の送信（`send`）と、標準出力が指定行数に達するまでの待機（`wait`）                                         |
 | `files` / `seed`                   | 実行前に一時領域へ置く内容。`seed` はリポジトリ内のディレクトリを `target: source` で複製する                                         |
 | `bridge`                           | 模擬ブリッジの応答計画。接続ごとの要求を記録し、`drop`（応答せず切断）や `silent`（無応答）も返せる                                   |
-| `commands`                         | PATH先頭に置く外部コマンドの模擬。引数と標準入力を記録する                                                                            |
+| `commands`                         | PATH先頭に置く外部コマンドの模擬。引数と標準入力を記録する。標準入力は、300ms届かなければ空として扱う                                 |
 | `snapshot`                         | 比較する状態ディレクトリ（既定は config、state、work、home/.local、home/.config）                                                     |
 | `normalize`                        | 事例ごとの置換。`pattern`、`with`、適用先 `scopes` を指定する                                                                         |
 | `compare`                          | `stdout` と `stderr` の比較方法（`json`、`lines`、`exact`）。既定は `kind` ごとに決まる                                               |

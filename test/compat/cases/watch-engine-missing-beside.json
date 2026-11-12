@@ -1,0 +1,13 @@
+{
+  "name": "watch-engine-missing-beside",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "inherit",
+  "argv": ["watch"],
+  "env": {
+    "HARNEXUS_CREW_PR_WAKE": "{{root}}/nowhere/pr-wake"
+  },
+  "commands": {
+    "pr-wake": {}
+  }
+}

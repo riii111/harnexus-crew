@@ -1,0 +1,15 @@
+{
+  "name": "watch-pr-wake-relative-env",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "command",
+  "argv": ["watch", "--status"],
+  "env": {
+    "HARNEXUS_CREW_PR_WAKE": "bin/pr-wake"
+  },
+  "commands": {
+    "pr-wake": {
+      "stdout": "{\"watched\":\"https://github.com/o/r/pull/3\",\"count\":2,\"nested\":{\"b\":1,\"a\":[1,null]}}\n"
+    }
+  }
+}

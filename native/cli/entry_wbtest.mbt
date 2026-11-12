@@ -88,7 +88,6 @@ async test "commands no task has moved fail and never fall back" {
     (["state", "--request", "r"], "state --request"),
     (["resolve", "--request", "r", "--sent"], "resolve"),
     (["name", "--pr", "1"], "name"),
-    (["watch"], "watch"),
     (["cloud", "--link", "l"], "cloud"),
   ]
   for pair in cases {
@@ -100,6 +99,17 @@ async test "commands no task has moved fail and never fall back" {
       "harnexus-crew: \{pair.1} is not available in this native build yet\n",
     )
   }
+}
+
+///|
+async test "watch is run by the pr-wake package" {
+  let run = run_with(["watch", "--link", "https://example.com/o/r/pull/1"], [])
+  assert_eq(run.code, 1)
+  assert_eq(run.stdout, "")
+  assert_eq(
+    run.stderr,
+    "harnexus-crew: https://example.com/o/r/pull/1 is not watched: the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>\n",
+  )
 }
 
 ///|
@@ -165,4 +175,33 @@ async test "state prints an empty object when no state was kept" {
   ])
   assert_eq(run.code, 0)
   assert_eq(run.stdout, "{}\n")
+}
+
+///|
+fn homeless_env(vars : Array[(String, String)]) -> () -> @environment.Env raise {
+  let map : Map[String, String] = Map([])
+  for pair in vars {
+    map[pair.0] = pair.1
+  }
+  () => @environment.Env::deferred_home(map, () => None)
+}
+
+///|
+async test "environment needs no home when the declaration settles it" {
+  let run = run(
+    ["environment"][:],
+    homeless_env([("HARNEXUS_EXECUTION_ENV", "local")]),
+  )
+  assert_eq(run.code, 0)
+  assert_true(run.stdout.contains("\"source\":\"explicit\""))
+}
+
+///|
+async test "a command that needs the home fails as a crash when there is none" {
+  for argv in [["environment"], ["state"]] {
+    let run = run(argv[:], homeless_env([]))
+    assert_eq(run.code, 1)
+    assert_true(run.stderr.contains("unexpected failure"))
+    assert_true(run.stderr.contains("HomeNotFound"))
+  }
 }

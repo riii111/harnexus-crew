@@ -1,0 +1,14 @@
+{
+  "name": "watch-engine-relative-env",
+  "owner": "MB07",
+  "status": "active",
+  "kind": "inherit",
+  "argv": ["watch"],
+  "env": {
+    "HARNEXUS_CREW_PR_WAKE": "pr-wake"
+  },
+  "commands": {
+    "pr-wake": {},
+    "pr-wake-engine": {}
+  }
+}

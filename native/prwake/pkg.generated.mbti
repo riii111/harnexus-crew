@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/prwake"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/args",
+  "riii111/harnexus-crew/environment",
+  "riii111/harnexus-crew/shared/failure",
+}
+
+// Values
+pub const NOT_LINKABLE : String = "the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>"
+
+pub async fn call(@environment.Env, Array[String]) -> Map[String, @json.Json] raise @failure.TaskFailed
+
+pub fn is_github_pr(String) -> Bool
+
+pub async fn watch(@args.WatchArgs, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
