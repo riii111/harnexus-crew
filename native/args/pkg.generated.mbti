@@ -1,0 +1,86 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/args"
+
+// Values
+pub fn command_names() -> Array[String]
+
+pub fn parse_command(String, ArrayView[String]) -> Parsed raise UsageError
+
+// Errors
+pub suberror UsageError {
+  UsageError(String)
+}
+pub fn UsageError::message(Self) -> String
+
+// Types and methods
+pub struct CloudArgs {
+  link : String?
+  prompt_file : String?
+  project : String?
+  title : String?
+  model : String?
+  thinking : String?
+}
+
+pub enum Command {
+  Launch(LaunchArgs)
+  Review(ReviewArgs)
+  State(StateArgs)
+  Resolve(ResolveArgs)
+  Name(NameArgs)
+  Watch(WatchArgs)
+  Environment
+  Check
+  Cloud(CloudArgs)
+}
+
+pub struct LaunchArgs {
+  request : String
+  model : String?
+  thinking : String?
+}
+
+pub struct NameArgs {
+  pr : String
+}
+
+pub enum Parsed {
+  Help
+  Run(Command)
+}
+
+pub enum RecoverMode {
+  Discard
+}
+
+pub struct ResolveArgs {
+  request : String
+  sent : Bool
+  thread_id : String?
+}
+
+pub struct ReviewArgs {
+  request : String
+  model : String?
+  thinking : String?
+  update_base : Bool
+  recover : RecoverMode?
+  ask : String?
+}
+
+pub struct StateArgs {
+  request : String?
+}
+
+pub struct WatchArgs {
+  dry_run : Bool
+  prs : Array[String]
+  release : String?
+  status : Bool
+  sender : Bool
+  link : String?
+}
+
+// Type aliases
+
+// Traits
