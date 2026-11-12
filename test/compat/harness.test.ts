@@ -260,6 +260,8 @@ describe("cases on the TypeScript baseline", () => {
         ),
       ).toEqual([]);
     },
+    // Two observations start the TypeScript build, and a case with a stand-in command starts another process each; the 5 second default is too short on a slow runner.
+    60_000,
   );
 });
 
