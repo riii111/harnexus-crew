@@ -139,6 +139,8 @@ if (binary !== undefined) {
     });
 
   const openFds = async (pid: number) => {
+    // The adapter finishes writing its records after the last line it prints, so a count taken at once can catch a file still open.
+    await Bun.sleep(300);
     const proc = await readdir(`/proc/${pid}/fd`).catch(() => undefined);
     if (proc !== undefined) return proc.length;
     const listed = Bun.spawnSync(["lsof", "-p", String(pid)]);
