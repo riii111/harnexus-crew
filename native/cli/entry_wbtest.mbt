@@ -81,27 +81,6 @@ async test "usage is checked before anything is read from the environment" {
 }
 
 ///|
-async test "commands no task has moved fail and never fall back" {
-  let cases = [
-    (
-      ["review", "--request", "r"],
-      [("CLAUDE_CODE_REMOTE", "true")],
-      "review in a Claude Code cloud session",
-    ),
-    (["cloud", "--link", "l"], [], "cloud"),
-  ]
-  for triple in cases {
-    let run = run_with(triple.0, triple.1)
-    assert_eq(run.code, 1)
-    assert_eq(run.stdout, "")
-    assert_eq(
-      run.stderr,
-      "harnexus-crew: \{triple.2} is not available in this native build yet\n",
-    )
-  }
-}
-
-///|
 async test "the session commands are run by the session package" {
   // A missing request file shows the command went past the registry.
   for
@@ -122,6 +101,25 @@ async test "the session commands are run by the session package" {
   assert_eq(
     run.stderr,
     "harnexus-crew: --pr must be a pull request URL or number\n",
+  )
+}
+
+///|
+async test "the cloud commands are run by the cloud package" {
+  let review = run_with(["review", "--request", "/absent/request.json"], [
+    ("CLAUDE_CODE_REMOTE", "true"),
+  ])
+  assert_eq(review.code, 1)
+  assert_eq(
+    review.stderr,
+    "harnexus-crew: cannot read /absent/request.json (ENOENT)\n",
+  )
+  // The call to the app is past the registry once the thread is named.
+  let cloud = run_with(["cloud", "--link", "l"], [])
+  assert_eq(cloud.code, 1)
+  assert_eq(
+    cloud.stderr,
+    "harnexus-crew: CODEX_THREAD_ID is not set; run harnexus-crew from a thread\n",
   )
 }
 
