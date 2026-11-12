@@ -1,0 +1,35 @@
+{
+  "name": "cloud-dropped-connection",
+  "owner": "MB10",
+  "status": "active",
+  "kind": "command",
+  "argv": ["cloud", "--link", "session_01NfjPqrDm5ZNRA1m484J4Kt"],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}",
+    "CODEX_THREAD_ID": "w1"
+  },
+  "bridge": [
+    {
+      "match": {
+        "query": "capabilities"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done",
+        "operations": [
+          "list_projects",
+          "create_thread",
+          "send_message_to_thread",
+          "name_thread",
+          "cloud_open"
+        ]
+      }
+    },
+    {
+      "match": {
+        "tool": "cloud_open"
+      },
+      "answer": "drop"
+    }
+  ]
+}

@@ -78,3 +78,5 @@ jobs:
         run: HARNEXUS_CREW_NATIVE="$PWD/_build/native/release/build/cmd/main/main.exe" bun test test/native/adapter.test.ts
       - name: Run the session commands as processes
         run: HARNEXUS_CREW_NATIVE="$PWD/_build/native/release/build/cmd/main/main.exe" bun test test/native/session.test.ts
+      - name: Run the cloud reviews as processes
+        run: HARNEXUS_CREW_NATIVE="$PWD/_build/native/release/build/cmd/main/main.exe" bun test test/native/cloud.test.ts

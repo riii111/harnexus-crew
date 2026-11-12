@@ -1,0 +1,49 @@
+{
+  "name": "cloud-project-is-not-a-single-line",
+  "owner": "MB10",
+  "status": "active",
+  "kind": "command",
+  "argv": [
+    "cloud",
+    "--link",
+    "session_01NfjPqrDm5ZNRA1m484J4Kt",
+    "--project",
+    "a\nb"
+  ],
+  "env": {
+    "HARNEXUS_CALL_SOCKET": "{{bridge}}",
+    "CODEX_THREAD_ID": "w1"
+  },
+  "bridge": [
+    {
+      "match": {
+        "query": "capabilities"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done",
+        "operations": [
+          "list_projects",
+          "create_thread",
+          "send_message_to_thread",
+          "name_thread",
+          "cloud_open"
+        ]
+      }
+    },
+    {
+      "match": {
+        "tool": "cloud_open"
+      },
+      "answer": {
+        "version": 1,
+        "outcome": "done",
+        "result": {
+          "threadId": "cloud-chat",
+          "cloudSessionId": "session_01NfjPqrDm5ZNRA1m484J4Kt",
+          "url": "https://claude.ai/code/session_01NfjPqrDm5ZNRA1m484J4Kt"
+        }
+      }
+    }
+  ]
+}

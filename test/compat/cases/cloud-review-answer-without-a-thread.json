@@ -1,0 +1,43 @@
+{
+  "name": "cloud-review-answer-without-a-thread",
+  "owner": "MB10",
+  "status": "active",
+  "kind": "command",
+  "argv": ["review", "--request", "review.json"],
+  "env": {
+    "CLAUDE_CODE_REMOTE": "true",
+    "CLAUDE_CODE_SESSION_ID": "worker-session"
+  },
+  "seed": {
+    "skills": "test/fixtures/task-skills"
+  },
+  "files": {
+    "config/harnexus/task.json": "{\"templates\":{\"reviewer\":\"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}",
+    "work/review.json": "{\"taskId\":\"example\",\"workerAI\":\"Claude\",\"checkout\":\"{{home}}/repo\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null}"
+  },
+  "git": [
+    ["init", "-q", "{{home}}/repo"],
+    ["-C", "{{home}}/repo", "commit", "--allow-empty", "-qm", "test: initial"],
+    ["-C", "{{home}}/repo", "branch", "base"],
+    [
+      "-C",
+      "{{home}}/repo",
+      "commit",
+      "--allow-empty",
+      "-qm",
+      "test: candidate 1"
+    ]
+  ],
+  "commands": {
+    "codex": {
+      "stdout": "{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"判定: LGTM\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}\n"
+    }
+  },
+  "normalize": [
+    {
+      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
+      "with": "<TIME>",
+      "scopes": ["files", "stderr", "stdout"]
+    }
+  ]
+}
