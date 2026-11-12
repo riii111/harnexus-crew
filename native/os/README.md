@@ -4,13 +4,13 @@ Unixソケットでの1行の往復と、子プロセスの実行。
 TS版の `src/lib/socket.boundary.ts`、`process.boundary.ts`、`run.boundary.ts` に対応する。
 結果型と失敗型は `shared/boundary` にあり、このディレクトリのパッケージはそれを返す。
 
-| パッケージ | 公開する関数 | TS版 |
-| ---------- | ------------ | ---- |
-| `socket` | `exchange_line(path, line, timeout_ms)` | `requestLine` |
-| `process` | `run_process(file, args, input, cwd~, env~, timeout_ms~, kill_grace_ms~)` | `runProcess` |
-| `process` | `run_command(file, args, env, timeout_ms?)` | `runCommand` |
-| `process` | `run_inherited(file, args, env)` | `runInherited` |
-| `unix` | `errno_name`、`errno_message`、`close_fd` | Nodeのエラーコード |
+| パッケージ | 公開する関数                                                              | TS版               |
+| ---------- | ------------------------------------------------------------------------- | ------------------ |
+| `socket`   | `exchange_line(path, line, timeout_ms)`                                   | `requestLine`      |
+| `process`  | `run_process(file, args, input, cwd~, env~, timeout_ms~, kill_grace_ms~)` | `runProcess`       |
+| `process`  | `run_command(file, args, env, timeout_ms?)`                               | `runCommand`       |
+| `process`  | `run_inherited(file, args, env)`                                          | `runInherited`     |
+| `unix`     | `errno_name`、`errno_message`、`close_fd`                                 | Nodeのエラーコード |
 
 `env` は子の環境の全体であり、親の環境を暗黙には引き継がない。
 `processAlive` はMB03の担当で、ここでは公開しない。
@@ -62,15 +62,15 @@ fdと子の所有権:
 `test/native/boundary-cases.json` の21事例と、追加した事例の対応。
 種別の「実OS」は実際のソケット・プロセスで確かめ、「注入」は接続の試行を差し替えて確かめる。
 
-| 事例 | 試験 | 種別 |
-| ---- | ---- | ---- |
-| S1〜S5 | `socket_wbtest.mbt` の同名の試験 | 実OS |
-| C1 満杯の待ち行列 | 同上。macOSは即座の拒否、Linuxは締切 | 実OS |
-| C2〜C4 | 同上 | 注入 |
-| C5、C6 | 同上。C6は、どのOSでも書き込みが詰まる4MiBの行 | 実OS |
-| E1〜E4 | `process_wbtest.mbt` の同名の試験 | 実OS |
-| E5（2件） | なし。上の「試作からの変更」のとおり、対象となる状態がない | 対象外 |
-| P1、P3〜P5 | `process_wbtest.mbt` の同名の試験 | 実OS |
+| 事例              | 試験                                                       | 種別   |
+| ----------------- | ---------------------------------------------------------- | ------ |
+| S1〜S5            | `socket_wbtest.mbt` の同名の試験                           | 実OS   |
+| C1 満杯の待ち行列 | 同上。macOSは即座の拒否、Linuxは締切                       | 実OS   |
+| C2〜C4            | 同上                                                       | 注入   |
+| C5、C6            | 同上。C6は、どのOSでも書き込みが詰まる4MiBの行             | 実OS   |
+| E1〜E4            | `process_wbtest.mbt` の同名の試験                          | 実OS   |
+| E5（2件）         | なし。上の「試作からの変更」のとおり、対象となる状態がない | 対象外 |
+| P1、P3〜P5        | `process_wbtest.mbt` の同名の試験                          | 実OS   |
 
 追加した事例:
 
