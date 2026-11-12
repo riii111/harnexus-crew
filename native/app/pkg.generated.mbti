@@ -1,0 +1,81 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/environment",
+  "riii111/harnexus-crew/shared/call",
+  "riii111/harnexus-crew/shared/failure",
+}
+
+// Values
+pub const CLOUD_MARK : String = "☁️"
+
+pub const PROTOCOL_VERSION : Int32 = 1
+
+pub const REVIEW_ASK_SENT : String = "Sent to the worker running this reviewer, which passes it on; the reviewer's answer appears here once the worker's session is copied."
+
+pub const REVIEW_ASK_UNKNOWN : String = "The message may or may not have reached the worker's session, so it is not sent again; check the worker's chat."
+
+pub const REVIEW_ASK_UNROUTED : String = "The Cloud session that ran this reviewer is not shown in a chat here, so its answer could not come back and the message was not sent. Link the worker's session with /cloud, or ask in the worker's chat."
+
+pub async fn call_app(@environment.Env, String, String, Map[String, @json.Json], timeout_ms? : Int32) -> @call.CallAnswer noraise
+
+pub async fn call_t3(T3Deps, String, Map[String, @json.Json]) -> @call.CallAnswer noraise
+
+pub fn host_of(@environment.Env, which~ : (String) -> String?) -> Host
+
+pub fn projects_in(@json.Json?) -> Array[@json.Json]
+
+pub fn refusal_of(TurnSettings, TurnSettings) -> String
+
+pub fn review_command_of(String) -> String?
+
+pub fn review_text(CloudReview) -> String
+
+pub fn reviewer_ask(String, String) -> String
+
+pub fn reviews_in(Array[@json.Json], from? : Int32, to? : Int32) -> Array[CloudReview]
+
+pub fn uuid_of(@json.Json?) -> String?
+
+// Errors
+
+// Types and methods
+pub(all) struct CloudReview {
+  key : String
+  reviewer : String
+  verdict : String?
+  task_id : String?
+  head : String?
+  answer : String
+}
+
+pub(all) struct DefaultThinking {
+  worker : String
+  reviewer : String
+}
+
+pub struct Host {
+  thread_variable : String
+  call : async (String, String, Map[String, @json.Json]) -> @call.CallAnswer
+  review_project : async (String) -> String raise @failure.TaskFailed
+  worktrees : String
+  thinking : DefaultThinking?
+  reply_to : (String) -> String
+  renames_threads : Bool
+}
+
+pub(all) struct T3Deps {
+  env : @environment.Env
+  which : (String) -> String?
+}
+
+pub(all) struct TurnSettings {
+  model : String?
+  effort : String?
+}
+
+// Type aliases
+
+// Traits
