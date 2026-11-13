@@ -70,7 +70,7 @@ Cloud・T3 Codeでは何も送らずに拒否する。
 
 ## 試験
 
-- `moon test` の `cloud`: Codex CLIの代役 `test/native/mocks/fake-cli.sh` を実際の子プロセスとして動かし、Gitとテンプレートは差し替える。初回と再レビュー、判定済みの `head`、実行の失敗と停止、保存できなかった答え、`ask`、ロック、`harnexus-task` が残した状態（`test/fixtures/legacy-state/cloud`）の継続を確かめる。
+- `moon test` の `cloud`: Codex CLIの代役 `test/native/mocks/fake-cli.sh` を実際の子プロセスとして動かし、Gitとテンプレートは差し替える。初回と再レビュー、判定済みの `head`、実行の失敗と停止、保存できなかった答え、`ask`、ロックを確かめる。
 - `test/cases/cloud-review-*`: 1回の実行の結果を、Codex CLIの出力を変えながら、期待値と照らす。
 - `test/cases/cloud-*`（ブリッジを使う事例）: `cloud` コマンドの要求・答え・失敗を、同じ期待値と照らす。
 - `test/test_cloud.py`: 複数回の実行にまたがる流れ（再レビュー、停止からの復旧、`ask`、ロックの取り上げ、保存済みの状態の継続）を、期待値と照らす。

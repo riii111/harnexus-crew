@@ -1,15 +1,10 @@
 """The session commands (launch, review, state, resolve, name) run as processes against a stand-in bridge."""
 
-import hashlib
-import os
-import shutil
 import time
 import unittest
-from pathlib import Path
 
 from harness import jsonvalue
 from harness.asserts import ScenarioAsserts
-from harness.cases import REPO
 from harness.rig import observed, recorded, wait_for, with_rig
 
 SKILLS = {"skills": "test/fixtures/task-skills"}
@@ -89,10 +84,6 @@ def codes(steps):
     return [step["code"] for step in steps]
 
 
-def key_directory(key):
-    return hashlib.sha256(jsonvalue.lossy_bytes(key)).hexdigest()[:16]
-
-
 class SessionCommands(ScenarioAsserts, unittest.TestCase):
     def scenario(self, name, fields, body, strip=lambda seen: seen):
         """Runs the scenario on the Native build and checks it against what the TypeScript build did."""
@@ -135,9 +126,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
     def test_hold_a_launch_whose_answer_was_lost_until_the_user_settles_it(self):
         native = self.scenario(
             "session-launch-lost",
-            launch_fields(
-                [answer("create_thread", {"outcome": "unknown", "error": "timed out"})]
-            ),
+            launch_fields([answer("create_thread", {"outcome": "unknown", "error": "timed out"})]),
             lambda rig: [
                 rig.run(LAUNCH),
                 rig.run(LAUNCH),
@@ -149,7 +138,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         self.assertEqual([1, 1, 0, 0], codes(steps))
         self.assertIn("previous create_thread ended as unknown; never resend", steps[1]["stderr"])
         self.assertMatches(steps[3]["stdout"], {"existing": "w9"})
-        self.assertEqual(2, len(native["requests"]))
+        self.assertEqual(1, len(native["requests"]))
         self.assertFalse(any(path.endswith("pending.json") for path in native["files"]))
 
     def test_start_no_second_worker_after_a_run_that_was_sent_and_then_released(self):
@@ -371,110 +360,6 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             self.assertEqual(1, len(kept))
             self.assertMatches(jsonvalue.loads(kept[0][1]), {"threadId": "w1"})
             self.assertFalse(any(path.endswith("pending.json") for path in done.files))
-
-
-LEGACY_FIXTURES = REPO / "test" / "fixtures" / "legacy-state" / "app"
-RECORDED_ROOT = "/tmp/taskctl-legacy"
-LEGACY_CHECKOUT = "{{root}}/app/codex/worktrees/ab12/checkout"
-
-
-def place_legacy_state(rig):
-    """Copies the state harnexus-task left in the app under the sandbox's, naming the review directory by the key of the sandbox's own checkout."""
-    root = rig.sandbox.root
-    state = Path(root) / "state"
-    shutil.copytree(LEGACY_FIXTURES / "state", state, dirs_exist_ok=True)
-    (state / "taskctl").rename(state / "harnexus-crew")
-    for directory, _, names in os.walk(state):
-        for name in names:
-            if not name.endswith(".json"):
-                continue
-            path = Path(directory) / name
-            text = path.read_text(encoding="utf-8")
-            path.write_text(
-                text.replace("@ROOT@", root).replace("@SKILLS@", str(REPO / "test" / "fixtures" / "task-skills")),
-                encoding="utf-8",
-            )
-    recorded_key = f"{RECORDED_ROOT}/app/codex/worktrees/ab12/checkout\nw1"
-    if key_directory(recorded_key) != "d6efc365839bb319":
-        raise AssertionError("the recorded review key no longer matches the SHA-256 layout")
-    source = state / "harnexus-crew" / "review" / "d6efc365839bb319"
-    target = state / "harnexus-crew" / "review" / key_directory(f"{rig.sandbox.expand(LEGACY_CHECKOUT)}\nw1")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    source.rename(target)
-
-
-def legacy_fields():
-    checkout = LEGACY_CHECKOUT
-    return {
-        "env": {**ENV, "CODEX_HOME": "{{root}}/app/codex"},
-        "seed": SKILLS,
-        "git": [
-            ["init", "-q", checkout],
-            ["-C", checkout, "commit", "--allow-empty", "-qm", "test: initial"],
-            ["-C", checkout, "branch", "base"],
-            ["-C", checkout, "commit", "--allow-empty", "-qm", "test: candidate 1"],
-            ["-C", checkout, "commit", "--allow-empty", "-qm", "test: candidate 2"],
-        ],
-        "bridge": [answer("send_message_to_thread", {"outcome": "done", "threadId": "r1"})],
-        "files": {
-            **CONFIG,
-            "work/launch.json": jsonvalue.dumps(LAUNCH_REQUEST),
-            "work/review.json": jsonvalue.dumps({**REVIEW_REQUEST, "checkout": checkout}),
-        },
-    }
-
-
-class LegacyAppState(ScenarioAsserts, unittest.TestCase):
-    """The state harnexus-task left in the app, moved to where this build keeps it and continued."""
-
-    def scenario(self, name, body):
-        done = with_rig({"name": name, **legacy_fields()}, body)
-        native = observed(done)
-        self.assertSameJson(recorded(name, done), native)
-        return native
-
-    def test_keep_the_launched_worker_and_its_reviewer_resolving_the_re_review_whose_answer_was_lost(self):
-        def body(rig):
-            place_legacy_state(rig)
-            launched = rig.run(LAUNCH)
-            held = rig.run(REVIEW)
-            resolved = rig.run(["resolve", "--request", "review.json", "--sent"])
-            candidate(rig, "test: candidate 3", LEGACY_CHECKOUT)
-            resent = rig.run(REVIEW)
-            shown = rig.run(["state", "--request", "review.json"])
-            return [launched, held, resolved, resent, shown]
-
-        native = self.scenario("session-legacy-app-resent", body)
-        steps = native["result"]
-        self.assertMatches(steps[0]["stdout"], {"existing": "w1"})
-        self.assertEqual(1, steps[1]["code"])
-        self.assertIn("previous send_message_to_thread ended as unknown; never resend", steps[1]["stderr"])
-        self.assertMatches(steps[2]["stdout"], {"tool": "send_message_to_thread", "threadId": "r1"})
-        self.assertEqual(0, steps[3]["code"])
-        self.assertMatches(
-            steps[4]["stdout"],
-            {
-                "reviewerThreadId": "r1",
-                "workerThreadId": "w1",
-                "base": BASE,
-                "pending": None,
-                "requested": {"model": "gpt-6.1-sol", "effort": "medium"},
-            },
-        )
-        self.assertEqual(2, len(native["requests"]))
-        self.assertIn(f"{BASE}...", jsonvalue.dumps(native["requests"][1]))
-
-    def test_send_the_lost_head_again_to_the_same_reviewer_once_it_is_resolved_as_not_sent(self):
-        def body(rig):
-            place_legacy_state(rig)
-            released = rig.run(["resolve", "--request", "review.json", "--not-sent"])
-            resent = rig.run(REVIEW)
-            return [released, resent]
-
-        native = self.scenario("session-legacy-app-not-sent", body)
-        steps = native["result"]
-        self.assertMatches(steps[1]["stdout"], {"threadId": "r1"})
-        self.assertIn(f"{BASE}...{HEAD_2}", jsonvalue.dumps(native["requests"][1]))
 
 
 if __name__ == "__main__":

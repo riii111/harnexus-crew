@@ -3,21 +3,18 @@
 harnexusのブリッジが起動し、標準入出力の1行1メッセージで話す `adapter` コマンド。
 入口は `adapter::run` だけで、`cli/registry.mbt` の `adapter_run` が呼ぶ。
 
-| サブコマンド                | 内容                                             |
-| --------------------------- | ------------------------------------------------ |
-| `adapter serve --id ID`     | ブリッジの接続を、標準入力が閉じるまで受け持つ   |
-| `adapter handover`          | 観測だけの間に記録したレビューを、待ち行列へ移す |
-| `adapter export-links`      | `cloud` コマンドが記録したチャットを書き出す     |
-| `adapter import-links FILE` | 書き出したチャットを書き戻す                     |
+| サブコマンド            | 内容                                           |
+| ----------------------- | ---------------------------------------------- |
+| `adapter serve --id ID` | ブリッジの接続を、標準入力が閉じるまで受け持つ |
+
+受け持つのは `mode` が `write` のブリッジだけである。`observe` のブリッジは表示の要求をすべて拒否するため、`hello` を返さず、harnexus の `connection.json` の `mode` を `write` にするよう標準エラーへ書く。
 
 | ファイル           | 内容                                                                   |
 | ------------------ | ---------------------------------------------------------------------- |
 | `adapter.mbt`      | 1行ごとの処理。予約、待ち行列、チャットの開設、履歴、質問の取り次ぎ    |
 | `serve.mbt`        | 標準入力の読み取り、行ごとの並行処理、標準出力と標準エラーへの書き出し |
 | `review_store.mbt` | Cloudレビューとチャットのフォルダ（`cloud-reviews`）                   |
-| `observations.mbt` | 観測位置、待ち行列、最初のレビューの記録、ジャーナル                   |
-| `links.mbt`        | `export-links`、`import-links`                                         |
-| `handover.mbt`     | `handover` とジャーナルの読み取り                                      |
+| `observations.mbt` | 観測位置、待ち行列、最初のレビューの記録                               |
 
 レビューの型と表示（`CloudReview`、`reviews_in`、`review_text` ほか）は `app` を使い、ここでは作り直さない。
 保存先のパスは `environment`、ファイルとロックは `store` を使う。
@@ -42,15 +39,12 @@ harnexusのブリッジが起動し、標準入出力の1行1メッセージで�
 ## 保存先と形式
 
 - `<harnexusの状態>/cloud-reviews/`: `chats.json`、レビューごとの `<key>.json` と予約 `<key>.reserved`、質問の記録 `asked-*.json`
-- `<状態のルート>/cloud-observe/`: `sessions/<id>.json`、`pending.json`、`opening/<hash>.json`、`journal.jsonl`、`locks/`
-- `<状態のルート>/cloud-chats/<session>.json`: `export-links`、`import-links` の対象
-
-待ち行列に `handover` が移すレビューは、ジャーナルにあるとおりに書く。メンバーの追加や並べ替えをしない。
+- `<状態のルート>/cloud-observe/`: `sessions/<id>.json`、`pending.json`、`opening/<hash>.json`、`locks/`
 
 ## 試験
 
-| 場所                               | 内容                                                                                                         |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `*_wbtest.mbt`（`moon test`）      | 模擬ブリッジとの往復。同時要求、入力の終了、応答の順序、複数回の往復後のfd                 |
-| `test/cases/adapter-*.json`        | 期待値との照合。使い方、`export-links`、`import-links`、`handover`、`serve` の観測・書き込み・質問・再開の往復 |
-| `test/test_adapter.py`             | 実際のプロセス。400件を一度に送った応答の行、応答待ちの要求を残した入力の終了、160回の往復後のfd数           |
+| 場所                          | 内容                                                                                               |
+| ----------------------------- | -------------------------------------------------------------------------------------------------- |
+| `*_wbtest.mbt`（`moon test`） | 模擬ブリッジとの往復。同時要求、入力の終了、応答の順序、複数回の往復後のfd                         |
+| `test/cases/adapter-*.json`   | 期待値との照合。使い方、`serve` の書き込み・質問・再開の往復、`observe` のブリッジの拒否           |
+| `test/test_adapter.py`        | 実際のプロセス。400件を一度に送った応答の行、応答待ちの要求を残した入力の終了、160回の往復後のfd数 |

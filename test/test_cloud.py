@@ -1,8 +1,6 @@
 """Cloud reviews (Codex CLI in a Claude Code cloud session) run as processes against a stand-in Codex CLI."""
 
-import hashlib
 import os
-import shutil
 import subprocess
 import time
 import unittest
@@ -196,22 +194,6 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertEqual([0, 0, 0, 1], codes(native["result"]))
         self.assertEqual("3\n", native["files"]["fake/count"])
 
-    def test_count_a_head_recorded_before_verdicts_were_kept_as_judged(self):
-        def body(rig):
-            first = rig.run(REVIEW)
-            path, state = state_of(parsed_or_text(first["stdout"]))
-            del state["verdict"]
-            path.write_text(jsonvalue.dumps(state), encoding="utf-8")
-            return [first, rig.run(REVIEW)]
-
-        native = self.scenario(
-            "cloud-review-old-state",
-            [{"out": events(REVIEWER, "判定: 修正必要")}, {"out": events(REVIEWER, "判定: LGTM")}],
-            body,
-        )
-        self.assertEqual([0, 1], codes(native["result"]))
-        self.assertEqual("1\n", native["files"]["fake/count"])
-
     def test_leave_nothing_pending_after_a_run_that_reviewed_nothing_and_keep_the_reviewer(self):
         def body(rig):
             first = rig.run(REVIEW)
@@ -398,82 +380,6 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         steps = native["result"]
         self.assertEqual([0, 1], codes(steps))
         self.assertIn("a run that was taking over this session died before it finished", steps[1]["stderr"])
-
-
-RECORDED_ROOT = "/tmp/taskctl-legacy"
-LEGACY_FIXTURE = REPO / "test" / "fixtures" / "legacy-state" / "cloud" / "state" / "taskctl"
-
-
-def place_legacy_state(rig):
-    """Paths in the recorded state read @ROOT@, and directories keyed by a path are moved to the key of the test's own root."""
-    root = rig.sandbox.root
-    state = Path(root) / "state" / "harnexus-crew" / "cloud-review"
-    state.mkdir(parents=True, exist_ok=True)
-    for recorded_key, task in (("3e52769db5ac05f8", "judged"), ("470a1ab24e770f8c", "lost")):
-        recorded_at = hashlib.sha256(f"{RECORDED_ROOT}/cloud/repo\0{task}".encode("utf-8")).hexdigest()[:16]
-        if recorded_at != recorded_key:
-            raise AssertionError("the recorded review key no longer matches the SHA-256 layout")
-        key = hashlib.sha256(jsonvalue.lossy_bytes(f"{root}/cloud/repo\0{task}")).hexdigest()[:16]
-        target = state / key
-        shutil.copytree(LEGACY_FIXTURE / "cloud-review" / recorded_key, target)
-        for path in target.iterdir():
-            path.write_text(path.read_text(encoding="utf-8").replace("@ROOT@", root), encoding="utf-8")
-
-
-def task_request(task):
-    return {**REQUEST, "taskId": task}
-
-
-class CloudReviewsHarnexusTaskLeft(ScenarioAsserts, unittest.TestCase):
-    def scenario(self, name, runs, body, **options):
-        done = with_rig({"name": name, **scenario_fields(runs, **options)}, body, timeout=RUN_TIMEOUT_SECONDS)
-        native = observed(done, steady=True)
-        self.assertSameJson(recorded(name, done), native)
-        return native
-
-    def test_ask_the_same_reviewer_and_re_review_a_new_head_with_it_from_the_recorded_base(self):
-        def body(rig):
-            place_legacy_state(rig)
-            asked = rig.run(ASK)
-            candidate(rig, "test: fix B1")
-            reviewed = rig.run(REVIEW)
-            return [asked, reviewed]
-
-        native = self.scenario(
-            "cloud-review-legacy-judged",
-            [{"out": events(REVIEWER, "B1 は残っています。")}, {"out": events(REVIEWER, "判定: LGTM")}],
-            body,
-            request=task_request("judged"),
-            files={"work/ask.md": "B1 はまだ残っていますか"},
-        )
-        steps = native["result"]
-        self.assertEqual([0, 0], codes(steps))
-        self.assertMatches(
-            steps[0]["stdout"],
-            {"kind": "reply", "head": HEAD_1, "reviewer": REVIEWER, "answer": "B1 は残っています。"},
-        )
-        self.assertMatches(steps[1]["stdout"], {"verdict": "LGTM", "base": BASE, "reviewer": REVIEWER})
-        for n in (1, 2):
-            self.assertIn(f"exec\nresume\n{REVIEWER}\n", native["files"][f"fake/args.{n}"])
-
-    def test_hold_the_review_whose_result_was_unknown_until_it_is_discarded_then_send_it_again(self):
-        def body(rig):
-            place_legacy_state(rig)
-            held = rig.run(REVIEW)
-            recovered = rig.run([*REVIEW, "--recover", "discard"])
-            return [held, recovered]
-
-        native = self.scenario(
-            "cloud-review-legacy-lost",
-            [{"out": events(REVIEWER, "判定: 修正必要")}],
-            body,
-            request=task_request("lost"),
-        )
-        steps = native["result"]
-        self.assertEqual([1, 0], codes(steps))
-        self.assertIn("--recover discard", steps[0]["stderr"])
-        self.assertMatches(steps[1]["stdout"], {"verdict": "修正必要", "base": BASE, "head": HEAD_1})
-        self.assertNotIn("resume", native["files"]["fake/args.1"])
 
 
 if __name__ == "__main__":

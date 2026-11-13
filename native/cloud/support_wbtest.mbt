@@ -302,23 +302,3 @@ fn show(json : Json) -> String {
 fn Rig::pending_exists(self : Rig, task_id : String) -> Bool {
   @store.path_exists("\{self.state_dir(task_id)}/pending.json")
 }
-
-///|
-/// Puts a session harnexus-task recorded where this build keeps it, with the paths of the recorded run read as this rig's.
-fn Rig::place_legacy(self : Rig, recorded : String, task_id : String) -> Unit {
-  let source = "\{@env.current_dir().unwrap()}/test/fixtures/legacy-state/cloud/state/taskctl/cloud-review/\{recorded}"
-  let directory = self.state_dir(task_id)
-  for name in ["state.json", "pending.json"] {
-    let text = @store.read_text_if_exists("\{source}/\{name}") catch {
-      failed => abort(failed.user_message())
-    }
-    if text is Some(text) {
-      write_text(
-        "\{directory}/\{name}",
-        text
-        .replace_all(old="@ROOT@/cloud/repo", new=self.checkout)
-        .replace_all(old="@ROOT@", new=self.root),
-      )
-    }
-  }
-}

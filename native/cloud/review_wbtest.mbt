@@ -95,16 +95,7 @@ async test "a head already judged is not reviewed again, but one the reviewer co
     )
     assert_eq(rig.runs(), 1)
     let path = "\{rig.state_dir("example")}/state.json"
-    // A state saved before verdicts were kept has none, and counts as judged.
     let saved = read_state(path)
-    if saved is Object(members) {
-      members.remove("verdict")
-      write_text(path, show(Json::object(members)))
-    }
-    assert_eq(
-      rig.review_failure(),
-      "head \{HEAD_1} was already reviewed by \{REVIEWER}; commit a fix before asking again",
-    )
     for verdict in [Json::string("判定保留"), Json::null()] {
       if saved is Object(members) {
         members["verdict"] = verdict
@@ -474,58 +465,5 @@ async test "the Codex settings of the environment are checked before the review 
     )
     assert_false(rig.pending_exists("example"))
     assert_eq(rig.runs(), 0)
-  })
-}
-
-///|
-async test "a review harnexus-task left is continued from the state directory of this build" {
-  // The directories harnexus-task recorded are named by the same key.
-  let recorded = "/state/harnexus-crew"
-  assert_true(
-    @store.state_directory(
-      recorded, "cloud-review", "/tmp/taskctl-legacy/cloud/repo\u{0}judged",
-    ).has_suffix("/3e52769db5ac05f8"),
-  )
-  assert_true(
-    @store.state_directory(
-      recorded, "cloud-review", "/tmp/taskctl-legacy/cloud/repo\u{0}lost",
-    ).has_suffix("/470a1ab24e770f8c"),
-  )
-  with_rig("legacy", rig => {
-    rig.place_legacy("3e52769db5ac05f8", "judged")
-    rig.place_legacy("470a1ab24e770f8c", "lost")
-    let ask = "\{rig.root}/ask.md"
-    write_text(ask, "B1 はまだ残っていますか")
-    rig.plan(1, out=events(REVIEWER, "B1 は残っています。"))
-    let answer = rig.review(task="judged", extra=["--ask", ask])
-    assert_eq(show(field(answer, "kind")), "\"reply\"")
-    assert_eq(
-      show(field(answer, "head")),
-      "\"a6bc63c9fd9d736a274586bb4a3989bc27297649\"",
-    )
-    assert_eq(show(field(answer, "reviewer")), "\"\{REVIEWER}\"")
-    // The next head is reviewed by the recorded reviewer, from the recorded base.
-    rig.head.val = "5455abba46706efa2a58a43a55b97e9d40eaa4ec"
-    rig.plan(2, out=events(REVIEWER, "判定: LGTM"))
-    let reviewed = rig.review(task="judged")
-    assert_eq(
-      show(field(reviewed, "base")),
-      "\"af314261c610837f3606d61aa2dff1981debda94\"",
-    )
-    assert_eq(
-      show(field(reviewed, "head")),
-      "\"5455abba46706efa2a58a43a55b97e9d40eaa4ec\"",
-    )
-    assert_eq(show(field(reviewed, "verdict")), "\"LGTM\"")
-    for run in [1, 2] {
-      assert_eq(rig.args(run)[1], "resume")
-      assert_eq(rig.args(run)[2], REVIEWER)
-    }
-    // A review whose result was unknown stays held until the user discards it.
-    assert_true(rig.review_failure(task="lost").contains("--recover discard"))
-    rig.plan(3, out=events(OTHER, "判定: 修正必要"))
-    let sent = rig.review(task="lost", extra=["--recover", "discard"])
-    assert_eq(show(field(sent, "reviewer")), "\"\{OTHER}\"")
-    assert_eq(rig.args(3)[1], "--json")
   })
 }
