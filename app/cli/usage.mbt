@@ -3,7 +3,6 @@
 let feedback_hint : String = "To report a bug, open an issue at https://github.com/riii111/taskctl/issues with the command you ran and its output."
 
 ///|
-/// The usage lines of the given commands, each started with the name the program was run by.
 fn usage_of(commands : Array[String], name : String) -> String {
   let buffer = StringBuilder()
   buffer.write_string("usage:\n")
@@ -11,6 +10,20 @@ fn usage_of(commands : Array[String], name : String) -> String {
     buffer.write_string("  \{name} \{usage_line(command)}\n")
   }
   buffer.to_string()
+}
+
+///|
+fn help_run(usage : String) -> @run.CommandRun {
+  { code: 0, stdout: "\{usage}\{feedback_hint}\n", stderr: "", }
+}
+
+///|
+fn usage_error_run(
+  usage : String,
+  name : String,
+  message : String,
+) -> @run.CommandRun {
+  { code: 2, stdout: "", stderr: "\{usage}\{name}: \{message}\n", }
 }
 
 ///|
@@ -31,18 +44,4 @@ fn usage_line(command : String) -> String {
       "cloud (--link SESSION_OR_URL | --prompt-file FILE) [--project PROJECT_ID] [--title TITLE] [--model MODEL] [--thinking THINKING]"
     other => other
   }
-}
-
-///|
-fn help_run(usage : String) -> @run.CommandRun {
-  { code: 0, stdout: "\{usage}\{feedback_hint}\n", stderr: "", }
-}
-
-///|
-fn usage_error_run(
-  usage : String,
-  name : String,
-  message : String,
-) -> @run.CommandRun {
-  { code: 2, stdout: "", stderr: "\{usage}\{name}: \{message}\n", }
 }

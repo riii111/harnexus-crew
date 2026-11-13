@@ -9,15 +9,6 @@ pub async fn state_request(
 }
 
 ///|
-async fn state_request_in(
-  ctx : Context,
-  path : String,
-) -> Json raise @failure.TaskFailed {
-  @workflow.refuse_in_cloud(ctx.env, "state --request")
-  requested_session(ctx, path).show()
-}
-
-///|
 /// Settles the send of a request that ended with a result nobody knows, as the user found it in the app.
 pub async fn resolve(
   args : @workflow.ResolveInput,
@@ -25,6 +16,15 @@ pub async fn resolve(
   which~ : (String) -> String?,
 ) -> Json raise @failure.TaskFailed {
   resolve_in(Context::of_env(env, which~), args)
+}
+
+///|
+async fn state_request_in(
+  ctx : Context,
+  path : String,
+) -> Json raise @failure.TaskFailed {
+  @workflow.refuse_in_cloud(ctx.env, "state --request")
+  requested_session(ctx, path).show()
 }
 
 ///|

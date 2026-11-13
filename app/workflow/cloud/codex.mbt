@@ -20,7 +20,6 @@ const NO_ROLLOUT : String = "no rollout found"
 let recovery_hint : String = "its result is unknown, so it is not sent again on its own. Check the reviewer, then rerun with --recover discard to send the candidate again"
 
 ///|
-/// How the Codex CLI is run: the program, and how long a run may last.
 priv struct Launch {
   bin : String
   timeout_ms : Int32
@@ -42,48 +41,6 @@ fn Launch::of_env(env : @environment.Env) -> Launch raise @failure.TaskFailed {
       DEFAULT_KILL_GRACE_MS,
     ),
   }
-}
-
-///|
-fn configured_binary(
-  env : @environment.Env,
-  name : String,
-  fallback : String,
-) -> String raise @failure.TaskFailed {
-  match env.get_nonempty(name) {
-    None => fallback
-    Some(path) =>
-      if path.has_prefix("/") {
-        path
-      } else {
-        @failure.fail("\{name} must be an absolute path")
-      }
-  }
-}
-
-///|
-/// A positive whole number of milliseconds that a 32-bit timer can hold.
-fn milliseconds(
-  env : @environment.Env,
-  name : String,
-  fallback : Int32,
-) -> Int32 raise @failure.TaskFailed {
-  guard env.get_nonempty(name) is Some(value) else { return fallback }
-  let digits = value.code_units()
-  let valid = digits.length() >= 1 &&
-    digits[0] != '0' &&
-    digits.iter().all(unit => unit >= '0' && unit <= '9')
-  guard valid else {
-    @failure.fail("\{name} must be a positive number of milliseconds")
-  }
-  let mut total : Int64 = 0
-  for unit in digits {
-    total = total * 10L + (unit.to_int() - 48).to_int64()
-    if total > MAX_TIMER_MS {
-      @failure.fail("\{name} must be at most \{MAX_TIMER_MS} milliseconds")
-    }
-  }
-  total.to_int()
 }
 
 ///|
@@ -129,26 +86,6 @@ fn reply_of(stdout : String) -> Reply {
 }
 
 ///|
-/// A Codex thread ID is a lower-case UUID.
-fn is_thread_id(text : String) -> Bool {
-  let units = text.code_units()
-  if units.length() != 36 {
-    return false
-  }
-  for index, unit in units {
-    let ok = match index {
-      8 | 13 | 18 | 23 => unit == '-'
-      _ => (unit >= '0' && unit <= '9') || (unit >= 'a' && unit <= 'f')
-    }
-    if !ok {
-      return false
-    }
-  }
-  true
-}
-
-///|
-/// The arguments of a review run: a new reviewer for the first head, the same reviewer resumed after.
 fn review_argv(
   reviewer : String?,
   checkout : String,
@@ -185,7 +122,6 @@ fn review_argv(
 }
 
 ///|
-/// The arguments of a question put to a reviewer that exists.
 fn ask_argv(reviewer : String) -> Array[String] {
   [
     "exec", "resume", reviewer, "--json", "-c", "sandbox_mode=\"read-only\"", "-",
@@ -222,16 +158,58 @@ fn verdict_of(answer : String) -> String? {
 }
 
 ///|
-fn matches_at(
-  units : ArrayView[UInt16],
-  at : Int32,
-  word : ArrayView[UInt16],
-) -> Bool {
-  if at + word.length() > units.length() {
+fn configured_binary(
+  env : @environment.Env,
+  name : String,
+  fallback : String,
+) -> String raise @failure.TaskFailed {
+  match env.get_nonempty(name) {
+    None => fallback
+    Some(path) =>
+      if path.has_prefix("/") {
+        path
+      } else {
+        @failure.fail("\{name} must be an absolute path")
+      }
+  }
+}
+
+///|
+fn milliseconds(
+  env : @environment.Env,
+  name : String,
+  fallback : Int32,
+) -> Int32 raise @failure.TaskFailed {
+  guard env.get_nonempty(name) is Some(value) else { return fallback }
+  let digits = value.code_units()
+  let valid = digits.length() >= 1 &&
+    digits[0] != '0' &&
+    digits.iter().all(unit => unit >= '0' && unit <= '9')
+  guard valid else {
+    @failure.fail("\{name} must be a positive number of milliseconds")
+  }
+  let mut total : Int64 = 0
+  for unit in digits {
+    total = total * 10L + (unit.to_int() - 48).to_int64()
+    if total > MAX_TIMER_MS {
+      @failure.fail("\{name} must be at most \{MAX_TIMER_MS} milliseconds")
+    }
+  }
+  total.to_int()
+}
+
+///|
+fn is_thread_id(text : String) -> Bool {
+  let units = text.code_units()
+  if units.length() != 36 {
     return false
   }
-  for index in 0..<word.length() {
-    if units[at + index] != word[index] {
+  for index, unit in units {
+    let ok = match index {
+      8 | 13 | 18 | 23 => unit == '-'
+      _ => (unit >= '0' && unit <= '9') || (unit >= 'a' && unit <= 'f')
+    }
+    if !ok {
       return false
     }
   }
@@ -263,4 +241,21 @@ fn skip_whitespace(units : ArrayView[UInt16], from : Int32) -> Int32 {
 ///|
 fn is_line_end(unit : UInt16) -> Bool {
   unit == '\n' || unit == '\r' || unit == 0x2028 || unit == 0x2029
+}
+
+///|
+fn matches_at(
+  units : ArrayView[UInt16],
+  at : Int32,
+  word : ArrayView[UInt16],
+) -> Bool {
+  if at + word.length() > units.length() {
+    return false
+  }
+  for index in 0..<word.length() {
+    if units[at + index] != word[index] {
+      return false
+    }
+  }
+  true
 }

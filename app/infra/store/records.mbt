@@ -64,13 +64,11 @@ pub fn read_json(path : String) -> Json raise @failure.TaskFailed {
 }
 
 ///|
-/// Removes a record; one that is already missing counts as removed.
 pub fn remove_record(path : String) -> Unit raise @failure.TaskFailed {
   io(() => remove_file(path))
 }
 
 ///|
-/// Runs a file operation and reports its failure the way the user sees it.
 fn[T] io(work : () -> T raise FileFailed) -> T raise @failure.TaskFailed {
   work() catch {
     failed => @failure.fail(failed.user_message())
@@ -78,7 +76,6 @@ fn[T] io(work : () -> T raise FileFailed) -> T raise @failure.TaskFailed {
 }
 
 ///|
-/// A record is a non-empty JSON object; null or an empty object reads as none.
 fn as_record(value : Json, path : String) -> Json? raise @failure.TaskFailed {
   match value {
     Null => None

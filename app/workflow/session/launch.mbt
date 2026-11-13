@@ -68,7 +68,6 @@ async fn launch_in(
 }
 
 ///|
-/// The session of a launch, kept per task.
 fn launch_session(
   env : @environment.Env,
   ports : Ports,
@@ -97,9 +96,8 @@ fn launch_session(
 }
 
 ///|
-/// Whether a recorded request asks for the task as the new one does.
-/// The name is only shown, so renaming a task still finds its worker.
 fn same_task(recorded : Json, data : Json) -> Bool {
+  // 表示名の変更で別のワーカーを起動しないよう、同一性の比較から名前を除く。
   recorded is Object(_) &&
   json_equal(without_name(recorded), without_name(data))
 }

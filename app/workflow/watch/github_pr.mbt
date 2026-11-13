@@ -2,13 +2,6 @@
 pub const NOT_LINKABLE : String = "the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>"
 
 ///|
-/// Whether the value is a github.com pull request URL, which is all the watch can see.
-/// Anything after the number must start with `/`, `?` or `#` and hold no whitespace, as when a URL is copied from the browser.
-fn is_github_pr(value : String) -> Bool {
-  github_pr_number(value) is Some(_)
-}
-
-///|
 pub fn github_pr_number(value : String) -> String? {
   let prefix = "https://github.com/"
   guard value.has_prefix(prefix) else { return None }
@@ -40,7 +33,13 @@ pub fn github_pr_number(value : String) -> String? {
 }
 
 ///|
-/// The position after a name of one or more characters GitHub allows and the slash that ends it.
+/// Whether the value is a github.com pull request URL, which is all the watch can see.
+/// Anything after the number must start with `/`, `?` or `#` and hold no whitespace, as when a URL is copied from the browser.
+fn is_github_pr(value : String) -> Bool {
+  github_pr_number(value) is Some(_)
+}
+
+///|
 fn after_name(units : Array[Int32], from : Int32) -> Int32? {
   let mut end = from
   while end < units.length() && is_name_char(units[end]) {
@@ -51,6 +50,11 @@ fn after_name(units : Array[Int32], from : Int32) -> Int32? {
   } else {
     None
   }
+}
+
+///|
+fn is_tail_start(unit : Int32) -> Bool {
+  unit == '/'.to_int() || unit == '?'.to_int() || unit == '#'.to_int()
 }
 
 ///|
@@ -78,9 +82,4 @@ fn is_name_char(unit : Int32) -> Bool {
 ///|
 fn is_digit(unit : Int32) -> Bool {
   unit >= '0'.to_int() && unit <= '9'.to_int()
-}
-
-///|
-fn is_tail_start(unit : Int32) -> Bool {
-  unit == '/'.to_int() || unit == '?'.to_int() || unit == '#'.to_int()
 }

@@ -1,15 +1,4 @@
 ///|
-#borrow(out)
-extern "C" fn errno_name_raw(
-  errno : Int32,
-  out : FixedArray[Byte],
-  cap : Int32,
-) -> Int32 = "harnexus_errno_name"
-
-///|
-extern "C" fn close_fd_raw(fd : Int32) -> Int32 = "harnexus_close_fd"
-
-///|
 /// The symbolic name of an errno, such as `ENOENT`, or `errno N` for one the table does not name.
 pub fn errno_name(errno : Int32) -> String {
   let out : FixedArray[Byte] = FixedArray::make(32, b'\x00')
@@ -25,3 +14,14 @@ pub fn errno_name(errno : Int32) -> String {
 pub fn close_fd(fd : Int32) -> Unit {
   ignore(close_fd_raw(fd))
 }
+
+///|
+#borrow(out)
+extern "C" fn errno_name_raw(
+  errno : Int32,
+  out : FixedArray[Byte],
+  cap : Int32,
+) -> Int32 = "harnexus_errno_name"
+
+///|
+extern "C" fn close_fd_raw(fd : Int32) -> Int32 = "harnexus_close_fd"

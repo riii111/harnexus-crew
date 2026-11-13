@@ -71,10 +71,10 @@ fn unknown(error : String) -> CallAnswer {
 }
 
 ///|
-/// The version only frames the line, so the records keep the answer as the first protocol gave it.
 fn answer_of(line : String) -> CallAnswer {
   let parsed = @jsonio.parse(line) catch { _ => Json::null() }
   if parsed is Object(members) {
+    // versionは通信の枠だけに使うため、保存する応答から取り除く。
     members.remove("version")
   }
   CallAnswer::of_json(parsed).unwrap_or(

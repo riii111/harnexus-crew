@@ -1,4 +1,10 @@
 ///|
+const OPEN : UInt16 = 0x7B
+
+///|
+const CLOSE : UInt16 = 0x7D
+
+///|
 /// An unknown name or a single brace fails.
 /// `refuse` names what is wrong with a value at the place it goes, or returns None to accept it.
 pub fn format(
@@ -59,12 +65,6 @@ pub fn refuse_unless_name(value : String) -> String? {
     Some("may hold only letters, digits, _ and - inside a link target")
   }
 }
-
-///|
-const OPEN : UInt16 = 0x7B
-
-///|
-const CLOSE : UInt16 = 0x7D
 
 ///|
 fn closing_brace(units : ArrayView[UInt16], from : Int32) -> Int32 {

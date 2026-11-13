@@ -21,11 +21,18 @@ pub async fn call(
 }
 
 ///|
-fn timeout_of(args : Array[String]) -> Int32 {
-  match args.get(0) {
-    Some("dry-run") => DRY_RUN_TIMEOUT_MS
-    _ => CALL_TIMEOUT_MS
+pub async fn hand_over(
+  env : @environment.Env,
+  which~ : (String) -> String?,
+) -> Json raise @failure.TaskFailed {
+  let engine = engine_of(env, which~)
+  let exited = @process.run_inherited(engine, ["watch"], env.to_map()) catch {
+    @boundary.CommandFailed(message~, ..) => @failure.fail(message)
   }
+  if exited != 0 {
+    @failure.fail("\{engine} watch exited with \{exited}")
+  }
+  { "watch": "stopped" }
 }
 
 ///|
@@ -60,16 +67,10 @@ async fn call_within(
 }
 
 ///|
-/// The pr-wake command, found on PATH unless an absolute path is set, so the watch is owned and updated by pr-wake alone.
-fn command_of(env : @environment.Env) -> String raise @failure.TaskFailed {
-  match env.get_nonempty(PR_WAKE_VARIABLE) {
-    None => "pr-wake"
-    Some(set) =>
-      if @path.is_absolute(set) {
-        set
-      } else {
-        @failure.fail("\{PR_WAKE_VARIABLE} must be an absolute path")
-      }
+fn timeout_of(args : Array[String]) -> Int32 {
+  match args.get(0) {
+    Some("dry-run") => DRY_RUN_TIMEOUT_MS
+    _ => CALL_TIMEOUT_MS
   }
 }
 
@@ -94,16 +95,15 @@ fn engine_of(
 }
 
 ///|
-pub async fn hand_over(
-  env : @environment.Env,
-  which~ : (String) -> String?,
-) -> Json raise @failure.TaskFailed {
-  let engine = engine_of(env, which~)
-  let exited = @process.run_inherited(engine, ["watch"], env.to_map()) catch {
-    @boundary.CommandFailed(message~, ..) => @failure.fail(message)
+/// The pr-wake command, found on PATH unless an absolute path is set, so the watch is owned and updated by pr-wake alone.
+fn command_of(env : @environment.Env) -> String raise @failure.TaskFailed {
+  match env.get_nonempty(PR_WAKE_VARIABLE) {
+    None => "pr-wake"
+    Some(set) =>
+      if @path.is_absolute(set) {
+        set
+      } else {
+        @failure.fail("\{PR_WAKE_VARIABLE} must be an absolute path")
+      }
   }
-  if exited != 0 {
-    @failure.fail("\{engine} watch exited with \{exited}")
-  }
-  { "watch": "stopped" }
 }

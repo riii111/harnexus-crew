@@ -150,7 +150,6 @@ fn text_or_none(value : Json?) -> String? {
 }
 
 ///|
-/// Removes the `  12<TAB>` that starts each line of a file read with line numbers.
 fn strip_line_numbers(text : String) -> String {
   let units = text.code_units()
   let out = StringBuilder()
@@ -178,7 +177,6 @@ fn strip_line_numbers(text : String) -> String {
 }
 
 ///|
-/// How many units the spaces, digits and tab of a line number take at `at`, or 0 when the line has none.
 fn line_number_width(units : ArrayView[UInt16], at : Int32) -> Int32 {
   let mut end = at
   while end < units.length() && units[end].to_int() == 32 {

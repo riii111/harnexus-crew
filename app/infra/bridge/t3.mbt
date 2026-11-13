@@ -6,17 +6,9 @@ priv struct T3Deps {
 }
 
 ///|
-/// Carries the harnexus App operations a task sends to T3 Code's t3 CLI, answering with the same outcomes.
-async fn call_t3(
-  deps : T3Deps,
-  tool : String,
-  args : Map[String, Json],
-) -> CallAnswer noraise {
-  match tool {
-    "create_thread" => start_thread(deps, args)
-    "send_message_to_thread" => send_message(deps, args)
-    _ => unsupported("T3 Code does not offer \{tool}")
-  }
+priv enum Ran {
+  Ran(String)
+  Refused(CallAnswer)
 }
 
 ///|
@@ -37,6 +29,33 @@ const BIN_VARIABLE : String = "HARNEXUS_T3_BIN"
 
 ///|
 const NO_THINKING : String = "T3 Code's t3 CLI cannot set a thinking level; leave out --thinking, and set it in T3 Code instead"
+
+///|
+/// A Codex App worker starts from the project's checked-out branch, and T3 Code needs that base named.
+const DEFAULT_WORKTREE_BASE : String = "HEAD"
+
+///|
+pub async fn call_t3_in(
+  env : @environment.Env,
+  tool : String,
+  args : Map[String, Json],
+  which~ : (String) -> String?,
+) -> CallAnswer noraise {
+  call_t3({ env, which, }, tool, args)
+}
+
+///|
+async fn call_t3(
+  deps : T3Deps,
+  tool : String,
+  args : Map[String, Json],
+) -> CallAnswer noraise {
+  match tool {
+    "create_thread" => start_thread(deps, args)
+    "send_message_to_thread" => send_message(deps, args)
+    _ => unsupported("T3 Code does not offer \{tool}")
+  }
+}
 
 ///|
 async fn start_thread(
@@ -118,31 +137,6 @@ async fn send_message(
 }
 
 ///|
-/// A Codex App worker starts from the project's checked-out branch, and T3 Code needs that base named.
-const DEFAULT_WORKTREE_BASE : String = "HEAD"
-
-///|
-fn worktree_base(target : Map[String, Json]) -> String? {
-  let environment = object_of(target.get("environment"))
-  guard environment.get("type") is Some(String("worktree")) else { return None }
-  let state = object_of(environment.get("startingState"))
-  match state.get("branchName") {
-    Some(String(branch)) => Some(branch)
-    _ => Some(DEFAULT_WORKTREE_BASE)
-  }
-}
-
-///|
-/// The provider instances T3 Code creates for Claude Code and Codex.
-fn provider_of(model : String) -> String {
-  if model.has_prefix("claude-") {
-    "claudeAgent"
-  } else {
-    "codex"
-  }
-}
-
-///|
 /// The model the thread runs on as T3 Code reports it, or null when it cannot tell.
 async fn model_of(deps : T3Deps, thread_id : String) -> Json noraise {
   let argv = ["thread", "show", thread_id, "--messages", "0", "--json"]
@@ -152,12 +146,6 @@ async fn model_of(deps : T3Deps, thread_id : String) -> Json noraise {
     return Json::null()
   }
   model
-}
-
-///|
-priv enum Ran {
-  Ran(String)
-  Refused(CallAnswer)
 }
 
 ///|
@@ -259,6 +247,26 @@ fn binary(deps : T3Deps) -> Result[String, String] {
 }
 
 ///|
+fn worktree_base(target : Map[String, Json]) -> String? {
+  let environment = object_of(target.get("environment"))
+  guard environment.get("type") is Some(String("worktree")) else { return None }
+  let state = object_of(environment.get("startingState"))
+  match state.get("branchName") {
+    Some(String(branch)) => Some(branch)
+    _ => Some(DEFAULT_WORKTREE_BASE)
+  }
+}
+
+///|
+fn provider_of(model : String) -> String {
+  if model.has_prefix("claude-") {
+    "claudeAgent"
+  } else {
+    "codex"
+  }
+}
+
+///|
 /// The one JSON object a --json command prints, on its last line.
 fn printed(stdout : String) -> Map[String, Json]? {
   let trimmed = @text.js_trim(stdout)
@@ -286,14 +294,4 @@ fn text_of(members : Map[String, Json], key : String) -> String? {
     Some(String(text)) => Some(text)
     _ => None
   }
-}
-
-///|
-pub async fn call_t3_in(
-  env : @environment.Env,
-  tool : String,
-  args : Map[String, Json],
-  which~ : (String) -> String?,
-) -> CallAnswer noraise {
-  call_t3({ env, which, }, tool, args)
 }

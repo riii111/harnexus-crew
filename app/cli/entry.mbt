@@ -1,5 +1,4 @@
 ///|
-/// Runs one invocation of the CLI and returns what it prints and the code it ends with.
 /// `argv` is the arguments after the program's name.
 /// `read_env` is called only once the arguments are accepted, so help and usage errors need no environment.
 pub async fn run(
@@ -21,7 +20,6 @@ async fn dispatch(
     [first, ..] => first
     [] => ""
   }
-  // adapter is outside the task commands' usage, as it is in the TypeScript build.
   if !@args.command_names().contains(command) && command != "adapter" {
     let help = command == "-h" || command == "--help"
     let usage = usage_of(@args.command_names(), @environment.NAME)
@@ -47,17 +45,6 @@ async fn dispatch(
 }
 
 ///|
-fn parse(
-  command : String,
-  rest : ArrayView[String],
-) -> Result[@args.Parsed, String] {
-  Ok(@args.parse_command(command, rest)) catch {
-    @args.UsageError(message) => Err(message)
-  }
-}
-
-///|
-/// A failure the user is meant to read ends the run with 1; anything else is a crash.
 async fn execute(
   command : @args.Command,
   read_env : () -> @environment.Env raise,
@@ -72,6 +59,16 @@ async fn execute(
   } catch {
     @failure.TaskFailed(message) => failure_run(message)
     other => raise other
+  }
+}
+
+///|
+fn parse(
+  command : String,
+  rest : ArrayView[String],
+) -> Result[@args.Parsed, String] {
+  Ok(@args.parse_command(command, rest)) catch {
+    @args.UsageError(message) => Err(message)
   }
 }
 

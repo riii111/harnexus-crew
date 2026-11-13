@@ -1,8 +1,4 @@
 ///|
-#borrow(path)
-extern "C" fn is_runnable_file_raw(path : Bytes) -> Int32 = "harnexus_is_runnable_file"
-
-///|
 /// Finds a program the way `Bun.which` does, so the TypeScript build and this one pick the same file.
 /// PATH is read from `env`.
 /// A relative PATH entry or name is taken from the working directory, an empty entry is skipped, and a path that is not a runnable regular file is passed over.
@@ -56,6 +52,24 @@ fn find(
 }
 
 ///|
+fn is_runnable_file(path : String) -> Bool {
+  if path.contains("\u{0}") {
+    return false
+  }
+  let bytes = @utf8.encode(path)
+  let terminated = Bytes::from_array(
+    Array::makei(bytes.length() + 1, i => {
+      if i < bytes.length() {
+        bytes[i]
+      } else {
+        b'\x00'
+      }
+    }),
+  )
+  is_runnable_file_raw(terminated) == 1
+}
+
+///|
 fn join_dir(dir : String, name : String) -> String {
   let mut end = dir.length()
   while end > 1 && dir[end - 1] == '/' {
@@ -78,19 +92,5 @@ fn strip_dot_slash(name : String) -> String {
 }
 
 ///|
-fn is_runnable_file(path : String) -> Bool {
-  if path.contains("\u{0}") {
-    return false
-  }
-  let bytes = @utf8.encode(path)
-  let terminated = Bytes::from_array(
-    Array::makei(bytes.length() + 1, i => {
-      if i < bytes.length() {
-        bytes[i]
-      } else {
-        b'\x00'
-      }
-    }),
-  )
-  is_runnable_file_raw(terminated) == 1
-}
+#borrow(path)
+extern "C" fn is_runnable_file_raw(path : Bytes) -> Int32 = "harnexus_is_runnable_file"

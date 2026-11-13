@@ -1,4 +1,10 @@
 ///|
+const RETRY_MS = 50
+
+///|
+const WAIT_MS = 30000
+
+///|
 /// Takes the lock at once or fails; the returned token proves it is this run's lock when releasing.
 /// A lock whose holder died is taken over, and of several runs doing that only one removes the lock.
 pub fn acquire(
@@ -48,12 +54,6 @@ pub fn release(lock : String, token : String) -> Unit {
 }
 
 ///|
-const RETRY_MS = 50
-
-///|
-const WAIT_MS = 30000
-
-///|
 /// Runs `work` while holding a lock file that every process on the machine respects, waiting for one held by another.
 /// A lock left by a dead process is taken over.
 /// After `wait_ms` without the lock it fails with the reason the last attempt failed.
@@ -83,34 +83,7 @@ pub async fn[T] with_lock(
 }
 
 ///|
-/// The JSON object a lock or its takeover file holds, or None when it is missing, unreadable, or not an object.
-fn held_by(path : String) -> Map[String, Json]? {
-  try {
-    match load(path) {
-      Object(members) => Some(members)
-      _ => None
-    }
-  } catch {
-    _ => None
-  }
-}
-
-///|
-fn dead(holder : Map[String, Json]) -> Bool {
-  match holder.get("pid") {
-    Some(Number(pid, ..)) => !process_alive(pid)
-    _ => false
-  }
-}
-
-///|
-fn abandoned_takeover(lock : String, takeover : String) -> String {
-  "a run that was taking over this session died before it finished, and left \{lock} and \{takeover}. " +
-  "Once every review and question process for this session has stopped, remove \{takeover}, then run again"
-}
-
-///|
-/// Takes the lock over from a dead holder: true when this run removed the lock it had observed.
+/// 死亡した保持者のロックを回収し、観測したロックを削除できたか返す。
 fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
   // A second exclusive file marks the takeover, so of several runs only one removes the lock, and only the one it saw.
   let takeover = "\{lock}.reap"
@@ -149,4 +122,31 @@ fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
     raise failed
   }
   same
+}
+
+///|
+/// ロック保持者の記録を読み、読み取れない記録は不明として返す。
+fn held_by(path : String) -> Map[String, Json]? {
+  try {
+    match load(path) {
+      Object(members) => Some(members)
+      _ => None
+    }
+  } catch {
+    _ => None
+  }
+}
+
+///|
+fn dead(holder : Map[String, Json]) -> Bool {
+  match holder.get("pid") {
+    Some(Number(pid, ..)) => !process_alive(pid)
+    _ => false
+  }
+}
+
+///|
+fn abandoned_takeover(lock : String, takeover : String) -> String {
+  "a run that was taking over this session died before it finished, and left \{lock} and \{takeover}. " +
+  "Once every review and question process for this session has stopped, remove \{takeover}, then run again"
 }

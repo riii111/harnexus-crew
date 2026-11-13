@@ -11,6 +11,12 @@ pub struct Git {
 }
 
 ///|
+/// Repository config never starts helpers or transports, because the command runs unsandboxed.
+let git_safety : Array[String] = [
+  "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "protocol.allow=never",
+]
+
+///|
 pub fn Git::new(runner : GitRunner, env : @environment.Env) -> Git {
   { runner, env, }
 }
@@ -22,12 +28,6 @@ pub fn Git::of_env(env : @environment.Env) -> Git {
     env,
   )
 }
-
-///|
-/// Repository config never starts helpers or transports, because the command runs unsandboxed.
-let git_safety : Array[String] = [
-  "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "protocol.allow=never",
-]
 
 ///|
 /// Runs `git -C checkout args` and returns its trimmed output; a failing status becomes the failure, with the reminder that nothing is fetched.

@@ -4,6 +4,9 @@ pub struct Env {
 }
 
 ///|
+pub const NAME : String = "harnexus-crew"
+
+///|
 pub fn Env::new(vars : Map[String, String]) -> Env {
   { vars, }
 }
@@ -39,11 +42,6 @@ pub fn Env::home(self : Env) -> String {
 }
 
 ///|
-fn Env::codex_home(self : Env) -> String {
-  absolute_or(self.get("CODEX_HOME"), @path.join([self.home(), ".codex"]))
-}
-
-///|
 pub fn Env::config_home(self : Env) -> String {
   @path.join([
     absolute_or(
@@ -66,26 +64,11 @@ pub fn Env::state_root(self : Env) -> String {
 }
 
 ///|
-/// Resolved as the t3 CLI resolves it.
 pub fn Env::t3_home(self : Env) -> String {
   match self.get("T3CODE_HOME") {
     Some(set) if is_absolute(set) => set
     _ => @path.join([self.home(), ".t3"])
   }
-}
-
-///|
-/// A relative directory is ignored, as the XDG spec has it, so the working directory never picks the templates or the state.
-fn absolute_or(value : String?, fallback : String) -> String {
-  match value {
-    Some(set) if is_absolute(set) => set
-    _ => fallback
-  }
-}
-
-///|
-fn is_absolute(path : String) -> Bool {
-  @path.is_absolute(path)
 }
 
 ///|
@@ -97,4 +80,20 @@ pub fn Env::worktrees(self : Env, app : App) -> String {
 }
 
 ///|
-pub const NAME : String = "harnexus-crew"
+fn Env::codex_home(self : Env) -> String {
+  absolute_or(self.get("CODEX_HOME"), @path.join([self.home(), ".codex"]))
+}
+
+///|
+fn absolute_or(value : String?, fallback : String) -> String {
+  match value {
+    Some(set) if is_absolute(set) => set
+    // 相対パスは作業ディレクトリによって保存先が変わるため、XDGの規約に従って無視する。
+    _ => fallback
+  }
+}
+
+///|
+fn is_absolute(path : String) -> Bool {
+  @path.is_absolute(path)
+}

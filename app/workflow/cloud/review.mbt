@@ -1,4 +1,13 @@
 ///|
+priv struct Context {
+  env : @environment.Env
+  probe : @request.FileProbe
+  git : @git.Git
+  prompt : (Map[String, String]) -> String raise @failure.TaskFailed
+  save : (String, Json) -> Unit raise @failure.TaskFailed
+}
+
+///|
 /// Reviews in a Claude Code cloud session with a Codex CLI run beside the worker, answering with its result instead of a chat in the app.
 /// With `ask`, passes that message to the same reviewer instead.
 pub async fn review(
@@ -40,39 +49,6 @@ async fn review_in(
 }
 
 ///|
-/// What one run works with.
-/// A test replaces the parts that reach Git, the templates and the state files.
-priv struct Context {
-  env : @environment.Env
-  probe : @request.FileProbe
-  git : @git.Git
-  prompt : (Map[String, String]) -> String raise @failure.TaskFailed
-  save : (String, Json) -> Unit raise @failure.TaskFailed
-}
-
-///|
-fn Context::of_env(env : @environment.Env) -> Context {
-  {
-    env,
-    probe: @request.FileProbe::of_machine(),
-    git: @git.Git::of_env(env),
-    prompt: fields => @prompt.task_prompt(env, Reviewer, fields),
-    save: (path, data) => @store.save_json(path, data, exclusive=false),
-  }
-}
-
-///|
-/// Reads a review request, whose checkout may be any repository's top level because no app project is involved.
-async fn read_request(
-  ctx : Context,
-  path : String,
-) -> @request.ReviewRequest raise @failure.TaskFailed {
-  let json = @store.read_json(path)
-  @request.ReviewRequest::from_json(json, Cloud, ctx.probe, ctx.git)
-}
-
-///|
-/// Sends the candidate to the task's reviewer, in a new Codex thread the first time and in the same one after.
 async fn reviewed(
   ctx : Context,
   args : @workflow.ReviewInput,
@@ -191,6 +167,90 @@ async fn reviewed(
 }
 
 ///|
+/// Passes a message, such as a question the user asked in the reviewer's chat, to the task's reviewer, answering with its reply.
+/// The reviewer's verdict and the reviewed head stay as they were.
+async fn asked(
+  ctx : Context,
+  ask : String,
+  directory : String,
+  request : @request.ReviewRequest,
+) -> Json raise @failure.TaskFailed {
+  let message = @store.read_regular_text(ask) catch {
+    failed => @failure.fail(failed.user_message())
+  }
+  if @text.js_trim(message) == "" {
+    @failure.fail("the --ask file is empty")
+  }
+  let state = @store.read_records(directory).state
+  guard reviewer_of(state) is Some(reviewer) else {
+    @failure.fail("this task has no reviewer yet; run review first")
+  }
+  let launch = Launch::of_env(ctx.env)
+  let run = @process.run_process(
+    launch.bin,
+    ask_argv(reviewer)[:],
+    message,
+    cwd=request.checkout,
+    env=ctx.env.to_map(),
+    timeout_ms=launch.timeout_ms,
+    kill_grace_ms=launch.kill_grace_ms,
+  ) catch {
+    @boundary.ProcessRunFailed(message~, ..) => @failure.fail(message)
+  }
+  if !(run.ended is Exit) {
+    @failure.fail(
+      "codex was stopped (\{stop_reason(run.ended)}) in reviewer \{reviewer}; it may have answered, so check before asking again",
+    )
+  }
+  let reply = reply_of(run.stdout)
+  guard run.status == 0 && reply.failure is None && reply.answer is Some(answer) else {
+    let cause = match reply.failure {
+      Some(failure) => failure
+      None => run.stderr
+    }
+    @failure.fail(
+      "reviewer \{reviewer} did not answer (exit \{run.status}): \{@text.excerpt(cause)}",
+    )
+  }
+  let reviewed = field_of(state, "candidate")
+  Json::object({
+    "status": Json::string("completed"),
+    "kind": Json::string("reply"),
+    // Tells this reply from another of the same text, such as the same answer to a question asked again.
+    "askedAt": Json::string(@store.now_iso()),
+    "verdict": match verdict_of(answer) {
+      Some(verdict) => Json::string(verdict)
+      None => Json::null()
+    },
+    "taskId": Json::string(request.task_id),
+    "head": @jsonio.field(reviewed, "head"),
+    "reviewer": Json::string(reviewer),
+    "answer": Json::string(answer),
+  })
+}
+
+///|
+fn Context::of_env(env : @environment.Env) -> Context {
+  {
+    env,
+    probe: @request.FileProbe::of_machine(),
+    git: @git.Git::of_env(env),
+    prompt: fields => @prompt.task_prompt(env, Reviewer, fields),
+    save: (path, data) => @store.save_json(path, data, exclusive=false),
+  }
+}
+
+///|
+/// Reads a review request, whose checkout may be any repository's top level because no app project is involved.
+async fn read_request(
+  ctx : Context,
+  path : String,
+) -> @request.ReviewRequest raise @failure.TaskFailed {
+  let json = @store.read_json(path)
+  @request.ReviewRequest::from_json(json, Cloud, ctx.probe, ctx.git)
+}
+
+///|
 /// A review session keeps its task, worker AI and checkout.
 /// A head the reviewer could not judge is sent again once what it lacked is given, such as a document it could not read.
 fn check_continuation(
@@ -294,69 +354,6 @@ fn review_reply(
       }
   }
   (thread, answer)
-}
-
-///|
-/// Passes a message, such as a question the user asked in the reviewer's chat, to the task's reviewer, answering with its reply.
-/// The reviewer's verdict and the reviewed head stay as they were.
-async fn asked(
-  ctx : Context,
-  ask : String,
-  directory : String,
-  request : @request.ReviewRequest,
-) -> Json raise @failure.TaskFailed {
-  let message = @store.read_regular_text(ask) catch {
-    failed => @failure.fail(failed.user_message())
-  }
-  if @text.js_trim(message) == "" {
-    @failure.fail("the --ask file is empty")
-  }
-  let state = @store.read_records(directory).state
-  guard reviewer_of(state) is Some(reviewer) else {
-    @failure.fail("this task has no reviewer yet; run review first")
-  }
-  let launch = Launch::of_env(ctx.env)
-  let run = @process.run_process(
-    launch.bin,
-    ask_argv(reviewer)[:],
-    message,
-    cwd=request.checkout,
-    env=ctx.env.to_map(),
-    timeout_ms=launch.timeout_ms,
-    kill_grace_ms=launch.kill_grace_ms,
-  ) catch {
-    @boundary.ProcessRunFailed(message~, ..) => @failure.fail(message)
-  }
-  if !(run.ended is Exit) {
-    @failure.fail(
-      "codex was stopped (\{stop_reason(run.ended)}) in reviewer \{reviewer}; it may have answered, so check before asking again",
-    )
-  }
-  let reply = reply_of(run.stdout)
-  guard run.status == 0 && reply.failure is None && reply.answer is Some(answer) else {
-    let cause = match reply.failure {
-      Some(failure) => failure
-      None => run.stderr
-    }
-    @failure.fail(
-      "reviewer \{reviewer} did not answer (exit \{run.status}): \{@text.excerpt(cause)}",
-    )
-  }
-  let reviewed = field_of(state, "candidate")
-  Json::object({
-    "status": Json::string("completed"),
-    "kind": Json::string("reply"),
-    // Tells this reply from another of the same text, such as the same answer to a question asked again.
-    "askedAt": Json::string(@store.now_iso()),
-    "verdict": match verdict_of(answer) {
-      Some(verdict) => Json::string(verdict)
-      None => Json::null()
-    },
-    "taskId": Json::string(request.task_id),
-    "head": @jsonio.field(reviewed, "head"),
-    "reviewer": Json::string(reviewer),
-    "answer": Json::string(answer),
-  })
 }
 
 ///|

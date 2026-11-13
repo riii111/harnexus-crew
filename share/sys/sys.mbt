@@ -1,5 +1,4 @@
 ///|
-/// The OS families the CLI supports.
 pub enum Platform {
   Darwin
   Linux
@@ -7,11 +6,9 @@ pub enum Platform {
 }
 
 ///|
-extern "C" fn platform_raw() -> Int32 = "harnexus_platform"
-
-///|
-#borrow(bytes)
-extern "C" fn write_all_raw(fd : Int32, bytes : Bytes, len : Int32) -> Int32 = "harnexus_write_all"
+pub suberror WriteFailed {
+  WriteFailed(fd~ : Int32, errno~ : Int32)
+}
 
 ///|
 pub fn platform() -> Platform {
@@ -20,11 +17,6 @@ pub fn platform() -> Platform {
     2 => Linux
     _ => Other
   }
-}
-
-///|
-pub suberror WriteFailed {
-  WriteFailed(fd~ : Int32, errno~ : Int32)
 }
 
 ///|
@@ -46,3 +38,10 @@ pub fn c_string(text : String) -> Bytes? {
   }
   Some(@utf8.encode(text + "\u{0}"))
 }
+
+///|
+extern "C" fn platform_raw() -> Int32 = "harnexus_platform"
+
+///|
+#borrow(bytes)
+extern "C" fn write_all_raw(fd : Int32, bytes : Bytes, len : Int32) -> Int32 = "harnexus_write_all"

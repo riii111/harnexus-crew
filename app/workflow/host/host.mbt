@@ -87,7 +87,7 @@ async fn codex_review_project(
 }
 
 ///|
-/// A reviewer reads the worker's checkout by its path, so it runs in an empty project rather than a worktree of its own that counts toward the app's worktree limit.
 fn review_home(env : @environment.Env) -> String {
+  // レビューの開始で専用worktreeを増やさないよう、既存の空プロジェクトを使う。
   @store.real_path_or_self(@path.join([env.home(), "review-home"]))
 }

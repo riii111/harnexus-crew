@@ -13,7 +13,24 @@ pub fn parse(text : String) -> Json raise JsonError {
 }
 
 ///|
-/// The standard parser refuses a whole document for one unpaired surrogate escape, which JS `JSON.stringify` writes for such a string.
+/// A member of a record, Null when the record has none or is not an object.
+pub fn field(record : Json, key : String) -> Json {
+  match record {
+    Object(members) => members.get(key).unwrap_or(Json::null())
+    _ => Json::null()
+  }
+}
+
+///|
+/// A string as it is, any other value as JSON.
+pub fn as_text(value : Json) -> String {
+  match value {
+    String(text) => text
+    other => other.stringify()
+  }
+}
+
+///|
 fn replace_unpaired_escapes(text : String) -> String {
   let units = text.code_units()
   let out = StringBuilder()
@@ -28,6 +45,7 @@ fn replace_unpaired_escapes(text : String) -> String {
       match surrogate_escape(units, at) {
         Some(0xD800..<=0xDBFF) if surrogate_escape(units, at + 6)
           is Some(0xDC00..<=0xDFFF) => at += 12
+        // JSが出力する孤立サロゲートで文書全体を拒否しないよう、標準パーサへ渡す前に置換する。
         Some(_) => {
           out.write_view(text.exact_view(start=copied, end=at))
           out.write_string("\\ufffd")
@@ -49,7 +67,6 @@ fn replace_unpaired_escapes(text : String) -> String {
 }
 
 ///|
-/// The surrogate a `\uXXXX` escape at `at` writes, or None for any other escape.
 fn surrogate_escape(units : ArrayView[UInt16], at : Int32) -> Int32? {
   guard at + 6 <= units.length() && units[at] == '\\' && units[at + 1] == 'u' else {
     return None
@@ -68,23 +85,5 @@ fn surrogate_escape(units : ArrayView[UInt16], at : Int32) -> Int32? {
     Some(code)
   } else {
     None
-  }
-}
-
-///|
-/// A member of a record, Null when the record has none or is not an object.
-pub fn field(record : Json, key : String) -> Json {
-  match record {
-    Object(members) => members.get(key).unwrap_or(Json::null())
-    _ => Json::null()
-  }
-}
-
-///|
-/// A string as it is, any other value as JSON.
-pub fn as_text(value : Json) -> String {
-  match value {
-    String(text) => text
-    other => other.stringify()
   }
 }

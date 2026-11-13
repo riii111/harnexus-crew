@@ -6,17 +6,6 @@ priv struct Parts {
 }
 
 ///|
-fn build_parts(env : @environment.Env) -> Parts raise @failure.TaskFailed {
-  let root = observation_root(env)
-  let locks = @path.join([root, "locks"])
-  {
-    store: ReviewStore::new(reviews_directory(env), locks),
-    observations: Observations::new(root),
-    locks,
-  }
-}
-
-///|
 pub async fn serve(
   env : @environment.Env,
   adapter_id : String,
@@ -48,4 +37,15 @@ pub async fn serve(
     })
     adapter.finish()
   })
+}
+
+///|
+fn build_parts(env : @environment.Env) -> Parts raise @failure.TaskFailed {
+  let root = observation_root(env)
+  let locks = @path.join([root, "locks"])
+  {
+    store: ReviewStore::new(reviews_directory(env), locks),
+    observations: Observations::new(root),
+    locks,
+  }
 }

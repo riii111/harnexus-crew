@@ -60,6 +60,7 @@ pub async fn run_command(
         Some("ERR_CHILD_PROCESS_STDIO_MAXBUFFER"),
       )
     Code(status) =>
+      // チャンクの境界でUTF-8文字を壊さないよう、全出力を集めてから復号する。
       {
         status,
         stdout: @utf8.decode_lossy(capture.stdout.to_bytes()),

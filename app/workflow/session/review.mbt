@@ -11,6 +11,21 @@ pub async fn review(
 }
 
 ///|
+/// A review session keeps the members named, so a request that differs in one of them starts a session of its own.
+/// A Cloud review keeps fewer members than an app one, so the caller names them.
+pub fn check_kept(
+  previous : Json,
+  current : Json,
+  keys : Array[String],
+) -> Unit raise @failure.TaskFailed {
+  for key in keys {
+    if !json_equal(session_value(previous, key), session_value(current, key)) {
+      @failure.fail("review session must keep the original \{key}")
+    }
+  }
+}
+
+///|
 async fn review_in(
   ctx : Context,
   args : @workflow.ReviewInput,
@@ -103,7 +118,6 @@ async fn review_in(
 }
 
 ///|
-/// Reads and checks a review request: its checkout must be a worker's worktree of the app.
 async fn review_request_of(
   ctx : Context,
   path : String,
@@ -117,7 +131,6 @@ async fn review_request_of(
 }
 
 ///|
-/// The session of a review, kept per checkout and worker chat.
 fn review_session(
   env : @environment.Env,
   ports : Ports,
@@ -177,14 +190,14 @@ fn review_session(
 }
 
 ///|
-/// The first value that is not null, as `a ?? b ?? c` picks it.
-fn first_set(values : Array[Json]) -> Json {
-  for value in values {
-    if !(value is Null) {
-      return value
-    }
+/// A member of a request as the session compares it: the checkout by its real path.
+fn session_value(request : Json, key : String) -> Json {
+  let value = @jsonio.field(request, key)
+  if key == "checkout" && truthy(value) {
+    Json::string(@store.real_path_or_self(@jsonio.as_text(value)))
+  } else {
+    value
   }
-  Json::null()
 }
 
 ///|
@@ -194,27 +207,11 @@ let app_session_keys : Array[String] = [
 ]
 
 ///|
-/// A review session keeps the members named, so a request that differs in one of them starts a session of its own.
-/// A Cloud review keeps fewer members than an app one, so the caller names them.
-pub fn check_kept(
-  previous : Json,
-  current : Json,
-  keys : Array[String],
-) -> Unit raise @failure.TaskFailed {
-  for key in keys {
-    if !json_equal(session_value(previous, key), session_value(current, key)) {
-      @failure.fail("review session must keep the original \{key}")
+fn first_set(values : Array[Json]) -> Json {
+  for value in values {
+    if !(value is Null) {
+      return value
     }
   }
-}
-
-///|
-/// A member of a request as the session compares it: the checkout by its real path.
-fn session_value(request : Json, key : String) -> Json {
-  let value = @jsonio.field(request, key)
-  if key == "checkout" && truthy(value) {
-    Json::string(@store.real_path_or_self(@jsonio.as_text(value)))
-  } else {
-    value
-  }
+  Json::null()
 }
