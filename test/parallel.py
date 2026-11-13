@@ -1,6 +1,6 @@
 """Runs the acceptance tests in several unittest processes at once and prints each process's report.
 
-usage: python3 test/parallel.py [-j PROCESSES] [unittest options such as -v]
+usage: python3 test/parallel.py [-j PROCESSES] [-k PATTERN]... [unittest options such as -v]
 """
 
 import argparse
@@ -35,9 +35,14 @@ def run_shard(ids, options):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-j", "--processes", type=int, default=3)
+    parser.add_argument("-k", dest="patterns", action="append", default=[])
     args, options = parser.parse_known_args()
     os.chdir(HERE)
-    ids = list(test_ids(unittest.defaultTestLoader.discover(".", top_level_dir=".")))
+    loader = unittest.TestLoader()
+    # The processes are handed test IDs, which unittest runs without applying -k, so the patterns are applied here, the way unittest reads them.
+    if args.patterns:
+        loader.testNamePatterns = [pattern if "*" in pattern else f"*{pattern}*" for pattern in args.patterns]
+    ids = list(test_ids(loader.discover(".", top_level_dir=".")))
     # Tests of one module sit next to each other in discovery order, so dealing them out in turn spreads the slow modules over every process.
     shards = [ids[k :: args.processes] for k in range(args.processes) if ids[k :: args.processes]]
     with ThreadPoolExecutor(len(shards)) as pool:
