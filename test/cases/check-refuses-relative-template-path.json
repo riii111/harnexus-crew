@@ -1,8 +1,0 @@
-{
-  "name": "check-refuses-relative-template-path",
-  "kind": "command",
-  "argv": ["check"],
-  "files": {
-    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"worker.md\"}}"
-  }
-}

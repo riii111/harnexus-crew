@@ -7,7 +7,6 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 CASES = REPO / "test" / "cases"
 
-SCOPES = ("stdout", "stderr", "requests", "commands", "files", "lines")
 KINDS = ("command", "session")
 MODES = ("json", "lines", "exact")
 DEFAULT_SNAPSHOT = ["config", "state", "work", "home/.local", "home/.config"]
@@ -31,7 +30,6 @@ class Case:
     bridge: list | None = None
     commands: dict = field(default_factory=dict)
     snapshot: list = field(default_factory=lambda: list(DEFAULT_SNAPSHOT))
-    normalize: list = field(default_factory=list)
     compare: dict = field(default_factory=dict)
 
 
@@ -55,7 +53,7 @@ def parse_case(data):
     _check(isinstance(name, str) and name != "", "case", "name must be a non-empty string")
     allowed = {
         "name", "kind", "argv", "env", "stdin", "steps", "files", "seed",
-        "git", "bridge", "commands", "snapshot", "normalize", "compare",
+        "git", "bridge", "commands", "snapshot", "compare",
     }
     _check(set(data) <= allowed, name, f"unknown members {sorted(set(data) - allowed)}")
     _check(data.get("kind") in KINDS, name, "kind is unknown")
@@ -86,9 +84,6 @@ def parse_case(data):
     for command in data.get("commands", {}).values():
         _check(set(command) <= {"stdout", "stderr", "exit"}, name, "a command has stdout, stderr and exit")
     _check(_strings(data.get("snapshot", [])), name, "snapshot must be strings")
-    for rule in data.get("normalize", []):
-        _check(set(rule) == {"pattern", "with", "scopes"}, name, "a rule has pattern, with and scopes")
-        _check(rule["pattern"] != "" and rule["scopes"] and set(rule["scopes"]) <= set(SCOPES), name, "a rule is invalid")
     compare = data.get("compare", {})
     _check(set(compare) <= {"stdout", "stderr"} and set(compare.values()) <= set(MODES), name, "compare is invalid")
     return Case(
@@ -104,7 +99,6 @@ def parse_case(data):
         bridge=data.get("bridge"),
         commands=data.get("commands", {}),
         snapshot=data.get("snapshot", list(DEFAULT_SNAPSHOT)),
-        normalize=data.get("normalize", []),
         compare=compare,
     )
 

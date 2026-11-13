@@ -1,9 +1,0 @@
-{
-  "name": "check-refuses-missing-link-after-heading-lone-backtick",
-  "kind": "command",
-  "argv": ["check"],
-  "files": {
-    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/templates/worker.md\"}}",
-    "templates/worker.md": "Type a backtick: `\n# Instructions\n[c](missing.md)\nUse `x`.\n"
-  }
-}

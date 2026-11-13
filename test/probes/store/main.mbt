@@ -14,15 +14,6 @@ async fn main {
     "read" => read_text(args)
     "read-regular" => read_regular(args)
     "save-json" => save_record(args)
-    "state-directory" =>
-      object([
-        (
-          "path",
-          Json::string(
-            @storage.state_directory(arg(args, 2), arg(args, 3), arg(args, 4)),
-          ),
-        ),
-      ])
     _ => object([("error", Json::string("unknown command \{command}"))])
   }
   emit(line)

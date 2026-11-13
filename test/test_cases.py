@@ -21,7 +21,7 @@ def _make(case):
         differences = compare(
             case,
             expected.expected_for("cases", case.name, root),
-            normalize(observed, case, root),
+            normalize(observed, root),
         )
         self.assertEqual([], differences, json.dumps(differences, ensure_ascii=False, indent=1))
 
