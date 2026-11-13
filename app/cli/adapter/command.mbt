@@ -1,6 +1,6 @@
 ///|
-/// `argv` is the arguments after `adapter`.
-/// `read_env` is called only once the arguments are accepted and the command needs the environment.
+/// argv    : Arguments after `adapter`.
+/// read_env: Called only once the arguments are accepted and the command needs the environment.
 pub async fn run(
   argv : ArrayView[String],
   read_env : () -> @environment.Env raise,

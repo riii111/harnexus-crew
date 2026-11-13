@@ -7,7 +7,8 @@ pub(all) struct Ports {
 }
 
 ///|
-/// `state.json` holds what was confirmed; `pending.json` holds a send whose result is unknown and blocks any resend.
+/// state.json  : Confirmed state.
+/// pending.json: A send whose result is unknown; blocks resending.
 priv struct Session {
   ports : Ports
   state_path : String
