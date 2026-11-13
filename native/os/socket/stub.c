@@ -52,6 +52,6 @@ int32_t harnexus_socket_connect(int32_t fd, moonbit_bytes_t path) {
 // Whether a connect errno means "not yet", to be retried until the deadline.
 MOONBIT_FFI_EXPORT
 int32_t harnexus_socket_connect_pending(int32_t err) {
-  return err == EAGAIN || err == EWOULDBLOCK || err == EINPROGRESS ||
-         err == EALREADY || err == EINTR;
+  return err == EAGAIN || err == EWOULDBLOCK || err == EINPROGRESS || err == EALREADY ||
+         err == EINTR;
 }

@@ -37,11 +37,11 @@ static void append(struct records *out, const void *bytes, size_t size) {
 
 static void record(struct records *out, unsigned char kind, const MD_ATTRIBUTE *attribute) {
   unsigned char head[5] = {
-    kind,
-    (unsigned char)(attribute->size & 0xff),
-    (unsigned char)((attribute->size >> 8) & 0xff),
-    (unsigned char)((attribute->size >> 16) & 0xff),
-    (unsigned char)((attribute->size >> 24) & 0xff),
+      kind,
+      (unsigned char)(attribute->size & 0xff),
+      (unsigned char)((attribute->size >> 8) & 0xff),
+      (unsigned char)((attribute->size >> 16) & 0xff),
+      (unsigned char)((attribute->size >> 24) & 0xff),
   };
   append(out, head, sizeof head);
   append(out, attribute->text, attribute->size);
@@ -58,11 +58,15 @@ static int enter_span(MD_SPANTYPE type, void *detail, void *userdata) {
 
 static int ignore_block(MD_BLOCKTYPE type, void *detail, void *userdata) { return 0; }
 static int ignore_span(MD_SPANTYPE type, void *detail, void *userdata) { return 0; }
-static int ignore_text(MD_TEXTTYPE type, const MD_CHAR *text, MD_SIZE size, void *userdata) { return 0; }
+static int ignore_text(MD_TEXTTYPE type, const MD_CHAR *text, MD_SIZE size, void *userdata) {
+  return 0;
+}
 
 // Tables, strikethrough and task lists are what Bun.markdown.render reads by default.
 // The two NO flags are what the templates turn on, because prompts wrap sections in tags and indent prose.
-#define TEMPLATE_FLAGS (MD_FLAG_TABLES | MD_FLAG_STRIKETHROUGH | MD_FLAG_TASKLISTS | MD_FLAG_NOHTMLBLOCKS | MD_FLAG_NOINDENTEDCODEBLOCKS)
+#define TEMPLATE_FLAGS                                                                             \
+  (MD_FLAG_TABLES | MD_FLAG_STRIKETHROUGH | MD_FLAG_TASKLISTS | MD_FLAG_NOHTMLBLOCKS |             \
+   MD_FLAG_NOINDENTEDCODEBLOCKS)
 
 static moonbit_bytes_t reply(unsigned char status, const struct records *out) {
   moonbit_bytes_t result = moonbit_make_bytes((int32_t)(1 + out->length), 0);

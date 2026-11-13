@@ -35,6 +35,8 @@ jobs:
         run: moon fmt --check
       - name: Check warnings
         run: moon check --deny-warn
+      - name: Check C
+        run: scripts/check-c.sh
       - name: Check public interfaces
         run: |
           moon info
@@ -42,6 +44,9 @@ jobs:
           git diff --exit-code -- '*.mbti'
       - name: Test
         run: moon test
+      - name: Test with sanitizers
+        if: runner.os == 'Linux'
+        run: scripts/test-sanitized.sh
       - name: Build native release
         run: moon build --target native --release
       - name: Run the acceptance tests
