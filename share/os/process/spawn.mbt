@@ -45,9 +45,10 @@ const SIGTERM : Int32 = 15
 const SIGKILL : Int32 = 9
 
 ///|
-/// Starts a command whose environment is exactly `env`.
-/// With `new_session` it leads its own session and process group, which `Child::signal` reaches with `group`.
-/// With `piped` its stdin, stdout and stderr are pipes; otherwise it shares this process's.
+/// Starts a command.
+/// env        : The command's exact environment.
+/// new_session: When true, the command leads its own session and process group, which `Child::signal` reaches with `group`.
+/// piped      : When true, stdin, stdout and stderr are pipes; otherwise they are shared with this process.
 /// Returns only once exec has succeeded, so a failure here means the command never ran.
 fn spawn(
   file : String,

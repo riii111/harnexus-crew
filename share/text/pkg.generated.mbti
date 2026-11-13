@@ -2,8 +2,6 @@
 package "riii111/harnexus-crew/share/text"
 
 // Values
-pub fn compare_utf16(String, String) -> Int32
-
 pub fn excerpt(String) -> String
 
 pub fn has_space(String) -> Bool

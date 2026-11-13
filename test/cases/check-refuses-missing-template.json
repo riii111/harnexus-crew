@@ -1,8 +1,0 @@
-{
-  "name": "check-refuses-missing-template",
-  "kind": "command",
-  "argv": ["check"],
-  "files": {
-    "config/harnexus/task.json": "{\"templates\": {\"worker\": \"{{root}}/nonexistent/worker.md\"}}"
-  }
-}

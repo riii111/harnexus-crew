@@ -5,7 +5,6 @@ import {
   "riii111/harnexus-crew/share/failure",
   "riii111/harnexus-crew/share/os/socket",
   "riii111/harnexus-crew/share/path",
-  "riii111/harnexus-crew/share/text",
 }
 
 options(

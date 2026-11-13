@@ -154,6 +154,41 @@ async test "E4 a program that exits 127 is a result, not a start failure" {
 }
 
 ///|
+fn spawn_missing_with_stdio_closed() -> (Int32, Int32, Int32) raise {
+  let saved = @testkit.close_stdio()
+  let before = @testkit.open_fds()
+  // The synchronous `spawn` is called directly because a print or a wait while descriptors 0 to 2 are closed would hit the test runner's own output.
+  let errno = try {
+    let child = spawn(
+      "/nonexistent/cmd",
+      [],
+      plain_env(),
+      "/",
+      piped=true,
+      new_session=true,
+    )
+    child.stop_and_reap()
+    child.release_pipes()
+    0
+  } catch {
+    SpawnFailed(errno~) => errno
+    InvalidArgument => -1
+  }
+  let after = @testkit.open_fds()
+  @testkit.restore_stdio(saved)
+  (errno, before, after)
+}
+
+///|
+async test "a missing command never started even when stdin, stdout and stderr are closed" {
+  serial(() => {
+    let (errno, before, after) = spawn_missing_with_stdio_closed()
+    assert_eq(errno, 2)
+    assert_eq(after, before)
+  })
+}
+
+///|
 async test "P1 stdin reaches the command and a character split across writes is read whole" {
   serial(() => {
     assert_eq(

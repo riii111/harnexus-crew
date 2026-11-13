@@ -172,8 +172,8 @@ pub enum Detection {
 }
 
 ///|
-/// `AskSocket` carries the call socket whose acceptance of a connection makes the answer local.
-/// `NothingToAsk` is for a socket setting that names no usable path.
+/// AskSocket   : Carries the call socket whose acceptance of a connection makes the answer local.
+/// NothingToAsk: The socket setting names no usable path.
 pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
   match declared_environment(env) {
     Some(declared) => return Settled(declared)

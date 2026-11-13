@@ -44,7 +44,6 @@ python3 -m unittest discover -s test # 1つのプロセスで順に動かす
 | `bridge`                           | 模擬ブリッジの応答計画。接続ごとの要求を記録し、`drop`（応答せず切断）や `silent`（無応答）も返せる                                   |
 | `commands`                         | PATH先頭に置く外部コマンドの模擬。引数と標準入力を記録する。標準入力は、300ms届かなければ空として扱う                                 |
 | `snapshot`                         | 比較する状態ディレクトリ（既定は config、state、work、home/.local、home/.config）                                                     |
-| `normalize`                        | 既定の置換に加える事例ごとの置換。`pattern`、`with`、適用先 `scopes` を指定する                                                       |
 | `compare`                          | `stdout` と `stderr` の比較方法（`json`、`lines`、`exact`）。既定は `command` が `json`、`session` が `lines`、`stderr` は `exact`     |
 
 一時領域は、home、config、state、tmp、work、bin を持ち、事例ごとに空から作る。
@@ -57,7 +56,6 @@ python3 -m unittest discover -s test # 1つのプロセスで順に動かす
 - JSONは意味で比べる（メンバーの順序は無視。真偽値と数値は別）。`lines` は行の数と各行を比べ、2行と1行にまとめた出力を区別する。
 - 一時領域のパスは常に `<ROOT>` へ置換する。シナリオでは、この試験を動かしているチェックアウトのパスも `<REPO>` へ置換する。
 - ミリ秒付きのISO時刻（`2026-11-13T01:02:03.000Z`）は、標準出力・標準エラー・保存状態で常に `<TIME>` へ置換する。
-- それ以外の一意なID・一時パスなどの置換は、事例の `normalize` に、置換する先（`scopes`）を限って書く。
 - 保存状態の取り込みでは `.git` の中を読まない。中身はgitの版で変わり、CLIの状態ではない。
 - 置換は値の中の文字列だけを書き換える。要求や外部コマンドの呼び出しを削除・統合・並べ替えないため、重複送信や結果不明は置換後も差として残る。ファイルのパスは置換しない。
 - 未知の応答フィールドを保つ契約は、`app` の `call_answer` のMoonBit試験が固定している。

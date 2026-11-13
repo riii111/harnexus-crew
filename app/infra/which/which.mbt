@@ -53,20 +53,10 @@ fn find(
 
 ///|
 fn is_runnable_file(path : String) -> Bool {
-  if path.contains("\u{0}") {
-    return false
+  match @sys.c_string(path) {
+    Some(terminated) => is_runnable_file_raw(terminated) == 1
+    None => false
   }
-  let bytes = @utf8.encode(path)
-  let terminated = Bytes::from_array(
-    Array::makei(bytes.length() + 1, i => {
-      if i < bytes.length() {
-        bytes[i]
-      } else {
-        b'\x00'
-      }
-    }),
-  )
-  is_runnable_file_raw(terminated) == 1
 }
 
 ///|

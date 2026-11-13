@@ -8,6 +8,8 @@ pub fn alive(Int32) -> Bool
 
 pub fn close_fd(Int32) -> Unit
 
+pub fn close_stdio() -> FixedArray[Int32] raise Errno
+
 pub fn connect_and_hold(String) -> Int32 raise Errno
 
 pub fn eagain() -> Int32
@@ -21,6 +23,8 @@ pub fn open_fds() -> Int32
 pub fn pid() -> Int32
 
 pub fn remove_file(String) -> Unit
+
+pub fn restore_stdio(FixedArray[Int32]) -> Unit
 
 // Errors
 pub suberror Errno {

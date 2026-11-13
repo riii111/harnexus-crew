@@ -1,8 +1,9 @@
 ///|
 /// Runs a short command and returns what it printed.
-/// Any exit status is a result; the caller decides what a failure means.
-/// A command that cannot start, is stopped by the timeout, prints more than 16 MiB, or dies from a signal raises.
-/// Its stdin is an open pipe that is never written, and a command that outlives the timeout gets SIGTERM only.
+/// exit status: Any status is a result; the caller decides what a failure means.
+/// raises     : When the command cannot start, is stopped by the timeout, prints more than 16 MiB, or dies from a signal.
+/// stdin      : An open pipe that is never written.
+/// timeout    : A command that outlives it gets SIGTERM only.
 pub async fn run_command(
   file : String,
   args : ArrayView[String],

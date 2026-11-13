@@ -9,7 +9,6 @@ import {
   "riii111/harnexus-crew/share/failure",
   "riii111/harnexus-crew/share/jsonio",
   "riii111/harnexus-crew/share/path",
-  "riii111/harnexus-crew/share/text",
 }
 
 import {

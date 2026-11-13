@@ -19,7 +19,7 @@ pub fn check_kept(
   keys : Array[String],
 ) -> Unit raise @failure.TaskFailed {
   for key in keys {
-    if !json_equal(session_value(previous, key), session_value(current, key)) {
+    if session_value(previous, key) != session_value(current, key) {
       @failure.fail("review session must keep the original \{key}")
     }
   }
@@ -70,7 +70,7 @@ async fn review_in(
   let data = candidate.to_json()
   if previous is Some(previous) {
     check_kept(Json::object(previous), data, app_session_keys)
-    if json_equal(value_of(previous, "head"), @jsonio.field(data, "head")) {
+    if value_of(previous, "head") == @jsonio.field(data, "head") {
       @failure.fail(
         "head \{@jsonio.as_text(@jsonio.field(data, "head"))} was already sent to reviewer \{@jsonio.as_text(@jsonio.field(state, "reviewer"))}; wait for its result",
       )

@@ -60,20 +60,6 @@ pub fn js_trim_end(text : String) -> String {
 }
 
 ///|
-/// JS `<` on strings: code unit by code unit, which differs from code point order for characters above U+FFFF.
-pub fn compare_utf16(left : String, right : String) -> Int32 {
-  let a = left.code_units()
-  let b = right.code_units()
-  let shared = if a.length() < b.length() { a.length() } else { b.length() }
-  for index in 0..<shared {
-    if a[index] != b[index] {
-      return if a[index] < b[index] { -1 } else { 1 }
-    }
-  }
-  a.length().compare(b.length())
-}
-
-///|
 const EXCERPT_UNITS : Int32 = 500
 
 ///|

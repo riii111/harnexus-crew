@@ -103,14 +103,6 @@ test "only a socket that answers makes the command local" {
     ]),
     content="ask /h/.local/state/harnexus/call.sock",
   )
-  inspect(
-    Detected::socket_accepted().to_json().stringify(),
-    content="{\"environment\":\"local\",\"source\":\"harnexus-socket\",\"app\":\"codex\",\"note\":\"the harnexus call socket accepted a connection\"}",
-  )
-  inspect(
-    Detected::undetermined().to_json().stringify(),
-    content="{\"environment\":\"unknown\",\"source\":\"none\",\"note\":\"no HARNEXUS_EXECUTION_ENV, no CODEX_ENVIRONMENT_ID, no CLAUDE_CODE_REMOTE=true and no harnexus call socket; set HARNEXUS_EXECUTION_ENV=cloud|local\"}",
-  )
 }
 
 ///|

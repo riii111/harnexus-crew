@@ -9,10 +9,8 @@
 
 #include <moonbit.h>
 
-static int make_socket(void) {
-  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (fd < 0)
-    return -errno;
+// Closes the descriptor when it cannot be prepared, so the caller never holds a half-set-up socket.
+static int prepare_socket(int fd) {
   int flags = fcntl(fd, F_GETFL);
   if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0 ||
       fcntl(fd, F_SETFD, FD_CLOEXEC) < 0) {
@@ -20,7 +18,17 @@ static int make_socket(void) {
     close(fd);
     return -err;
   }
+#ifdef SO_NOSIGPIPE
+  // A failure here is ignored, as the product's sockets do.
+  int one = 1;
+  setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
+#endif
   return fd;
+}
+
+static int make_socket(void) {
+  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  return fd < 0 ? -errno : prepare_socket(fd);
 }
 
 static int fill_address(struct sockaddr_un *addr, moonbit_bytes_t path) {
@@ -56,16 +64,7 @@ int32_t harnexus_testkit_listen(moonbit_bytes_t path, int32_t backlog) {
 MOONBIT_FFI_EXPORT
 int32_t harnexus_testkit_accept(int32_t listener) {
   int fd = accept(listener, NULL, NULL);
-  if (fd < 0)
-    return -errno;
-  int flags = fcntl(fd, F_GETFL);
-  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-  fcntl(fd, F_SETFD, FD_CLOEXEC);
-#ifdef SO_NOSIGPIPE
-  int one = 1;
-  setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
-#endif
-  return fd;
+  return fd < 0 ? -errno : prepare_socket(fd);
 }
 
 // One non-blocking connect attempt that leaves the connection open: the descriptor, or -errno.
@@ -114,6 +113,31 @@ int32_t harnexus_testkit_alive(int32_t pid) { return kill((pid_t)pid, 0) == 0 ||
 // The errno a non-blocking connect reports when the listen queue is full; its number differs between macOS and Linux.
 MOONBIT_FFI_EXPORT
 int32_t harnexus_testkit_eagain(void) { return EAGAIN; }
+
+// Returns 0, or the errno with descriptors 0 to 2 left open.
+MOONBIT_FFI_EXPORT
+int32_t harnexus_testkit_close_stdio(int32_t *saved) {
+  for (int i = 0; i < 3; i++) {
+    saved[i] = fcntl(i, F_DUPFD_CLOEXEC, 10);
+    if (saved[i] < 0) {
+      int err = errno;
+      for (int j = 0; j < i; j++)
+        close(saved[j]);
+      return err;
+    }
+  }
+  for (int i = 0; i < 3; i++)
+    close(i);
+  return 0;
+}
+
+MOONBIT_FFI_EXPORT
+void harnexus_testkit_restore_stdio(int32_t *saved) {
+  for (int i = 0; i < 3; i++) {
+    dup2(saved[i], i);
+    close(saved[i]);
+  }
+}
 
 // Whether the descriptor number is open in this process.
 MOONBIT_FFI_EXPORT

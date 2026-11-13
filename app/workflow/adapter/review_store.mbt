@@ -6,7 +6,10 @@ priv struct Chat {
 }
 
 ///|
-/// Where a review stands in the folder: sent, in a file that may stand over a sent one and so holds it, or neither, which is absent or kept but not sent.
+/// Where a review stands in the folder.
+/// Sent     : The review was sent.
+/// Held     : A file may stand over a sent review and holds it.
+/// Unsettled: The review is absent or kept but not sent.
 priv enum ReviewState {
   Sent
   Held
@@ -237,7 +240,7 @@ fn ReviewStore::history_of(
   // A message is sent after the review it answers, so within one millisecond the review comes first rather than in the order the folder lists them.
   let order = shown.mapi((index, entry) => (index, entry))
   order.sort_by((a, b) => {
-    let by_time = @text.compare_utf16(a.1.at, b.1.at)
+    let by_time = String::lexical_compare(a.1.at, b.1.at)
     if by_time != 0 {
       by_time
     } else if a.1.asked != b.1.asked {

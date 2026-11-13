@@ -28,8 +28,15 @@ static int cloexec_pipe(int fds[2]) {
 #else
   if (pipe(fds) < 0)
     return -1;
-  fcntl(fds[0], F_SETFD, FD_CLOEXEC);
-  fcntl(fds[1], F_SETFD, FD_CLOEXEC);
+  if (fcntl(fds[0], F_SETFD, FD_CLOEXEC) < 0 || fcntl(fds[1], F_SETFD, FD_CLOEXEC) < 0) {
+    int err = errno;
+    close(fds[0]);
+    close(fds[1]);
+    fds[0] = -1;
+    fds[1] = -1;
+    errno = err;
+    return -1;
+  }
   return 0;
 #endif
 }
@@ -193,10 +200,16 @@ int32_t harnexus_spawn(moonbit_bytes_t file, moonbit_bytes_t argv_blob, int32_t 
   if ((flags & SPAWN_PIPED) &&
       (cloexec_pipe(in) < 0 || cloexec_pipe(outp) < 0 || cloexec_pipe(errp) < 0))
     goto fail;
+  // The status pipe moves up too, because with stdio closed its write end can be descriptor 0 to 2 and the child's dup2 would replace it, reporting a failed exec as success.
+  status[1] = lift_above_stdio(status[1]);
   in[0] = lift_above_stdio(in[0]);
   outp[1] = lift_above_stdio(outp[1]);
   errp[1] = lift_above_stdio(errp[1]);
-  if ((flags & SPAWN_PIPED) && (in[0] < 0 || outp[1] < 0 || errp[1] < 0))
+  if (status[1] < 0 || ((flags & SPAWN_PIPED) && (in[0] < 0 || outp[1] < 0 || errp[1] < 0)))
+    goto fail;
+  // The parent's ends are set up before the fork, so no failure is left for after the command has started.
+  if ((flags & SPAWN_PIPED) && (make_nonblocking(in[1]) < 0 || make_nonblocking(outp[0]) < 0 ||
+                                make_nonblocking(errp[0]) < 0))
     goto fail;
 
   pid = fork();
@@ -235,21 +248,6 @@ int32_t harnexus_spawn(moonbit_bytes_t file, moonbit_bytes_t argv_blob, int32_t 
   out[1] = in[1];
   out[2] = outp[0];
   out[3] = errp[0];
-  if (flags & SPAWN_PIPED) {
-    if (make_nonblocking(in[1]) < 0 || make_nonblocking(outp[0]) < 0 ||
-        make_nonblocking(errp[0]) < 0) {
-      // The command is running, so it is stopped here rather than reported as never started.
-      int failure = errno;
-      kill((flags & SPAWN_NEW_SESSION) ? -pid : pid, SIGKILL);
-      int wait_status;
-      while (waitpid(pid, &wait_status, 0) < 0 && errno == EINTR) {
-      }
-      close_if_open(in[1]);
-      close_if_open(outp[0]);
-      close_if_open(errp[0]);
-      return failure;
-    }
-  }
   return 0;
 
 fail:
