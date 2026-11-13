@@ -199,13 +199,10 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
   let (position, from) = match known {
     None => first_position(event, session_id, records)
     Some(position) => {
+      // A cursor not found again may mean lost records, so every record is read again and the kept keys keep out what was taken.
       let at = match position.cursor {
         None => -1
         Some(cursor) => index_of_uuid(records, cursor)
-      }
-      // A cursor not found again may mean lost records; every record is read again, the kept keys keep out what was taken, and the gap stays recorded.
-      if position.cursor is Some(cursor) && at == -1 {
-        position.gaps.push({ cursor, at: @store.now_iso(), })
       }
       (position, at + 1)
     }
@@ -910,7 +907,6 @@ fn first_position(
     },
     excluded: @host.reviews_in(records, from=0, to=end).map(review => review.key),
     taken: [],
-    gaps: [],
   }
   (position, end)
 }
