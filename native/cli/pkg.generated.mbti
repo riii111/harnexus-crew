@@ -12,9 +12,6 @@ pub fn process_env() -> @environment.Env
 pub async fn run(ArrayView[String], () -> @environment.Env raise) -> @run.CommandRun
 
 // Errors
-pub suberror HomeNotFound {
-  HomeNotFound
-}
 
 // Types and methods
 

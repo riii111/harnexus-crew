@@ -1,5 +1,4 @@
 import {
-  "riii111/harnexus-crew/config",
   "riii111/harnexus-crew/environment",
   "riii111/harnexus-crew/markdown",
   "riii111/harnexus-crew/path",

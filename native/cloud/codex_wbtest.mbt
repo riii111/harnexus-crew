@@ -8,7 +8,7 @@ fn env_of(pairs : Array[(String, String)]) -> @environment.Env {
     let (name, value) = pair
     vars[name] = value
   }
-  @environment.Env::new(vars, login_home="/login")
+  @environment.Env::new(vars)
 }
 
 ///|

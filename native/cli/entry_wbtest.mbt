@@ -4,7 +4,7 @@ fn env_of(vars : Array[(String, String)]) -> () -> @environment.Env raise {
   for pair in vars {
     map[pair.0] = pair.1
   }
-  () => @environment.Env::new(map, login_home="/home/login")
+  () => @environment.Env::new(map)
 }
 
 ///|
@@ -135,15 +135,20 @@ async test "watch is run by the pr-wake package" {
 }
 
 ///|
+priv suberror Unexpected {
+  Unexpected
+}
+
+///|
 async test "an error nothing expected is reported as a crash with where to report it" {
-  let crashing : () -> @environment.Env raise = () => raise HomeNotFound
+  let crashing : () -> @environment.Env raise = () => raise Unexpected
   let run = run(["environment"][:], crashing)
   assert_eq(run.code, 1)
   assert_eq(run.stdout, "")
   inspect(
     run.stderr,
     content=(
-      #|harnexus-crew: unexpected failure: riii111/harnexus-crew/cli.HomeNotFound.HomeNotFound
+      #|harnexus-crew: unexpected failure: riii111/harnexus-crew/cli.Unexpected.Unexpected
       #|To report a bug, open an issue at https://github.com/riii111/taskctl/issues with the command you ran and its output.
       #|
     ),
@@ -205,7 +210,7 @@ fn homeless_env(vars : Array[(String, String)]) -> () -> @environment.Env raise 
   for pair in vars {
     map[pair.0] = pair.1
   }
-  () => @environment.Env::deferred_home(map, () => None)
+  () => @environment.Env::new(map)
 }
 
 ///|
@@ -219,22 +224,16 @@ async test "environment needs no home when the declaration settles it" {
 }
 
 ///|
-async test "a command that needs the home fails as a crash when there is none" {
-  for argv in [["environment"], ["state"]] {
+async test "a command that needs the home fails when HOME is not set" {
+  for argv in [["environment"], ["state"], ["adapter", "serve", "--id", "a"]] {
     let run = run(argv[:], homeless_env([]))
     assert_eq(run.code, 1)
-    assert_true(run.stderr.contains("unexpected failure"))
-    assert_true(run.stderr.contains("HomeNotFound"))
+    assert_eq(run.stderr, "harnexus-crew: HOME is not set\n")
   }
 }
 
 ///|
-async test "adapter operations that need the home fail as a crash when there is none, while usage and help need none" {
-  for argv in [["adapter", "export-links"], ["adapter", "handover"]] {
-    let run = run(argv[:], homeless_env([]))
-    assert_eq(run.code, 1)
-    assert_true(run.stderr.contains("HomeNotFound"))
-  }
+async test "adapter usage and help need no home" {
   assert_eq(run(["adapter", "-h"][:], homeless_env([])).code, 0)
   assert_eq(run(["adapter", "bogus"][:], homeless_env([])).code, 2)
 }

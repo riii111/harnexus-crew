@@ -27,9 +27,7 @@ async fn adapter_run(
 ) -> @run.CommandRun {
   @adapter.run(argv, () => {
     let env = read_env()
-    if !env.home_known() {
-      raise HomeNotFound
-    }
+    require_home(env)
     env
   })
 }

@@ -7,6 +7,7 @@ pub async fn run(
   read_env : () -> @environment.Env raise,
 ) -> @run.CommandRun {
   dispatch(argv, read_env) catch {
+    @failure.TaskFailed(message) => failure_run(message)
     error => crash_run(error)
   }
 }
@@ -63,8 +64,8 @@ async fn execute(
 ) -> @run.CommandRun {
   let env = read_env()
   try {
-    if !(command is Environment) && !env.home_known() {
-      raise HomeNotFound
+    if !(command is Environment) {
+      require_home(env)
     }
     let result = run_command(command, env)
     { code: 0, stdout: @jsonio.stringify(result) + "\n", stderr: "", }

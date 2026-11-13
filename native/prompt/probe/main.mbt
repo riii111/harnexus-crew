@@ -4,10 +4,10 @@
 /// It is not part of the CLI.
 fn main {
   let args = @env.args()
-  let env = @environment.Env::new(
-    { "HOME": arg(args, 1), "XDG_CONFIG_HOME": arg(args, 2) },
-    login_home="",
-  )
+  let env = @environment.Env::new({
+    "HOME": arg(args, 1),
+    "XDG_CONFIG_HOME": arg(args, 2),
+  })
   let kind : @prompt.TemplateKind = if arg(args, 3) == "reviewer" {
     Reviewer
   } else {

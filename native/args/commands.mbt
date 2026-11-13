@@ -97,7 +97,7 @@ pub fn parse_command(
   rest : ArrayView[String],
 ) -> Parsed raise UsageError {
   let specs = specs_of(command)
-  specs.push({ name: "help", kind: Flag, short: Some('h'), })
+  specs.push({ name: "help", kind: Flag, })
   let options = parse_options(rest, specs)
   if options.flag("help") {
     return Help
@@ -107,12 +107,8 @@ pub fn parse_command(
 
 ///|
 fn specs_of(command : String) -> Array[OptionSpec] {
-  let text = fn(name : String) -> OptionSpec {
-    { name, kind: Text, short: None, }
-  }
-  let flag = fn(name : String) -> OptionSpec {
-    { name, kind: Flag, short: None, }
-  }
+  let text = fn(name : String) -> OptionSpec { { name, kind: Text, } }
+  let flag = fn(name : String) -> OptionSpec { { name, kind: Flag, } }
   match command {
     "launch" => [text("request"), text("model"), text("thinking")]
     "review" =>
@@ -131,7 +127,7 @@ fn specs_of(command : String) -> Array[OptionSpec] {
     "watch" =>
       [
         flag("dry-run"),
-        { name: "pr", kind: TextList, short: None, },
+        { name: "pr", kind: TextList, },
         text("release"),
         flag("status"),
         flag("sender"),
@@ -271,5 +267,5 @@ fn cloud_args(options : ParsedOptions) -> CloudArgs raise UsageError {
 pub fn parse_adapter_serve(
   rest : ArrayView[String],
 ) -> String? raise UsageError {
-  parse_options(rest, [{ name: "id", kind: Text, short: None, }]).text("id")
+  parse_options(rest, [{ name: "id", kind: Text, }]).text("id")
 }

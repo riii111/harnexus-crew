@@ -22,14 +22,6 @@ async fn environment_command(env : @environment.Env) -> Json {
 }
 
 ///|
-/// Only the socket step needs the home directory, which is where the TypeScript build first asks for it.
-fn require_home(env : @environment.Env) -> Unit raise {
-  if !env.home_known() {
-    raise HomeNotFound
-  }
-}
-
-///|
 async fn socket_accepts(path : String) -> Bool noraise {
   try {
     ignore(@socket.exchange_line(path, "", SOCKET_PROBE_TIMEOUT_MS))
