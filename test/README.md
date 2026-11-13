@@ -5,7 +5,8 @@
 
 ```sh
 moon build --target native --release
-python3 -m unittest discover -s test
+python3 test/parallel.py            # 3つのプロセスに分けて同時に動かす（-j で数を変える）
+python3 -m unittest discover -s test # 1つのプロセスで順に動かす
 ```
 
 実行ファイルの場所は `test/harness/binaries.py` が決める。
@@ -24,7 +25,7 @@ python3 -m unittest discover -s test
 | `test_store.py`         | `test/probes/store` を複数起動し、ロック・原子的な書き込みの競合と途中終了を確かめる                                          |
 | `test_prompt.py`        | `test/probes/prompt` でテンプレートの展開とリンクの拒否を確かめる                                                             |
 | `test_markdown.py`      | `test/probes/markdown` でMarkdownのリンク判定を確かめる                                                                       |
-| `test_install.py`       | `scripts/install.sh` の新規ビルド、一時prefixへの設置、失敗時の既存バイナリの保持                                       |
+| `test_install.py`       | `scripts/install.sh` の新規ビルド、一時prefixへの設置、失敗時の既存バイナリの保持。実際にビルドするのは1件だけで、他は組み立て済みの実行ファイルを置く |
 | `test_harness.py`       | 実行器自身。意図した差を見つけること、重複した要求や結果不明を隠さないこと                                              |
 | `harness/`              | 実行器。一時領域、模擬のブリッジ、模擬コマンド、観測、置換、比較                                                        |
 | `fixtures/`             | テンプレートの試験用skill                                                                                               |
