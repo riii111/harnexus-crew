@@ -41,7 +41,7 @@ python3 -m unittest discover -s test
 | `files` / `seed`                   | 実行前に一時領域へ置く内容。`seed` はリポジトリ内のディレクトリを `target: source` で複製する                                         |
 | `git`                              | 実行前にサンドボックスの根で順に走らせる git の引数。日付とコミッターが固定されるため、同じ手順なら同じコミットになる                 |
 | `bridge`                           | 模擬ブリッジの応答計画。接続ごとの要求を記録し、`drop`（応答せず切断）や `silent`（無応答）も返せる                                   |
-| `commands`                         | PATH先頭に置く外部コマンドの模擬。引数と標準入力を記録する。標準入力は、300ms届かなければ空として扱う                                 |
+| `commands`                         | PATH先頭に置く外部コマンドの模擬。引数と標準入力を記録する。標準入力は、閉じられるまで読む                                           |
 | `snapshot`                         | 比較する状態ディレクトリ（既定は config、state、work、home/.local、home/.config）                                                     |
 | `compare`                          | `stdout` と `stderr` の比較方法（`json`、`lines`、`exact`）。既定は `command` が `json`、`session` が `lines`、`stderr` は `exact`     |
 
