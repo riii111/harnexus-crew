@@ -28,7 +28,7 @@ App側のようにチャットを作らず、`workerChatId` の既定はClaude C
 
 1. ロックを待たずに取る。別の実行が保持していれば `another review (pid N) is using this session` で失敗する。死んだ実行のロックは取り上げる。
 2. `pending.json` が残っていれば、`--recover discard` がない限り失敗する。`--recover discard` は `pending.json` を消して続ける。残っていないのに指定すると失敗する。
-3. 前回の候補があれば、`taskId`・`workerAI`・`checkout` が同じか確かめる。同じ `head` は、レビュアーが判定した後なら拒否する。`判定保留` と判定の行がない答えの `head` は、もう一度送れる。`verdict` を持たない古い状態は判定済みとして扱う。
+3. 前回の候補があれば、`taskId`・`workerAI`・`checkout` が同じか確かめる。同じ `head` は、レビュアーが判定した後なら拒否する。`判定保留` と判定の行がない答えの `head` は、もう一度送れる。
 4. 環境変数 `HARNEXUS_CODEX_BIN`・`HARNEXUS_REVIEW_TIMEOUT_MS`・`HARNEXUS_REVIEW_KILL_GRACE_MS` を検査してから、`pending.json` を書く。時間の2つは2147483648以上でも受理し、1msで扱う。締切が1msになった実行は直ちに停止し、`pending.json` を残す。
 5. Codex CLIをチェックアウトの中で実行する。初回は新しいレビュアー（既定は `gpt-6.1-sol`、思考量 `medium`）を `--sandbox read-only` で作り、2回目からは `exec resume` で同じレビュアーを続ける。モデルと思考量は、空文字を未指定として扱う。
 
