@@ -1,6 +1,4 @@
 ///|
-/// What one run of a session command works with.
-/// A test replaces the parts that reach the app, Git, the templates and pr-wake.
 priv struct Context {
   env : @environment.Env
   host : @host.Host
@@ -14,8 +12,6 @@ priv struct Context {
 }
 
 ///|
-/// The context of the real machine: the app the thread runs in, the repository's Git, the configured templates and pr-wake.
-/// `which` finds a program on PATH.
 fn Context::of_env(
   env : @environment.Env,
   which~ : (String) -> String?,

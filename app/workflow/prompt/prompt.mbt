@@ -1,17 +1,16 @@
 ///|
-/// Which prompt a template is for.
 pub(all) enum TemplateKind {
   Worker
   Reviewer
 }
 
 ///|
-fn TemplateKind::name(self : TemplateKind) -> String {
-  match self {
-    Worker => "worker"
-    Reviewer => "reviewer"
-  }
-}
+/// The replies a reviewer template must be filled for: a worker in the Codex App of either AI, and a Claude Code cloud session.
+let replies : Array[String] = ["Codex", "Claude", "Cloud"]
+
+///|
+/// A worker in T3 Code, whose reply only T3 Code needs, so a template written before T3 Code is still installed and the review in T3 Code refuses it before sending.
+const T3_REPLY : String = "T3"
 
 ///|
 /// The prompt a new chat receives: the configured template of `kind`, with its links resolved and `fields` filled in.
@@ -63,12 +62,43 @@ pub fn check_templates(
 }
 
 ///|
-/// The replies a reviewer template must be filled for: a worker in the Codex App of either AI, and a Claude Code cloud session.
-let replies : Array[String] = ["Codex", "Claude", "Cloud"]
+fn render_as(
+  kind : TemplateKind,
+  path : String,
+  fields : Map[String, String],
+) -> String raise @failure.TaskFailed {
+  render(path, fields) catch {
+    @failure.TaskFailed(message) =>
+      @failure.fail("the \{kind.name()} template \{path}: \{message}")
+  }
+}
 
 ///|
-/// A worker in T3 Code, whose reply only T3 Code needs, so a template written before T3 Code is still installed and the review in T3 Code refuses it before sending.
-const T3_REPLY : String = "T3"
+fn render(
+  path : String,
+  fields : Map[String, String],
+) -> String raise @failure.TaskFailed {
+  let template = read_text(path)
+  // To keep inserted values from adding links, resolve links before expanding the values.
+  @template.format(resolve_links(template, path, fields), fields)
+}
+
+///|
+fn read_config(
+  config_path : String,
+) -> TemplateConfig raise @failure.TaskFailed {
+  let json = @jsonio.parse(read_text(config_path)) catch {
+    _ => @failure.fail("\{config_path} is not valid JSON")
+  }
+  TemplateConfig::from_json(config_path, json)
+}
+
+///|
+fn read_text(path : String) -> String raise @failure.TaskFailed {
+  @store.read_regular_text(path) catch {
+    failed => @failure.fail(failed.user_message())
+  }
+}
 
 ///|
 fn t3_readiness(path : String) -> Json {
@@ -109,39 +139,9 @@ fn object(members : Array[(String, Json)]) -> Json {
 }
 
 ///|
-fn read_config(
-  config_path : String,
-) -> TemplateConfig raise @failure.TaskFailed {
-  let json = @jsonio.parse(read_text(config_path)) catch {
-    _ => @failure.fail("\{config_path} is not valid JSON")
+fn TemplateKind::name(self : TemplateKind) -> String {
+  match self {
+    Worker => "worker"
+    Reviewer => "reviewer"
   }
-  TemplateConfig::from_json(config_path, json)
-}
-
-///|
-fn read_text(path : String) -> String raise @failure.TaskFailed {
-  @store.read_regular_text(path) catch {
-    failed => @failure.fail(failed.user_message())
-  }
-}
-
-///|
-fn render_as(
-  kind : TemplateKind,
-  path : String,
-  fields : Map[String, String],
-) -> String raise @failure.TaskFailed {
-  render(path, fields) catch {
-    @failure.TaskFailed(message) =>
-      @failure.fail("the \{kind.name()} template \{path}: \{message}")
-  }
-}
-
-///|
-fn render(
-  path : String,
-  fields : Map[String, String],
-) -> String raise @failure.TaskFailed {
-  let template = read_text(path)
-  @template.format(resolve_links(template, path, fields), fields)
 }

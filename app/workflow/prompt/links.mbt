@@ -1,6 +1,5 @@
 ///|
-/// Replaces each relative link target in a template with the real path of the file it names.
-/// Links are found before the request's values go into the text, so no value can add one.
+/// Resolve relative template links to existing files.
 fn resolve_links(
   template : String,
   path : String,
@@ -61,14 +60,6 @@ fn resolve_links(
 }
 
 ///|
-fn without_angle(path : String) -> String {
-  match path.strip_prefix("<") {
-    Some(rest) => rest.to_owned()
-    None => path
-  }
-}
-
-///|
 fn is_relative(path : String) -> Bool {
   path != "" &&
   !path.has_prefix("/") &&
@@ -78,7 +69,23 @@ fn is_relative(path : String) -> Bool {
 }
 
 ///|
-/// True for a leading `scheme:` as URLs write it.
+fn has_unsafe_character(path : String) -> Bool {
+  @text.has_space(path) ||
+  path
+  .code_units()
+  .iter()
+  .any(fn(unit) { unit == 0x28 || unit == 0x29 || unit == 0x23 || unit == 0x5C })
+}
+
+///|
+fn without_angle(path : String) -> String {
+  match path.strip_prefix("<") {
+    Some(rest) => rest.to_owned()
+    None => path
+  }
+}
+
+///|
 fn has_scheme(path : String) -> Bool {
   let units = path.code_units()
   if units.length() == 0 || !is_ascii_letter(units[0]) {
@@ -103,13 +110,4 @@ fn has_scheme(path : String) -> Bool {
 ///|
 fn is_ascii_letter(unit : UInt16) -> Bool {
   (unit >= 0x41 && unit <= 0x5A) || (unit >= 0x61 && unit <= 0x7A)
-}
-
-///|
-fn has_unsafe_character(path : String) -> Bool {
-  @text.has_space(path) ||
-  path
-  .code_units()
-  .iter()
-  .any(fn(unit) { unit == 0x28 || unit == 0x29 || unit == 0x23 || unit == 0x5C })
 }

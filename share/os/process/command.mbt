@@ -60,6 +60,7 @@ pub async fn run_command(
         Some("ERR_CHILD_PROCESS_STDIO_MAXBUFFER"),
       )
     Code(status) =>
+      // To preserve UTF-8 characters split across chunks, decode only after collecting all output.
       {
         status,
         stdout: @utf8.decode_lossy(capture.stdout.to_bytes()),

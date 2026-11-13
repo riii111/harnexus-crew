@@ -6,14 +6,6 @@ priv struct Chat {
 }
 
 ///|
-fn Chat::to_json(self : Chat) -> Json {
-  object([
-    ("threadId", Json::string(self.thread_id)),
-    ("session", optional_text(self.session)),
-  ])
-}
-
-///|
 /// Where a review stands in the folder: sent, in a file that may stand over a sent one and so holds it, or neither, which is absent or kept but not sent.
 priv enum ReviewState {
   Sent
@@ -43,6 +35,13 @@ priv struct HistoryEntry {
 }
 
 ///|
+priv struct Shown {
+  at : String
+  asked : Bool
+  entries : Array[HistoryEntry]
+}
+
+///|
 const CHATS : String = "chats.json"
 
 ///|
@@ -66,128 +65,13 @@ fn ReviewStore::new(dir : String, locks : String) -> ReviewStore {
 }
 
 ///|
-/// harnexus kept the Cloud reviews beside its own state, and the CLI keeps them in place, in the same files, so either version reads the other's.
-fn reviews_directory(
-  env : @environment.Env,
-) -> String raise @failure.TaskFailed {
-  @path.join([
-    @path.dirname(@environment.harnexus_state_path(env)),
-    "cloud-reviews",
-  ])
-}
-
-///|
-fn review_json(review : @host.CloudReview) -> Json {
-  object([
-    ("key", Json::string(review.key)),
-    ("reviewer", Json::string(review.reviewer)),
-    ("verdict", optional_text(review.verdict)),
-    ("taskId", optional_text(review.task_id)),
-    ("head", optional_text(review.head)),
-    ("answer", Json::string(review.answer)),
-  ])
-}
-
-///|
-fn read_object(path : String) -> ReadObject {
-  match (Ok(@store.read_text_if_exists(path)) catch { e => Err(e) }) {
-    Err(_) => Unreadable
-    Ok(None) => Absent
-    Ok(Some(text)) =>
-      match (Ok(@jsonio.parse(text)) catch { e => Err(e) }) {
-        Ok(Object(members)) => Found(members)
-        _ => Unreadable
-      }
-  }
-}
-
-///|
-fn chat_in(value : Json) -> Chat? {
-  match value {
-    String(thread_id) => Some({ thread_id, session: None, })
-    Object(members) =>
-      match members.get("threadId") {
-        Some(String(thread_id)) =>
-          Some({ thread_id, session: text_or_none(members.get("session")), })
-        _ => None
-      }
-    _ => None
-  }
-}
-
-///|
-/// A review as its file keeps it, or None when the file names no reviewer and answer.
-fn review_in(key : String, kept : Map[String, Json]?) -> @host.CloudReview? {
-  guard kept is Some(members) else { return None }
-  guard members.get("reviewer") is Some(String(reviewer)) &&
-    members.get("answer") is Some(String(answer)) else {
-    return None
-  }
-  Some({
-    key,
-    reviewer,
-    verdict: text_or_none(members.get("verdict")),
-    task_id: text_or_none(members.get("taskId")),
-    head: text_or_none(members.get("head")),
-    answer,
-  })
-}
-
-///|
-/// A file written before the review was sent, by harnexus or the CLI; anything else may stand over a sent review.
-fn is_unsent_review_file(kept : Map[String, Json], key : String) -> Bool {
-  let text_or_absent = (name : String) => {
-    match kept.get(name) {
-      None | Some(Null) | Some(String(_)) => true
-      _ => false
-    }
-  }
-  kept.get("key") is Some(String(named)) &&
-  named == key &&
-  kept.get("reviewer") is Some(String(_)) &&
-  kept.get("answer") is Some(String(_)) &&
-  text_or_absent("verdict") &&
-  text_or_absent("taskId") &&
-  text_or_absent("head") &&
-  !kept.contains("sent") &&
-  !kept.contains("threadId") &&
-  !kept.contains("shownAt")
-}
-
-///|
-fn ReviewStore::chats_path(self : ReviewStore) -> String {
-  @path.join([self.dir, CHATS])
-}
-
-///|
-fn ReviewStore::review_path(self : ReviewStore, key : String) -> String {
-  @path.join([self.dir, "\{key}.json"])
-}
-
-///|
-fn ReviewStore::reservation_path(self : ReviewStore, key : String) -> String {
-  @path.join([self.dir, "\{key}\{RESERVED}"])
-}
-
-///|
-fn ReviewStore::write(
-  self : ReviewStore,
-  path : String,
-  value : Json,
-) -> Unit raise @failure.TaskFailed {
-  io(() => @store.prepare_directory(self.dir))
-  io(() => @store.write_atomic(path, value.stringify()))
-}
-
-///|
-/// The chats file as it stands.
-/// An unreadable one is an error, so a chat is never opened again over one it may name.
 fn ReviewStore::chats(
   self : ReviewStore,
 ) -> Map[String, Chat] raise @failure.TaskFailed {
   let path = self.chats_path()
   let found : Map[String, Chat] = Map([])
   match read_object(path) {
+    // An unreadable record may name an existing chat, so fail instead of treating it as empty and opening another.
     Unreadable => @failure.fail("\{path} is unreadable")
     Absent => ()
     Found(members) =>
@@ -290,7 +174,6 @@ fn ReviewStore::mark_sent(
 }
 
 ///|
-/// Keeps a message the user sent the reviewer from its chat, for the chat's history.
 fn ReviewStore::note_ask(
   self : ReviewStore,
   thread_id : String,
@@ -305,13 +188,6 @@ fn ReviewStore::note_ask(
       ("asked", Json::string(text)),
     ]),
   )
-}
-
-///|
-priv struct Shown {
-  at : String
-  asked : Bool
-  entries : Array[HistoryEntry]
 }
 
 ///|
@@ -379,4 +255,125 @@ fn ReviewStore::history_of(
     history.append(pair.1.entries)
   }
   history
+}
+
+///|
+fn Chat::to_json(self : Chat) -> Json {
+  object([
+    ("threadId", Json::string(self.thread_id)),
+    ("session", optional_text(self.session)),
+  ])
+}
+
+///|
+fn reviews_directory(
+  env : @environment.Env,
+) -> String raise @failure.TaskFailed {
+  // To share records with harnexus, keep them beside its state file.
+  @path.join([
+    @path.dirname(@environment.harnexus_state_path(env)),
+    "cloud-reviews",
+  ])
+}
+
+///|
+fn review_json(review : @host.CloudReview) -> Json {
+  object([
+    ("key", Json::string(review.key)),
+    ("reviewer", Json::string(review.reviewer)),
+    ("verdict", optional_text(review.verdict)),
+    ("taskId", optional_text(review.task_id)),
+    ("head", optional_text(review.head)),
+    ("answer", Json::string(review.answer)),
+  ])
+}
+
+///|
+fn read_object(path : String) -> ReadObject {
+  match (Ok(@store.read_text_if_exists(path)) catch { e => Err(e) }) {
+    Err(_) => Unreadable
+    Ok(None) => Absent
+    Ok(Some(text)) =>
+      match (Ok(@jsonio.parse(text)) catch { e => Err(e) }) {
+        Ok(Object(members)) => Found(members)
+        _ => Unreadable
+      }
+  }
+}
+
+///|
+fn chat_in(value : Json) -> Chat? {
+  match value {
+    String(thread_id) => Some({ thread_id, session: None, })
+    Object(members) =>
+      match members.get("threadId") {
+        Some(String(thread_id)) =>
+          Some({ thread_id, session: text_or_none(members.get("session")), })
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+fn review_in(key : String, kept : Map[String, Json]?) -> @host.CloudReview? {
+  guard kept is Some(members) else { return None }
+  guard members.get("reviewer") is Some(String(reviewer)) &&
+    members.get("answer") is Some(String(answer)) else {
+    return None
+  }
+  Some({
+    key,
+    reviewer,
+    verdict: text_or_none(members.get("verdict")),
+    task_id: text_or_none(members.get("taskId")),
+    head: text_or_none(members.get("head")),
+    answer,
+  })
+}
+
+///|
+/// A file written before the review was sent, by harnexus or the CLI; anything else may stand over a sent review.
+fn is_unsent_review_file(kept : Map[String, Json], key : String) -> Bool {
+  let text_or_absent = (name : String) => {
+    match kept.get(name) {
+      None | Some(Null) | Some(String(_)) => true
+      _ => false
+    }
+  }
+  kept.get("key") is Some(String(named)) &&
+  named == key &&
+  kept.get("reviewer") is Some(String(_)) &&
+  kept.get("answer") is Some(String(_)) &&
+  text_or_absent("verdict") &&
+  text_or_absent("taskId") &&
+  text_or_absent("head") &&
+  !kept.contains("sent") &&
+  !kept.contains("threadId") &&
+  !kept.contains("shownAt")
+}
+
+///|
+fn ReviewStore::chats_path(self : ReviewStore) -> String {
+  @path.join([self.dir, CHATS])
+}
+
+///|
+fn ReviewStore::review_path(self : ReviewStore, key : String) -> String {
+  @path.join([self.dir, "\{key}.json"])
+}
+
+///|
+fn ReviewStore::reservation_path(self : ReviewStore, key : String) -> String {
+  @path.join([self.dir, "\{key}\{RESERVED}"])
+}
+
+///|
+fn ReviewStore::write(
+  self : ReviewStore,
+  path : String,
+  value : Json,
+) -> Unit raise @failure.TaskFailed {
+  io(() => @store.prepare_directory(self.dir))
+  io(() => @store.write_atomic(path, value.stringify()))
 }

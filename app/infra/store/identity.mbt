@@ -34,21 +34,8 @@ pub fn now_iso() -> String {
 }
 
 ///|
-/// The process id of this program.
 pub fn current_pid() -> Int32 {
   pid_raw()
-}
-
-///|
-/// Whether a process with that id exists.
-/// A process of another user counts as alive.
-/// A value that is not a 32-bit integer is dead, as `process.kill` of Node refuses it.
-/// 0 and -1 signal process groups, so they count as alive.
-fn process_alive(pid : Double) -> Bool {
-  if pid != pid.floor() || pid < -2147483648.0 || pid > 2147483647.0 {
-    return false
-  }
-  process_alive_raw(pid.to_int()) == 1
 }
 
 ///|
@@ -65,13 +52,22 @@ pub fn sha256_hex(text : String) -> String {
 }
 
 ///|
+fn process_alive(pid : Double) -> Bool {
+  // To accept the same PID range as Node, treat values outside signed 32-bit integers as dead.
+  if pid != pid.floor() || pid < -2147483648.0 || pid > 2147483647.0 {
+    return false
+  }
+  // A process owned by another user, or a process group ID of 0 or -1, counts as alive.
+  process_alive_raw(pid.to_int()) == 1
+}
+
+///|
 fn hex_byte(value : Int32) -> String {
   let digits = "0123456789abcdef"
   "\{digits[value / 16].to_char().unwrap()}\{digits[value % 16].to_char().unwrap()}"
 }
 
 ///|
-/// Formats milliseconds since the epoch as an ISO 8601 UTC time.
 fn iso_time(millis : Int64) -> String {
   let days = millis / 86400000L
   let of_day = (millis % 86400000L).to_int()

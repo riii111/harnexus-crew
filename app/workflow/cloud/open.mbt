@@ -60,7 +60,6 @@ fn add(sent : Map[String, Json], key : String, value : String?) -> Unit {
 }
 
 ///|
-/// What an answer says is wrong: its message, else its error, else the answer itself.
 fn shown(answer : @bridge.CallAnswer) -> Json {
   for key in ["message", "error"] {
     match answer.fields.get(key) {

@@ -102,6 +102,26 @@ pub fn Detected::to_json(self : Detected) -> Json {
 }
 
 ///|
+pub fn Detected::socket_accepted() -> Detected {
+  {
+    environment: Local,
+    source: HarnexusSocket,
+    runner: OnMachine(Codex),
+    note: "the harnexus call socket accepted a connection",
+  }
+}
+
+///|
+pub fn Detected::undetermined() -> Detected {
+  {
+    environment: Unknown,
+    source: NoSource,
+    runner: Unnamed,
+    note: "no \{EXECUTION_VARIABLE}, no \{CODEX_CLOUD_VARIABLE}, no \{CLAUDE_CLOUD_VARIABLE}=true and no harnexus call socket; set \{EXECUTION_VARIABLE}=cloud|local",
+  }
+}
+
+///|
 /// None when the variables declare nothing.
 pub fn declared_environment(env : Env) -> Detected? raise @failure.TaskFailed {
   match env.get_nonempty(EXECUTION_VARIABLE) {
@@ -174,29 +194,9 @@ pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
 }
 
 ///|
-pub fn Detected::socket_accepted() -> Detected {
-  {
-    environment: Local,
-    source: HarnexusSocket,
-    runner: OnMachine(Codex),
-    note: "the harnexus call socket accepted a connection",
-  }
-}
-
-///|
-pub fn Detected::undetermined() -> Detected {
-  {
-    environment: Unknown,
-    source: NoSource,
-    runner: Unnamed,
-    note: "no \{EXECUTION_VARIABLE}, no \{CODEX_CLOUD_VARIABLE}, no \{CLAUDE_CLOUD_VARIABLE}=true and no harnexus call socket; set \{EXECUTION_VARIABLE}=cloud|local",
-  }
-}
-
-///|
-/// A Codex Cloud variable wins over a Claude one when both are set.
 fn cloud_host_of(env : Env) -> CloudHost? {
   match env.get_nonempty(CODEX_CLOUD_VARIABLE) {
+    // When both variables are set, Codex Cloud takes precedence.
     Some(_) => Some(CodexCloud)
     None =>
       match env.get(CLAUDE_CLOUD_VARIABLE) {

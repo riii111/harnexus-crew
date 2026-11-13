@@ -1,6 +1,4 @@
 ///|
-/// What a request check asks of the file system.
-/// These are the only reads a check makes; a test passes fixed answers.
 pub(all) struct FileProbe {
   path_exists : async (String) -> Bool noraise
   is_directory : async (String) -> Bool noraise

@@ -1,44 +1,4 @@
 ///|
-/// Unix socket servers, descriptor counts and process probes for the tests of the OS boundaries.
-/// Only tests import this package, so none of it reaches the CLI.
-#borrow(path)
-extern "C" fn listen_raw(path : Bytes, backlog : Int32) -> Int32 = "harnexus_testkit_listen"
-
-///|
-extern "C" fn accept_raw(listener : Int32) -> Int32 = "harnexus_testkit_accept"
-
-///|
-#borrow(path)
-extern "C" fn connect_raw(path : Bytes) -> Int32 = "harnexus_testkit_connect"
-
-///|
-extern "C" fn close_raw(fd : Int32) -> Int32 = "harnexus_testkit_close"
-
-///|
-#borrow(path)
-extern "C" fn unlink_raw(path : Bytes) = "harnexus_testkit_unlink"
-
-///|
-extern "C" fn open_fds_raw() -> Int32 = "harnexus_testkit_open_fds"
-
-///|
-extern "C" fn getpid_raw() -> Int32 = "harnexus_testkit_getpid"
-
-///|
-extern "C" fn alive_raw(pid : Int32) -> Int32 = "harnexus_testkit_alive"
-
-///|
-extern "C" fn fd_open_raw(fd : Int32) -> Int32 = "harnexus_testkit_fd_open"
-
-///|
-extern "C" fn eagain_raw() -> Int32 = "harnexus_testkit_eagain"
-
-///|
-fn c_string(text : String) -> Bytes {
-  @sys.c_string(text).unwrap()
-}
-
-///|
 pub suberror Errno {
   Errno(Int32)
 }
@@ -88,7 +48,6 @@ pub fn remove_file(path : String) -> Unit {
 }
 
 ///|
-/// How many descriptors this process holds.
 pub fn open_fds() -> Int32 {
   open_fds_raw()
 }
@@ -105,7 +64,6 @@ pub fn alive(pid : Int32) -> Bool {
 }
 
 ///|
-/// The errno of a connect that finds the listen queue full.
 pub fn eagain() -> Int32 {
   eagain_raw()
 }
@@ -114,3 +72,41 @@ pub fn eagain() -> Int32 {
 pub fn fd_open(fd : Int32) -> Bool {
   fd_open_raw(fd) != 0
 }
+
+///|
+fn c_string(text : String) -> Bytes {
+  @sys.c_string(text).unwrap()
+}
+
+///|
+#borrow(path)
+extern "C" fn listen_raw(path : Bytes, backlog : Int32) -> Int32 = "harnexus_testkit_listen"
+
+///|
+extern "C" fn accept_raw(listener : Int32) -> Int32 = "harnexus_testkit_accept"
+
+///|
+#borrow(path)
+extern "C" fn connect_raw(path : Bytes) -> Int32 = "harnexus_testkit_connect"
+
+///|
+extern "C" fn close_raw(fd : Int32) -> Int32 = "harnexus_testkit_close"
+
+///|
+#borrow(path)
+extern "C" fn unlink_raw(path : Bytes) = "harnexus_testkit_unlink"
+
+///|
+extern "C" fn open_fds_raw() -> Int32 = "harnexus_testkit_open_fds"
+
+///|
+extern "C" fn getpid_raw() -> Int32 = "harnexus_testkit_getpid"
+
+///|
+extern "C" fn alive_raw(pid : Int32) -> Int32 = "harnexus_testkit_alive"
+
+///|
+extern "C" fn fd_open_raw(fd : Int32) -> Int32 = "harnexus_testkit_fd_open"
+
+///|
+extern "C" fn eagain_raw() -> Int32 = "harnexus_testkit_eagain"

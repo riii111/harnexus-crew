@@ -98,6 +98,43 @@ fn toplevel(checkout : String) -> Script {
 }
 
 ///|
+async fn candidate_of(
+  script : Script,
+  previous : Map[String, Json]?,
+  update_base : Bool,
+) -> String {
+  try {
+    let git = @git.Git::new(script.runner(), env_of([("HOME", "/h")]))
+    let request = ReviewRequest::from_json(
+      parsed(REVIEW),
+      Worktrees("/fx/wt"),
+      probe(),
+      git,
+    )
+    let found = request.candidate(previous, update_base, git)
+    "ok base=\{found.base} head=\{found.head}"
+  } catch {
+    @failure.TaskFailed(message) => "refused: " + message
+    _ => "not JSON"
+  }
+}
+
+///|
+fn candidate_script(extra : Map[String, String]) -> Script {
+  let answers = {
+    "rev-parse --show-toplevel": "/fx/wt/ab12/repo",
+    "rev-parse HEAD": "h1",
+    "rev-parse --symbolic-full-name --verify --end-of-options main": "refs/heads/main",
+    "rev-parse --verify refs/heads/main^{commit}": "b1",
+    "merge-base b1 h1": "b1",
+  }
+  for key, value in extra {
+    answers[key] = value
+  }
+  Script::new(answers)
+}
+
+///|
 async test "a launch request keeps the members it was given, null included" {
   inspect(
     launch(
@@ -303,43 +340,6 @@ async test "the worker's chat ID is a string, and null reads as none" {
       "refused: workerChatId must be a string or null",
     )
   }
-}
-
-///|
-async fn candidate_of(
-  script : Script,
-  previous : Map[String, Json]?,
-  update_base : Bool,
-) -> String {
-  try {
-    let git = @git.Git::new(script.runner(), env_of([("HOME", "/h")]))
-    let request = ReviewRequest::from_json(
-      parsed(REVIEW),
-      Worktrees("/fx/wt"),
-      probe(),
-      git,
-    )
-    let found = request.candidate(previous, update_base, git)
-    "ok base=\{found.base} head=\{found.head}"
-  } catch {
-    @failure.TaskFailed(message) => "refused: " + message
-    _ => "not JSON"
-  }
-}
-
-///|
-fn candidate_script(extra : Map[String, String]) -> Script {
-  let answers = {
-    "rev-parse --show-toplevel": "/fx/wt/ab12/repo",
-    "rev-parse HEAD": "h1",
-    "rev-parse --symbolic-full-name --verify --end-of-options main": "refs/heads/main",
-    "rev-parse --verify refs/heads/main^{commit}": "b1",
-    "merge-base b1 h1": "b1",
-  }
-  for key, value in extra {
-    answers[key] = value
-  }
-  Script::new(answers)
 }
 
 ///|

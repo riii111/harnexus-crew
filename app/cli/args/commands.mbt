@@ -45,6 +45,14 @@ pub fn parse_command(
 }
 
 ///|
+/// Reads the arguments after `adapter serve`, which takes no `--help`; the id is None when it was not given.
+pub fn parse_adapter_serve(
+  rest : ArrayView[String],
+) -> String? raise UsageError {
+  parse_options(rest, [{ name: "id", kind: Text, }]).text("id")
+}
+
+///|
 fn specs_of(command : String) -> Array[OptionSpec] {
   let text = fn(name : String) -> OptionSpec { { name, kind: Text, } }
   let flag = fn(name : String) -> OptionSpec { { name, kind: Flag, } }
@@ -105,14 +113,6 @@ fn command_of(
     "cloud" => Cloud(cloud_args(options))
     "environment" => Environment
     _ => Check
-  }
-}
-
-///|
-fn required(options : ParsedOptions, name : String) -> String raise UsageError {
-  match options.text(name) {
-    Some(value) => value
-    None => raise UsageError("--\{name} is required")
   }
 }
 
@@ -206,9 +206,9 @@ fn cloud_args(options : ParsedOptions) -> @workflow.CloudInput raise UsageError 
 }
 
 ///|
-/// Reads the arguments after `adapter serve`, which takes no `--help`; the id is None when it was not given.
-pub fn parse_adapter_serve(
-  rest : ArrayView[String],
-) -> String? raise UsageError {
-  parse_options(rest, [{ name: "id", kind: Text, }]).text("id")
+fn required(options : ParsedOptions, name : String) -> String raise UsageError {
+  match options.text(name) {
+    Some(value) => value
+    None => raise UsageError("--\{name} is required")
+  }
 }

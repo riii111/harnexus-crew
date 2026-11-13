@@ -1,4 +1,8 @@
 ///|
+/// The command was told to stop twice and is still running.
+priv suberror StillAlive
+
+///|
 /// Runs a command with `input` on its stdin and returns once it has exited and its output has been read to the end.
 /// The command leads its own process group, so a child it started does not outlive it.
 /// At the deadline, or when the output passes 16 MiB, the group gets SIGTERM and then SIGKILL after `kill_grace_ms`.
@@ -71,6 +75,7 @@ pub async fn run_process(
     err => raise failed(true, err.to_string())
   }
   child.sweep_group()
+  // To preserve UTF-8 characters split across chunks, decode only after collecting all output.
   {
     status: match exit.val {
       Code(code) => code
@@ -81,10 +86,6 @@ pub async fn run_process(
     ended: ended.val,
   }
 }
-
-///|
-/// The command was told to stop twice and is still running.
-priv suberror StillAlive
 
 ///|
 /// The input goes through stdin so it never shows in the process list.

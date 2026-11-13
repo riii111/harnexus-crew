@@ -1,4 +1,74 @@
 ///|
+let einval : Int32 = 22
+
+///|
+fn open_at(path : String, how : Int32) -> Int32 {
+  at_path(path, bytes => open_raw(bytes, how))
+}
+
+///|
+fn kind_at(path : String) -> Int32 {
+  at_path(path, path_kind_raw)
+}
+
+///|
+fn unlink_at(path : String) -> Int32 {
+  at_path(path, unlink_raw)
+}
+
+///|
+fn mkdir_at(path : String, mode : Int32) -> Int32 {
+  at_path(path, bytes => mkdir_raw(bytes, mode))
+}
+
+///|
+fn rename_at(from : String, to : String) -> Int32 {
+  at_path(from, from_bytes => {
+    at_path(to, to_bytes => rename_raw(from_bytes, to_bytes))
+  })
+}
+
+///|
+fn link_at(from : String, to : String) -> Int32 {
+  at_path(from, from_bytes => {
+    at_path(to, to_bytes => link_raw(from_bytes, to_bytes))
+  })
+}
+
+///|
+fn write_all_text(fd : Int32, text : String) -> Int32 {
+  @sys.write_text(fd, text) catch {
+    @sys.WriteFailed(errno~, ..) => return -errno
+  }
+  0
+}
+
+///|
+fn read_to_end(fd : Int32) -> Result[Bytes, Int32] {
+  let collected = @buffer.Buffer()
+  let chunk : FixedArray[Byte] = FixedArray::make(65536, b'\x00')
+  while true {
+    let read = read_raw(fd, chunk, 65536)
+    if read < 0 {
+      return Err(-read)
+    }
+    if read == 0 {
+      break
+    }
+    collected.write_bytes(Bytes::from_array(chunk[:read]))
+  }
+  Ok(collected.to_bytes())
+}
+
+///|
+fn at_path(path : String, call : (Bytes) -> Int32) -> Int32 {
+  match @sys.c_string(path) {
+    Some(bytes) => call(bytes)
+    None => -einval
+  }
+}
+
+///|
 #borrow(path)
 extern "C" fn open_raw(path : Bytes, how : Int32) -> Int32 = "harnexus_store_open"
 
@@ -64,76 +134,3 @@ extern "C" fn process_alive_raw(pid : Int32) -> Int32 = "harnexus_store_process_
 ///|
 #borrow(bytes, digest)
 extern "C" fn sha256_raw(bytes : Bytes, len : Int32, digest : FixedArray[Byte]) = "harnexus_store_sha256"
-
-///|
-let einval : Int32 = 22
-
-///|
-/// Applies a path call, answering EINVAL for a path that cannot be handed to the OS.
-fn at_path(path : String, call : (Bytes) -> Int32) -> Int32 {
-  match @sys.c_string(path) {
-    Some(bytes) => call(bytes)
-    None => -einval
-  }
-}
-
-///|
-fn open_at(path : String, how : Int32) -> Int32 {
-  at_path(path, bytes => open_raw(bytes, how))
-}
-
-///|
-fn kind_at(path : String) -> Int32 {
-  at_path(path, path_kind_raw)
-}
-
-///|
-fn unlink_at(path : String) -> Int32 {
-  at_path(path, unlink_raw)
-}
-
-///|
-fn mkdir_at(path : String, mode : Int32) -> Int32 {
-  at_path(path, bytes => mkdir_raw(bytes, mode))
-}
-
-///|
-fn rename_at(from : String, to : String) -> Int32 {
-  at_path(from, from_bytes => {
-    at_path(to, to_bytes => rename_raw(from_bytes, to_bytes))
-  })
-}
-
-///|
-fn link_at(from : String, to : String) -> Int32 {
-  at_path(from, from_bytes => {
-    at_path(to, to_bytes => link_raw(from_bytes, to_bytes))
-  })
-}
-
-///|
-/// Writes all of `text`, answering 0 or the negated errno like the other calls here.
-fn write_all_text(fd : Int32, text : String) -> Int32 {
-  @sys.write_text(fd, text) catch {
-    @sys.WriteFailed(errno~, ..) => return -errno
-  }
-  0
-}
-
-///|
-/// Reads up to the end of the file behind `fd`; a negative result is the negated errno.
-fn read_to_end(fd : Int32) -> Result[Bytes, Int32] {
-  let collected = @buffer.Buffer()
-  let chunk : FixedArray[Byte] = FixedArray::make(65536, b'\x00')
-  while true {
-    let read = read_raw(fd, chunk, 65536)
-    if read < 0 {
-      return Err(-read)
-    }
-    if read == 0 {
-      break
-    }
-    collected.write_bytes(Bytes::from_array(chunk[:read]))
-  }
-  Ok(collected.to_bytes())
-}

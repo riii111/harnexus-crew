@@ -25,40 +25,11 @@ priv suberror SpawnFailed {
 }
 
 ///|
-/// The errno name, or Node's code for an argument with a NUL.
-fn SpawnFailed::code(self : SpawnFailed) -> String {
-  match self {
-    SpawnFailed(errno~) => @unix.errno_name(errno)
-    InvalidArgument => "ERR_INVALID_ARG_VALUE"
-  }
-}
-
-///|
 /// A descriptor the caller owns until a stream takes it.
 /// `close_unless_taken` is the one place that closes it, so every path out releases it exactly once.
 priv struct Fd {
   fd : Int32
   mut taken : Bool
-}
-
-///|
-fn Fd::new(fd : Int32) -> Fd {
-  { fd, taken: false, }
-}
-
-///|
-/// Ownership passes to the stream at the call, even if creating it fails.
-async fn Fd::stream(self : Fd) -> @raw_fd.RawFdStream {
-  self.taken = true
-  @raw_fd.RawFdStream(self.fd)
-}
-
-///|
-fn Fd::close_unless_taken(self : Fd) -> Unit {
-  if !self.taken && self.fd >= 0 {
-    self.taken = true
-    @unix.close_fd(self.fd)
-  }
 }
 
 ///|
@@ -127,6 +98,56 @@ fn Child::poll(self : Child) -> Exit? {
 }
 
 ///|
+async fn Child::wait_exit(
+  self : Child,
+  patience_ms~ : Int32 = 5,
+) -> Exit noraise {
+  let started = @async.now()
+  let mut exit = self.poll()
+  while exit is None {
+    // To avoid delaying short commands, poll more frequently just after starting.
+    @async.sleep(if @async.now() - started < 50L { 1 } else { patience_ms })
+    exit = self.poll()
+  }
+  exit.unwrap()
+}
+
+///|
+fn Child::signal(self : Child, sig : Int32, group~ : Bool) -> Bool {
+  if self.reaped && !group {
+    return false
+  }
+  signal_raw(self.pid, if group { 1 } else { 0 }, sig) == 0
+}
+
+///|
+fn Child::sweep_group(self : Child) -> Unit {
+  // Descendants may remain after the child is collected, so kill them by the process group ID.
+  if self.new_session && !self.swept {
+    self.swept = true
+    ignore(self.signal(SIGKILL, group=true))
+  }
+}
+
+///|
+fn Child::stop_and_reap(self : Child) -> Unit {
+  self.sweep_group()
+  if self.reaped {
+    return
+  }
+  ignore(self.signal(SIGKILL, group=false))
+  // To keep collection from blocking failure reporting, bound the wait for the child.
+  ignore(self.collect(2000))
+}
+
+///|
+fn Child::release_pipes(self : Child) -> Unit {
+  self.stdin.close_unless_taken()
+  self.stdout.close_unless_taken()
+  self.stderr.close_unless_taken()
+}
+
+///|
 fn Child::collect(self : Child, timeout_ms : Int32) -> Exit? {
   if self.reaped {
     return None
@@ -145,61 +166,36 @@ fn Child::collect(self : Child, timeout_ms : Int32) -> Exit? {
 }
 
 ///|
-/// Waits for the child to exit, checking often at first so a short command is not held back.
-/// A long wait backs off to `patience_ms` between checks.
-async fn Child::wait_exit(
-  self : Child,
-  patience_ms~ : Int32 = 5,
-) -> Exit noraise {
-  let started = @async.now()
-  let mut exit = self.poll()
-  while exit is None {
-    @async.sleep(if @async.now() - started < 50L { 1 } else { patience_ms })
-    exit = self.poll()
-  }
-  exit.unwrap()
-}
-
-///|
-/// False when the signal was not delivered, such as to a child already collected.
-fn Child::signal(self : Child, sig : Int32, group~ : Bool) -> Bool {
-  if self.reaped && !group {
-    return false
-  }
-  signal_raw(self.pid, if group { 1 } else { 0 }, sig) == 0
-}
-
-///|
-/// Kills what the child left in its group, which stays reachable by the group id after the child itself is collected.
-fn Child::sweep_group(self : Child) -> Unit {
-  if self.new_session && !self.swept {
-    self.swept = true
-    ignore(self.signal(SIGKILL, group=true))
+fn SpawnFailed::code(self : SpawnFailed) -> String {
+  match self {
+    SpawnFailed(errno~) => @unix.errno_name(errno)
+    InvalidArgument => "ERR_INVALID_ARG_VALUE"
   }
 }
 
 ///|
-/// Ends a run that stops without the child's own exit: kills the group and the child, and collects the child.
-/// A child still alive after the bounded wait is left; the caller is reporting a failure by then.
-fn Child::stop_and_reap(self : Child) -> Unit {
-  self.sweep_group()
-  if self.reaped {
-    return
+fn Fd::new(fd : Int32) -> Fd {
+  { fd, taken: false, }
+}
+
+///|
+async fn Fd::stream(self : Fd) -> @raw_fd.RawFdStream {
+  // Creating the stream takes ownership even on failure, so release the descriptor from its old owner before the call.
+  self.taken = true
+  @raw_fd.RawFdStream(self.fd)
+}
+
+///|
+fn Fd::close_unless_taken(self : Fd) -> Unit {
+  if !self.taken && self.fd >= 0 {
+    self.taken = true
+    @unix.close_fd(self.fd)
   }
-  ignore(self.signal(SIGKILL, group=false))
-  ignore(self.collect(2000))
 }
 
 ///|
-fn Child::release_pipes(self : Child) -> Unit {
-  self.stdin.close_unless_taken()
-  self.stdout.close_unless_taken()
-  self.stderr.close_unless_taken()
-}
-
-///|
-/// A NUL would end the string early in C, which could run a different command than the one asked for.
 fn c_string(text : String) -> Bytes raise SpawnFailed {
+  // A NUL could truncate the string and run a different command, so reject it before passing the string to C.
   guard @sys.c_string(text) is Some(bytes) else { raise InvalidArgument }
   bytes
 }

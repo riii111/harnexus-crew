@@ -5,12 +5,6 @@ priv struct TemplateConfig {
 }
 
 ///|
-/// Beside harnexus's other config, never in the repository or the working directory, so a sandboxed agent cannot pick the prompt a new chat receives.
-fn template_config_path(env : @environment.Env) -> String {
-  @path.join([env.config_home(), "task.json"])
-}
-
-///|
 fn TemplateConfig::from_json(
   path : String,
   json : Json,
@@ -33,6 +27,12 @@ fn TemplateConfig::from_json(
     }
   }
   { worker: template("worker"), reviewer: template("reviewer"), }
+}
+
+///|
+fn template_config_path(env : @environment.Env) -> String {
+  // To keep the working repository from overriding prompt settings, use the user configuration directory.
+  @path.join([env.config_home(), "task.json"])
 }
 
 ///|

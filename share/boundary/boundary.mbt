@@ -1,5 +1,4 @@
 ///|
-/// One request line that did not get an answer.
 /// `connected` is false when the connection itself failed, so the line was never written.
 pub(all) suberror LineExchangeFailed {
   LineExchangeFailed(
@@ -36,14 +35,12 @@ pub(all) struct ProcessRun {
 }
 
 ///|
-/// A process that did not settle.
 /// `started` is false only when it never started, which is the only case in which it surely did not run.
 pub(all) suberror ProcessRunFailed {
   ProcessRunFailed(started~ : Bool, message~ : String)
 }
 
 ///|
-/// What a short command printed.
 /// Any exit status is a result; the caller decides what a failure means.
 pub(all) struct CommandOutput {
   status : Int32
@@ -52,7 +49,6 @@ pub(all) struct CommandOutput {
 }
 
 ///|
-/// A command that could not start or ran past its timeout.
 /// `code` is the error code Node attaches to the failure, such as `ENOENT`; callers that show it append it to the message in parentheses.
 pub(all) suberror CommandFailed {
   CommandFailed(command~ : String, message~ : String, code~ : String?)

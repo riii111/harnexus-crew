@@ -1,35 +1,4 @@
 ///|
-fn usage(name : String) -> String {
-  "usage:\n  \{name} adapter serve --id ADAPTER_ID\n"
-}
-
-///|
-fn usage_error(message : String) -> @run.CommandRun {
-  let name = @environment.NAME
-  { code: 2, stdout: "", stderr: "\{usage(name)}\{name}: \{message}\n", }
-}
-
-///|
-/// An adapter id the bridge can name in its logs: 1 to 64 ASCII letters, digits, `_`, `.` and `-`.
-fn is_adapter_id(text : String) -> Bool {
-  let units = text.code_units()
-  if units.length() < 1 || units.length() > 64 {
-    return false
-  }
-  units
-  .iter()
-  .all(unit => {
-    let code = unit.to_int()
-    (code >= 48 && code <= 57) ||
-    (code >= 65 && code <= 90) ||
-    (code >= 97 && code <= 122) ||
-    code == 95 ||
-    code == 46 ||
-    code == 45
-  })
-}
-
-///|
 /// `argv` is the arguments after `adapter`.
 /// `read_env` is called only once the arguments are accepted and the command needs the environment.
 pub async fn run(
@@ -53,4 +22,35 @@ pub async fn run(
     return serve(read_env(), id)
   }
   usage_error("unknown adapter command \{command}")
+}
+
+///|
+fn usage_error(message : String) -> @run.CommandRun {
+  let name = @environment.NAME
+  { code: 2, stdout: "", stderr: "\{usage(name)}\{name}: \{message}\n", }
+}
+
+///|
+fn usage(name : String) -> String {
+  "usage:\n  \{name} adapter serve --id ADAPTER_ID\n"
+}
+
+///|
+/// An adapter id the bridge can name in its logs: 1 to 64 ASCII letters, digits, `_`, `.` and `-`.
+fn is_adapter_id(text : String) -> Bool {
+  let units = text.code_units()
+  if units.length() < 1 || units.length() > 64 {
+    return false
+  }
+  units
+  .iter()
+  .all(unit => {
+    let code = unit.to_int()
+    (code >= 48 && code <= 57) ||
+    (code >= 65 && code <= 90) ||
+    (code >= 97 && code <= 122) ||
+    code == 95 ||
+    code == 46 ||
+    code == 45
+  })
 }

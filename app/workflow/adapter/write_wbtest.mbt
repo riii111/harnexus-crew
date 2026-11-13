@@ -48,6 +48,32 @@ fn bound_line(reviewer : String, thread_id : String) -> Array[(String, Json)] {
 }
 
 ///|
+fn opening_file(at : Place, reviewer : String) -> String {
+  "\{at.observe}/opening/\{short_hash(reviewer)}.json"
+}
+
+///|
+fn save_opening(at : Place, showing : Bool) -> Unit {
+  write_file(
+    opening_file(at, "R1"),
+    text_of(
+      object([
+        ("key", str("k1")),
+        ("text", str("first review")),
+        ("sessionId", str(session)),
+        ("showing", Json::boolean(showing)),
+      ]),
+    ),
+  )
+}
+
+///|
+async fn reconnect(link : Link) -> Unit {
+  link.say(hello_line("write"))
+  link.say(ready_line([binding("R1", "chat-r1")]))
+}
+
+///|
 async test "a review is shown once when two adapters take it at the same time" {
   with_place("write-race", at => {
     @async.with_task_group(group => {
@@ -264,32 +290,6 @@ async test "the first review is posted after a restart when the bridge bound its
       assert_eq(pending_keys(after), [])
     })
   })
-}
-
-///|
-fn opening_file(at : Place, reviewer : String) -> String {
-  "\{at.observe}/opening/\{short_hash(reviewer)}.json"
-}
-
-///|
-fn save_opening(at : Place, showing : Bool) -> Unit {
-  write_file(
-    opening_file(at, "R1"),
-    text_of(
-      object([
-        ("key", str("k1")),
-        ("text", str("first review")),
-        ("sessionId", str(session)),
-        ("showing", Json::boolean(showing)),
-      ]),
-    ),
-  )
-}
-
-///|
-async fn reconnect(link : Link) -> Unit {
-  link.say(hello_line("write"))
-  link.say(ready_line([binding("R1", "chat-r1")]))
 }
 
 ///|

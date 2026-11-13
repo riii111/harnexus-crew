@@ -53,13 +53,157 @@ priv struct Observations {
 }
 
 ///|
-fn observation_root(env : @environment.Env) -> String {
-  @path.join([env.state_root(), "cloud-observe"])
+fn Observations::new(root : String) -> Observations {
+  { root, }
 }
 
 ///|
-fn Observations::new(root : String) -> Observations {
-  { root, }
+fn Observations::position(
+  self : Observations,
+  session_id : String,
+) -> SessionPosition? raise @failure.TaskFailed {
+  if !is_session_id(session_id) {
+    @failure.fail("\{session_id} is not a Cloud session id")
+  }
+  let path = self.session_path(session_id)
+  let loaded = @store.load(path)
+  if loaded is Null {
+    return None
+  }
+  match position_in(loaded) {
+    Some(found) => Some(found)
+    None => @failure.fail("\{path} is not a session position")
+  }
+}
+
+///|
+fn Observations::keep_position(
+  self : Observations,
+  next : SessionPosition,
+) -> Unit raise @failure.TaskFailed {
+  @store.save_json(
+    self.session_path(next.session_id),
+    next.to_json(),
+    exclusive=false,
+  )
+}
+
+///|
+fn Observations::opening(
+  self : Observations,
+  reviewer : String,
+) -> Opening? raise @failure.TaskFailed {
+  let path = self.opening_path(reviewer)
+  let loaded = @store.load(path)
+  if loaded is Null {
+    return None
+  }
+  guard loaded is Object(members) &&
+    members.get("key") is Some(String(key)) &&
+    members.get("text") is Some(String(text)) else {
+    @failure.fail("\{path} is not an opening record")
+  }
+  Some({
+    key,
+    text,
+    session_id: text_or_none(members.get("sessionId")),
+    showing: members.get("showing") is Some(True),
+  })
+}
+
+///|
+fn Observations::keep_opening(
+  self : Observations,
+  reviewer : String,
+  value : Opening,
+) -> Unit raise @failure.TaskFailed {
+  @store.save_json(
+    self.opening_path(reviewer),
+    value.to_json(),
+    exclusive=false,
+  )
+}
+
+///|
+fn Observations::drop_opening(
+  self : Observations,
+  reviewer : String,
+) -> Unit raise @failure.TaskFailed {
+  io(() => @store.remove_file(self.opening_path(reviewer)))
+}
+
+///|
+fn Observations::pending(
+  self : Observations,
+) -> Array[PendingReview] raise @failure.TaskFailed {
+  let path = self.pending_path()
+  let loaded = @store.load(path)
+  if loaded is Null {
+    return []
+  }
+  if !(loaded is Array(_)) {
+    @failure.fail("\{path} is not a list")
+  }
+  pending_in(loaded)
+}
+
+///|
+async fn Observations::add_pending(
+  self : Observations,
+  added : Array[PendingReview],
+) -> Unit raise @failure.TaskFailed {
+  self.change_pending(entries => {
+    let keys : Map[String, Bool] = Map([])
+    for entry in entries {
+      keys[entry.review.key] = true
+    }
+    let next = entries.copy()
+    for entry in added {
+      if !keys.contains(entry.review.key) {
+        next.push(entry)
+      }
+    }
+    next
+  })
+}
+
+///|
+async fn Observations::remove_pending(
+  self : Observations,
+  keys : Map[String, Bool],
+) -> Unit raise @failure.TaskFailed {
+  self.change_pending(entries => {
+    entries.filter(entry => !keys.contains(entry.review.key))
+  })
+}
+
+///|
+/// The waiting list is shared by every adapter on the machine, so each change re-reads it under a lock and touches only its own entries.
+async fn Observations::change_pending(
+  self : Observations,
+  change : (Array[PendingReview]) -> Array[PendingReview],
+) -> Unit raise @failure.TaskFailed {
+  @store.with_lock(self.locks(), "pending", () => {
+    let entries = self.pending()
+    self.keep_pending(change(entries))
+  })
+}
+
+///|
+fn Observations::keep_pending(
+  self : Observations,
+  entries : Array[PendingReview],
+) -> Unit raise @failure.TaskFailed {
+  @store.save_json(
+    self.pending_path(),
+    Json::array(entries.map(PendingReview::to_json)),
+    exclusive=false,
+  )
+}
+
+///|
+fn observation_root(env : @environment.Env) -> String {
+  @path.join([env.state_root(), "cloud-observe"])
 }
 
 ///|
@@ -196,148 +340,4 @@ fn Opening::to_json(self : Opening) -> Json {
     ("sessionId", optional_text(self.session_id)),
     ("showing", Json::boolean(self.showing)),
   ])
-}
-
-///|
-fn Observations::position(
-  self : Observations,
-  session_id : String,
-) -> SessionPosition? raise @failure.TaskFailed {
-  if !is_session_id(session_id) {
-    @failure.fail("\{session_id} is not a Cloud session id")
-  }
-  let path = self.session_path(session_id)
-  let loaded = @store.load(path)
-  if loaded is Null {
-    return None
-  }
-  match position_in(loaded) {
-    Some(found) => Some(found)
-    None => @failure.fail("\{path} is not a session position")
-  }
-}
-
-///|
-fn Observations::keep_position(
-  self : Observations,
-  next : SessionPosition,
-) -> Unit raise @failure.TaskFailed {
-  @store.save_json(
-    self.session_path(next.session_id),
-    next.to_json(),
-    exclusive=false,
-  )
-}
-
-///|
-fn Observations::opening(
-  self : Observations,
-  reviewer : String,
-) -> Opening? raise @failure.TaskFailed {
-  let path = self.opening_path(reviewer)
-  let loaded = @store.load(path)
-  if loaded is Null {
-    return None
-  }
-  guard loaded is Object(members) &&
-    members.get("key") is Some(String(key)) &&
-    members.get("text") is Some(String(text)) else {
-    @failure.fail("\{path} is not an opening record")
-  }
-  Some({
-    key,
-    text,
-    session_id: text_or_none(members.get("sessionId")),
-    showing: members.get("showing") is Some(True),
-  })
-}
-
-///|
-fn Observations::keep_opening(
-  self : Observations,
-  reviewer : String,
-  value : Opening,
-) -> Unit raise @failure.TaskFailed {
-  @store.save_json(
-    self.opening_path(reviewer),
-    value.to_json(),
-    exclusive=false,
-  )
-}
-
-///|
-fn Observations::drop_opening(
-  self : Observations,
-  reviewer : String,
-) -> Unit raise @failure.TaskFailed {
-  io(() => @store.remove_file(self.opening_path(reviewer)))
-}
-
-///|
-fn Observations::pending(
-  self : Observations,
-) -> Array[PendingReview] raise @failure.TaskFailed {
-  let path = self.pending_path()
-  let loaded = @store.load(path)
-  if loaded is Null {
-    return []
-  }
-  if !(loaded is Array(_)) {
-    @failure.fail("\{path} is not a list")
-  }
-  pending_in(loaded)
-}
-
-///|
-fn Observations::keep_pending(
-  self : Observations,
-  entries : Array[PendingReview],
-) -> Unit raise @failure.TaskFailed {
-  @store.save_json(
-    self.pending_path(),
-    Json::array(entries.map(PendingReview::to_json)),
-    exclusive=false,
-  )
-}
-
-///|
-/// The waiting list is shared by every adapter on the machine, so each change re-reads it under a lock and touches only its own entries.
-async fn Observations::change_pending(
-  self : Observations,
-  change : (Array[PendingReview]) -> Array[PendingReview],
-) -> Unit raise @failure.TaskFailed {
-  @store.with_lock(self.locks(), "pending", () => {
-    let entries = self.pending()
-    self.keep_pending(change(entries))
-  })
-}
-
-///|
-async fn Observations::add_pending(
-  self : Observations,
-  added : Array[PendingReview],
-) -> Unit raise @failure.TaskFailed {
-  self.change_pending(entries => {
-    let keys : Map[String, Bool] = Map([])
-    for entry in entries {
-      keys[entry.review.key] = true
-    }
-    let next = entries.copy()
-    for entry in added {
-      if !keys.contains(entry.review.key) {
-        next.push(entry)
-      }
-    }
-    next
-  })
-}
-
-///|
-async fn Observations::remove_pending(
-  self : Observations,
-  keys : Map[String, Bool],
-) -> Unit raise @failure.TaskFailed {
-  self.change_pending(entries => {
-    entries.filter(entry => !keys.contains(entry.review.key))
-  })
 }

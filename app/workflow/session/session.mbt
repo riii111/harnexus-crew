@@ -1,5 +1,4 @@
 ///|
-/// The ports a session works through; a test replaces them.
 pub(all) struct Ports {
   /// Sends an App operation as the caller's thread: caller, tool, arguments.
   call : async (String, String, Map[String, Json]) -> @bridge.CallAnswer noraise
@@ -8,16 +7,6 @@ pub(all) struct Ports {
 }
 
 ///|
-/// The ports of a run: the app's bridge or T3 CLI, and the state files.
-fn ports_of(host : @host.Host) -> Ports {
-  {
-    call: host.call,
-    save: (path, data, exclusive) => @store.save_json(path, data, exclusive~),
-  }
-}
-
-///|
-/// One kept conversation with a thread: what was confirmed, and the send whose result is not.
 /// `state.json` holds what was confirmed; `pending.json` holds a send whose result is unknown and blocks any resend.
 priv struct Session {
   ports : Ports
@@ -35,6 +24,14 @@ priv struct Session {
   ] raise @failure.TaskFailed
   /// The flat fields `state --request` shows for this kind of session.
   summarize : (Map[String, Json]?, Map[String, Json]?) -> Map[String, Json]
+}
+
+///|
+fn ports_of(host : @host.Host) -> Ports {
+  {
+    call: host.call,
+    save: (path, data, exclusive) => @store.save_json(path, data, exclusive~),
+  }
 }
 
 ///|
@@ -62,78 +59,6 @@ fn Session::open(
 }
 
 ///|
-fn object_of(record : Json?) -> Map[String, Json]? {
-  match record {
-    Some(Object(members)) => Some(members)
-    _ => None
-  }
-}
-
-///|
-fn state_json(state : Map[String, Json]?) -> Json {
-  match state {
-    Some(members) => Json::object(members)
-    None => Json::null()
-  }
-}
-
-///|
-/// Refuses a new send while one is pending: it stays until the user discards it.
-fn Session::check_idle(self : Session) -> Unit raise @failure.TaskFailed {
-  check_idle(self.pending)
-}
-
-///|
-fn check_idle(pending : Map[String, Json]?) -> Unit raise @failure.TaskFailed {
-  guard pending is Some(pending) else { return }
-  let thread = @jsonio.as_text(value_of(pending, "threadId"))
-  if value_of(pending, "status") is String("refused") {
-    let reason = value_of(pending, "reason")
-    if truthy(reason) {
-      @failure.fail(
-        "the bridge refused the first turn of thread \{thread}: \{@jsonio.as_text(reason)}; fix the cause, then resolve --not-sent",
-      )
-    }
-    let expected = value_of(pending, "expected")
-    let actual = value_of(pending, "actual")
-    @failure.fail(
-      "thread \{thread} refused its first turn: \{refusal_text(expected, actual)}; fix the model, then resolve --not-sent",
-    )
-  }
-  @failure.fail(
-    "previous \{@jsonio.as_text(value_of(pending, "tool"))} ended as \{@jsonio.as_text(value_of(pending, "status"))}; never resend. Ask the user to check the App, then run resolve --sent or --not-sent",
-  )
-}
-
-///|
-fn refusal_text(expected : Json, actual : Json) -> String {
-  // The app answers a refusal with the settings it checked; anything else is shown as it came.
-  match (expected, actual) {
-    (Object(_), Object(_)) =>
-      @host.refusal_of(checked_settings(expected), checked_settings(actual))
-    _ =>
-      "expected \{@jsonio.as_text(expected)}, actual \{@jsonio.as_text(actual)}"
-  }
-}
-
-///|
-fn checked_settings(settings : Json) -> @host.TurnSettings {
-  fn text_of(value : Json) -> String? {
-    match value {
-      String(text) => Some(text)
-      _ => None
-    }
-  }
-
-  {
-    model: text_of(@jsonio.field(settings, "model")),
-    effort: text_of(@jsonio.field(settings, "effort")),
-  }
-}
-
-///|
-/// Sends one operation as `caller` and keeps its result.
-/// A send is recorded as pending before it goes out, and stays pending until its result is known, so a lost answer is never sent again.
 async fn Session::send(
   self : Session,
   caller : String,
@@ -150,6 +75,7 @@ async fn Session::send(
   for pair in extra {
     record[pair.0] = pair.1
   }
+  // To prevent resending an operation whose answer was lost, create its pending record exclusively before sending.
   (self.ports.save)(self.pending_path, Json::object(record), true)
   if !json_equal(@store.load(self.state_path), self.loaded) {
     @store.remove_record(self.pending_path)
@@ -254,7 +180,6 @@ fn Session::resolve(
 }
 
 ///|
-/// Keeps a send as confirmed: the state names its thread, and nothing is pending any more.
 fn Session::confirm(
   self : Session,
   record : Map[String, Json],
@@ -345,4 +270,73 @@ fn Session::show(self : Session) -> Json raise @failure.TaskFailed {
     },
   )
   Json::object(shown)
+}
+
+///|
+fn Session::check_idle(self : Session) -> Unit raise @failure.TaskFailed {
+  check_idle(self.pending)
+}
+
+///|
+fn check_idle(pending : Map[String, Json]?) -> Unit raise @failure.TaskFailed {
+  guard pending is Some(pending) else { return }
+  let thread = @jsonio.as_text(value_of(pending, "threadId"))
+  if value_of(pending, "status") is String("refused") {
+    let reason = value_of(pending, "reason")
+    if truthy(reason) {
+      @failure.fail(
+        "the bridge refused the first turn of thread \{thread}: \{@jsonio.as_text(reason)}; fix the cause, then resolve --not-sent",
+      )
+    }
+    let expected = value_of(pending, "expected")
+    let actual = value_of(pending, "actual")
+    @failure.fail(
+      "thread \{thread} refused its first turn: \{refusal_text(expected, actual)}; fix the model, then resolve --not-sent",
+    )
+  }
+  @failure.fail(
+    "previous \{@jsonio.as_text(value_of(pending, "tool"))} ended as \{@jsonio.as_text(value_of(pending, "status"))}; never resend. Ask the user to check the App, then run resolve --sent or --not-sent",
+  )
+}
+
+///|
+fn refusal_text(expected : Json, actual : Json) -> String {
+  // The app answers a refusal with the settings it checked; anything else is shown as it came.
+  match (expected, actual) {
+    (Object(_), Object(_)) =>
+      @host.refusal_of(checked_settings(expected), checked_settings(actual))
+    _ =>
+      "expected \{@jsonio.as_text(expected)}, actual \{@jsonio.as_text(actual)}"
+  }
+}
+
+///|
+fn checked_settings(settings : Json) -> @host.TurnSettings {
+  fn text_of(value : Json) -> String? {
+    match value {
+      String(text) => Some(text)
+      _ => None
+    }
+  }
+
+  {
+    model: text_of(@jsonio.field(settings, "model")),
+    effort: text_of(@jsonio.field(settings, "effort")),
+  }
+}
+
+///|
+fn object_of(record : Json?) -> Map[String, Json]? {
+  match record {
+    Some(Object(members)) => Some(members)
+    _ => None
+  }
+}
+
+///|
+fn state_json(state : Map[String, Json]?) -> Json {
+  match state {
+    Some(members) => Json::object(members)
+    None => Json::null()
+  }
 }

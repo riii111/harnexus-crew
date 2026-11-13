@@ -24,27 +24,6 @@ priv struct ParsedOptions {
 }
 
 ///|
-fn ParsedOptions::flag(self : ParsedOptions, name : String) -> Bool {
-  self.values.get(name) is Some(On)
-}
-
-///|
-fn ParsedOptions::text(self : ParsedOptions, name : String) -> String? {
-  match self.values.get(name) {
-    Some(One(text)) => Some(text)
-    _ => None
-  }
-}
-
-///|
-fn ParsedOptions::list(self : ParsedOptions, name : String) -> Array[String] {
-  match self.values.get(name) {
-    Some(Many(items)) => items
-    _ => []
-  }
-}
-
-///|
 pub suberror UsageError {
   UsageError(String)
 }
@@ -88,37 +67,6 @@ fn parse_options(
 }
 
 ///|
-fn unexpected(arg : String) -> UsageError {
-  UsageError(
-    "Unexpected argument '\{arg}'. This command does not take positional arguments",
-  )
-}
-
-///|
-fn split_long(arg : String) -> (String, String?) {
-  let equals = arg.find("=")
-  match equals {
-    // A name needs a character before the `=`, so `--=x` is an unknown option as a whole.
-    Some(index) if index > 2 =>
-      (arg[2:index].to_owned(), Some(arg[index + 1:].to_owned()))
-    _ => (arg[2:].to_owned(), None)
-  }
-}
-
-///|
-fn find_long(
-  specs : Array[OptionSpec],
-  name : String,
-) -> OptionSpec raise UsageError {
-  for spec in specs {
-    if spec.name == name {
-      return spec
-    }
-  }
-  raise UsageError("Unknown option '--\{name}'")
-}
-
-///|
 fn take_option(
   values : Map[String, OptionValue],
   spec : OptionSpec,
@@ -158,4 +106,56 @@ fn take_option(
     _ => values[spec.name] = One(value)
   }
   taken
+}
+
+///|
+fn find_long(
+  specs : Array[OptionSpec],
+  name : String,
+) -> OptionSpec raise UsageError {
+  for spec in specs {
+    if spec.name == name {
+      return spec
+    }
+  }
+  raise UsageError("Unknown option '--\{name}'")
+}
+
+///|
+fn split_long(arg : String) -> (String, String?) {
+  let equals = arg.find("=")
+  match equals {
+    // A name needs a character before the `=`, so `--=x` is an unknown option as a whole.
+    Some(index) if index > 2 =>
+      (arg[2:index].to_owned(), Some(arg[index + 1:].to_owned()))
+    _ => (arg[2:].to_owned(), None)
+  }
+}
+
+///|
+fn unexpected(arg : String) -> UsageError {
+  UsageError(
+    "Unexpected argument '\{arg}'. This command does not take positional arguments",
+  )
+}
+
+///|
+fn ParsedOptions::flag(self : ParsedOptions, name : String) -> Bool {
+  self.values.get(name) is Some(On)
+}
+
+///|
+fn ParsedOptions::text(self : ParsedOptions, name : String) -> String? {
+  match self.values.get(name) {
+    Some(One(text)) => Some(text)
+    _ => None
+  }
+}
+
+///|
+fn ParsedOptions::list(self : ParsedOptions, name : String) -> Array[String] {
+  match self.values.get(name) {
+    Some(Many(items)) => items
+    _ => []
+  }
 }

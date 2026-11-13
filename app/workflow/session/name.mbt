@@ -83,7 +83,6 @@ async fn name_in(
 }
 
 ///|
-/// The launch request of the worker that runs in the thread.
 fn launch_of_thread(
   env : @environment.Env,
   thread : String,

@@ -1,4 +1,9 @@
 ///|
+priv suberror ConnectFailed {
+  ConnectFailed(Int32)
+}
+
+///|
 /// Sends one line to a Unix stream socket and returns what the peer answers before it closes, without trailing whitespace.
 /// One deadline covers the connect, the write and the read.
 /// An empty line only probes: the connection proves the peer is alive and nothing is sent.
@@ -64,13 +69,6 @@ async fn exchange_with(
 }
 
 ///|
-priv suberror ConnectFailed {
-  ConnectFailed(Int32)
-}
-
-///|
-/// Retries a non-blocking connect until it completes.
-/// A Unix socket gives no readiness event for a full listen queue, so a pending attempt is retried after a short sleep that lets other tasks run.
 async fn connect_until_done(
   fd : Int32,
   attempt : (Int32) -> Int32,
@@ -83,6 +81,7 @@ async fn connect_until_done(
     if connect_pending_raw(errno) == 0 {
       raise ConnectFailed(errno)
     }
+    // A Unix socket with a full listen queue gives no readiness notification, so retry after a short sleep.
     @async.sleep(10)
   }
 }

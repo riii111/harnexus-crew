@@ -47,7 +47,6 @@ fn json_equal(a : Json, b : Json) -> Bool {
 }
 
 ///|
-/// The model and thinking a record names, null where it names none.
 fn settings_of(record : Json) -> Json {
   Json::object({
     "model": @jsonio.field(record, "model"),
@@ -56,8 +55,6 @@ fn settings_of(record : Json) -> Json {
 }
 
 ///|
-/// What a thread was asked to run on and ran on.
-/// A send that named neither leaves the thread's settings as they were, so it has none.
 fn sent_settings(sent : Json) -> Json {
   let requested = settings_of(@jsonio.field(sent, "expected"))
   let asked = !(@jsonio.field(requested, "model") is Null) ||
@@ -68,12 +65,12 @@ fn sent_settings(sent : Json) -> Json {
       "actual": settings_of(@jsonio.field(sent, "actual")),
     })
   } else {
+    // A send without settings cannot confirm the actual settings, so report null instead of guessing.
     Json::null()
   }
 }
 
 ///|
-/// The title of a thread: the task's display name when it has one, else its ID.
 fn thread_title(kind : String, request : Json) -> String {
   let name = @jsonio.field(request, "displayName")
   if truthy(name) {

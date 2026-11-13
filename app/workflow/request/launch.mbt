@@ -9,7 +9,6 @@ pub struct LaunchRequest {
 }
 
 ///|
-/// Reports the first problem in the order the TypeScript build checked.
 pub async fn LaunchRequest::from_json(
   json : Json,
   probe : FileProbe,

@@ -22,7 +22,33 @@ pub(all) suberror FileFailed {
 }
 
 ///|
-/// The failure as the user sees it: the message, then the errno code in parentheses.
+let open_read : Int32 = 0
+
+///|
+let open_exclusive : Int32 = 1
+
+///|
+let open_directory : Int32 = 3
+
+///|
+let kind_file : Int32 = 1
+
+///|
+let kind_directory : Int32 = 2
+
+///|
+let enoent : Int32 = 2
+
+///|
+let eexist : Int32 = 17
+
+///|
+let enotdir : Int32 = 20
+
+///|
+let owner_only_directory : Int32 = 0o700
+
+///|
 pub fn FileFailed::user_message(self : FileFailed) -> String {
   let FileFailed(code~, message~, ..) = self
   match code {
@@ -44,7 +70,6 @@ pub fn read_text_if_exists(path : String) -> String? raise FileFailed {
 }
 
 ///|
-/// Reads a regular file as text.
 /// A FIFO or device is refused, since reading it could wait forever.
 pub fn read_regular_text(path : String) -> String raise FileFailed {
   let message = "cannot read \{path}"
@@ -158,81 +183,6 @@ pub fn real_path_or_self(path : String) -> String {
 }
 
 ///|
-let open_read : Int32 = 0
-
-///|
-let open_exclusive : Int32 = 1
-
-///|
-let open_directory : Int32 = 3
-
-///|
-let kind_file : Int32 = 1
-
-///|
-let kind_directory : Int32 = 2
-
-///|
-let enoent : Int32 = 2
-
-///|
-let eexist : Int32 = 17
-
-///|
-let enotdir : Int32 = 20
-
-///|
-let owner_only_directory : Int32 = 0o700
-
-///|
-fn failure(
-  action : FileAction,
-  path : String,
-  errno : Int32,
-  message : String,
-) -> FileFailed {
-  FileFailed(action~, path~, code=Some(@unix.errno_name(errno)), message~)
-}
-
-///|
-/// Passes a non-negative result through and raises for a negated errno.
-fn check(
-  result : Int32,
-  action : FileAction,
-  path : String,
-  message : String,
-) -> Int32 raise FileFailed {
-  if result < 0 {
-    raise failure(action, path, -result, message)
-  }
-  result
-}
-
-///|
-fn decode_text(bytes : Bytes) -> String {
-  @utf8.decode_lossy(bytes[:])
-}
-
-///|
-fn read_and_close(
-  fd : Int32,
-  path : String,
-  message : String,
-) -> Bytes raise FileFailed {
-  let read = read_to_end(fd)
-  let closed = close_raw(fd)
-  match read {
-    Err(errno) => raise failure(Read, path, errno, message)
-    Ok(bytes) => {
-      if closed < 0 {
-        raise failure(Read, path, -closed, message)
-      }
-      bytes
-    }
-  }
-}
-
-///|
 fn replace_file(path : String, content : String) -> Unit raise FileFailed {
   let temporary = write_temporary(path, content)
   // The rename happens only after the temporary file is flushed to disk, so a reader never sees a half-written file.
@@ -308,7 +258,6 @@ fn sync_directory(path : String) -> Int32 {
 }
 
 ///|
-/// Creates a directory and its missing parents; an existing directory is fine, an existing file is EEXIST.
 fn make_directories(path : String) -> Int32 {
   let made = mkdir_at(path, owner_only_directory)
   if made == -eexist {
@@ -334,7 +283,6 @@ fn make_directories(path : String) -> Int32 {
 }
 
 ///|
-/// Lists with a buffer of `capacity` bytes, retrying with the size the listing needs when it was too small.
 fn list_with_capacity(
   path : String,
   capacity : Int32,
@@ -357,6 +305,30 @@ fn list_with_capacity(
 }
 
 ///|
+fn read_and_close(
+  fd : Int32,
+  path : String,
+  message : String,
+) -> Bytes raise FileFailed {
+  let read = read_to_end(fd)
+  let closed = close_raw(fd)
+  match read {
+    Err(errno) => raise failure(Read, path, errno, message)
+    Ok(bytes) => {
+      if closed < 0 {
+        raise failure(Read, path, -closed, message)
+      }
+      bytes
+    }
+  }
+}
+
+///|
+fn decode_text(bytes : Bytes) -> String {
+  @utf8.decode_lossy(bytes[:])
+}
+
+///|
 fn split_names(listing : Bytes) -> Array[String] {
   let names = []
   let mut start = 0
@@ -367,4 +339,27 @@ fn split_names(listing : Bytes) -> Array[String] {
     }
   }
   names
+}
+
+///|
+fn check(
+  result : Int32,
+  action : FileAction,
+  path : String,
+  message : String,
+) -> Int32 raise FileFailed {
+  if result < 0 {
+    raise failure(action, path, -result, message)
+  }
+  result
+}
+
+///|
+fn failure(
+  action : FileAction,
+  path : String,
+  errno : Int32,
+  message : String,
+) -> FileFailed {
+  FileFailed(action~, path~, code=Some(@unix.errno_name(errno)), message~)
 }

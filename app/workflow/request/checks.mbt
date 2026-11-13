@@ -36,19 +36,8 @@ pub fn caller_id(env : @environment.Env) -> String raise @failure.TaskFailed {
 }
 
 ///|
-fn json_single_line(
-  value : Json?,
-  name : String,
-) -> String raise @failure.TaskFailed {
-  match value {
-    Some(String(text)) => single_line(text, name)
-    _ => @failure.fail("\{name} must be a nonempty single-line string")
-  }
-}
-
-///|
-/// The ID is pasted into worker and reviewer prompts, so it may not carry spaces or prose.
 fn task_id_of(value : Json?) -> String raise @failure.TaskFailed {
+  // The task ID is an identifier in prompts, so reject whitespace and prose.
   let id = json_single_line(value, "taskId")
   let points = units_of(id)
   let first_ok = @text.is_ascii_alphanumeric(points[0]) ||
@@ -68,8 +57,8 @@ fn task_id_of(value : Json?) -> String raise @failure.TaskFailed {
 }
 
 ///|
-/// Only the thread title shows the name, so it may carry any single-line text.
 fn display_name_of(value : Json?) -> OptionalText raise @failure.TaskFailed {
+  // The display name is used only in the thread title, so do not apply the ID character restrictions.
   match value {
     None => Absent
     Some(Null) => Null
@@ -93,6 +82,32 @@ fn starting_branch_of(value : Json?) -> OptionalText raise @failure.TaskFailed {
 }
 
 ///|
+async fn document_refs_of(
+  value : Json?,
+  probe : FileProbe,
+) -> Array[String] raise @failure.TaskFailed {
+  let items = match value {
+    Some(Array(items)) if !items.is_empty() => items
+    _ => @failure.fail("documentRefs must be a nonempty list of paths or URLs")
+  }
+  let refs = []
+  for item in items {
+    let reference = json_single_line(Some(item), "documentRefs entry")
+    if !is_https_url(reference) &&
+      (!reference.has_prefix("/") || !(probe.path_exists)(reference)) {
+      @failure.fail(
+        "document reference must be an existing absolute path or HTTPS URL: \{reference}",
+      )
+    }
+    refs.push(reference)
+  }
+  if refs.length() != unique_count(refs) {
+    @failure.fail("documentRefs must not contain duplicate references")
+  }
+  refs
+}
+
+///|
 fn is_branch_name(branch : String) -> Bool {
   let points = units_of(branch)
   points.length() > 0 &&
@@ -109,7 +124,6 @@ fn is_branch_name(branch : String) -> Bool {
 }
 
 ///|
-/// urlsplit's scheme and netloc, which decide whether a reference is a URL rather than a path.
 fn is_https_url(value : String) -> Bool {
   if @text.has_space(value) {
     return false
@@ -162,17 +176,32 @@ fn is_pull_request_url(value : String) -> Bool {
 }
 
 ///|
+fn unique_count(refs : Array[String]) -> Int32 {
+  let seen = Map([])
+  for reference in refs {
+    seen[reference] = true
+  }
+  seen.length()
+}
+
+///|
+fn json_single_line(
+  value : Json?,
+  name : String,
+) -> String raise @failure.TaskFailed {
+  match value {
+    Some(String(text)) => single_line(text, name)
+    _ => @failure.fail("\{name} must be a nonempty single-line string")
+  }
+}
+
+///|
 fn is_positive_number(text : String) -> Bool {
   let units = text.code_units()
   units.length() > 0 &&
   units[0] >= 0x31 &&
   units[0] <= 0x39 &&
   units.iter().all(fn(unit) { unit >= 0x30 && unit <= 0x39 })
-}
-
-///|
-fn units_of(text : String) -> Array[Int32] {
-  text.code_units().map(unit => unit.to_int())
 }
 
 ///|
@@ -195,38 +224,8 @@ fn is_scheme_unit(unit : Int32) -> Bool {
 }
 
 ///|
-async fn document_refs_of(
-  value : Json?,
-  probe : FileProbe,
-) -> Array[String] raise @failure.TaskFailed {
-  let items = match value {
-    Some(Array(items)) if !items.is_empty() => items
-    _ => @failure.fail("documentRefs must be a nonempty list of paths or URLs")
-  }
-  let refs = []
-  for item in items {
-    let reference = json_single_line(Some(item), "documentRefs entry")
-    if !is_https_url(reference) &&
-      (!reference.has_prefix("/") || !(probe.path_exists)(reference)) {
-      @failure.fail(
-        "document reference must be an existing absolute path or HTTPS URL: \{reference}",
-      )
-    }
-    refs.push(reference)
-  }
-  if refs.length() != unique_count(refs) {
-    @failure.fail("documentRefs must not contain duplicate references")
-  }
-  refs
-}
-
-///|
-fn unique_count(refs : Array[String]) -> Int32 {
-  let seen = Map([])
-  for reference in refs {
-    seen[reference] = true
-  }
-  seen.length()
+fn units_of(text : String) -> Array[Int32] {
+  text.code_units().map(unit => unit.to_int())
 }
 
 ///|
