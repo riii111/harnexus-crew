@@ -164,7 +164,7 @@ async test "a Codex CLI that cannot start leaves nothing pending" {
     let message = rig.review_failure(env=[
       ("HARNEXUS_CODEX_BIN", "/absent/codex"),
     ])
-    assert_true(message.has_prefix("/absent/codex did not finish: "))
+    assert_eq(message, "cannot run /absent/codex (ENOENT)")
     assert_false(rig.pending_exists("example"))
     assert_eq(rig.runs(), 0)
   })
