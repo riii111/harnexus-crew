@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/core/env",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/workflow/prompt" @prompts,
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/sys",
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

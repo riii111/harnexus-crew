@@ -1,0 +1,38 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/infra/bridge"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/app/infra/environment",
+}
+
+// Values
+pub async fn call_app(@environment.Env, String, String, Map[String, @json.Json], timeout_ms? : Int32) -> CallAnswer noraise
+
+pub async fn call_t3_in(@environment.Env, String, Map[String, @json.Json], which~ : (String) -> String?) -> CallAnswer noraise
+
+pub fn project_at(@json.Json?, String) -> String?
+
+// Errors
+
+// Types and methods
+pub struct CallAnswer {
+  outcome : String
+  fields : Map[String, @json.Json]
+}
+pub fn CallAnswer::failed(CallOutcome, error~ : String) -> Self
+pub fn CallAnswer::is_unsent(Self) -> Bool
+pub fn CallAnswer::new(CallOutcome, Array[(String, @json.Json)]) -> Self
+pub fn CallAnswer::of_json(@json.Json) -> Self?
+pub fn CallAnswer::to_json(Self) -> @json.Json
+
+pub(all) enum CallOutcome {
+  Done
+  NotSent
+  Unknown
+  Unsupported
+}
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,24 @@
+import {
+  "riii111/harnexus-crew/app/infra/bridge",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/infra/store",
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/jsonio",
+  "riii111/harnexus-crew/share/path",
+  "riii111/harnexus-crew/share/text",
+}
+
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/raw_fd",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+  "riii111/harnexus-crew/share/os/process",
+  "riii111/harnexus-crew/share/os/testkit",
+} for "wbtest"
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"

@@ -1,10 +1,10 @@
 pre-commit:
   commands:
     moon-fmt:
-      glob: "{moon.mod,native/**/*.{mbt,mbti},native/**/moon.pkg}"
+      glob: "{moon.mod,{app,share,cmd,test/probes}/**/*.{mbt,mbti},{app,share,cmd,test/probes}/**/moon.pkg}"
       run: moon fmt
       stage_fixed: true
     clang-format:
-      glob: "native/**/*.c"
+      glob: "{app,share,cmd}/**/*.c"
       run: clang-format -i {staged_files}
       stage_fixed: true

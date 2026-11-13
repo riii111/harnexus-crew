@@ -1,0 +1,6 @@
+import {
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/text",
+}
+
+supported_targets = "+native"

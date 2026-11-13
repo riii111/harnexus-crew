@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/workflow/watch"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/workflow",
+  "riii111/harnexus-crew/share/failure",
+}
+
+// Values
+pub const NOT_LINKABLE : String = "the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>"
+
+pub fn github_pr_number(String) -> String?
+
+pub async fn watch(@workflow.WatchInput, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

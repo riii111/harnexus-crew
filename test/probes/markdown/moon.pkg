@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/core/env",
+  "riii111/harnexus-crew/app/infra/store",
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/markdown" @parser,
+  "riii111/harnexus-crew/share/sys",
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

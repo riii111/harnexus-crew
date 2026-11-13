@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/share/run"
+
+// Values
+pub fn finish(CommandRun) -> Unit
+
+// Errors
+
+// Types and methods
+pub(all) struct CommandRun {
+  code : Int32
+  stdout : String
+  stderr : String
+}
+
+// Type aliases
+
+// Traits

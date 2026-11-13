@@ -1,0 +1,41 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/cli/args"
+
+import {
+  "riii111/harnexus-crew/app/workflow",
+}
+
+// Values
+pub fn command_names() -> Array[String]
+
+pub fn parse_adapter_serve(ArrayView[String]) -> String? raise UsageError
+
+pub fn parse_command(String, ArrayView[String]) -> Parsed raise UsageError
+
+// Errors
+pub suberror UsageError {
+  UsageError(String)
+}
+pub fn UsageError::message(Self) -> String
+
+// Types and methods
+pub enum Command {
+  Launch(@workflow.LaunchInput)
+  Review(@workflow.ReviewInput)
+  State(@workflow.StateInput)
+  Resolve(@workflow.ResolveInput)
+  Name(@workflow.NameInput)
+  Watch(@workflow.WatchInput)
+  Environment
+  Check
+  Cloud(@workflow.CloudInput)
+}
+
+pub enum Parsed {
+  Help
+  Run(Command)
+}
+
+// Type aliases
+
+// Traits

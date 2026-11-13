@@ -1,0 +1,15 @@
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/env",
+  "riii111/harnexus-crew/app/cli",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/share/run",
+}
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

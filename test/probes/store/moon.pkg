@@ -1,0 +1,16 @@
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/env",
+  "riii111/harnexus-crew/app/infra/store" @storage,
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/jsonio",
+  "riii111/harnexus-crew/share/sys",
+}
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

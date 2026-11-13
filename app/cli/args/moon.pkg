@@ -1,0 +1,5 @@
+import {
+  "riii111/harnexus-crew/app/workflow",
+}
+
+supported_targets = "+native"

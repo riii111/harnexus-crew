@@ -1,0 +1,35 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/workflow/session"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/app/infra/bridge",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/workflow",
+  "riii111/harnexus-crew/share/failure",
+}
+
+// Values
+pub fn check_kept(@json.Json, @json.Json, Array[String]) -> Unit raise @failure.TaskFailed
+
+pub async fn launch(@workflow.LaunchInput, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+
+pub async fn name(@workflow.NameInput, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+
+pub async fn resolve(@workflow.ResolveInput, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+
+pub async fn review(@workflow.ReviewInput, @environment.Env, which~ : (String) -> String?, cloud~ : async (@workflow.ReviewInput) -> @json.Json raise @failure.TaskFailed) -> @json.Json raise @failure.TaskFailed
+
+pub async fn state_request(String, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+
+// Errors
+
+// Types and methods
+pub(all) struct Ports {
+  call : async (String, String, Map[String, @json.Json]) -> @bridge.CallAnswer noraise
+  save : (String, @json.Json, Bool) -> Unit raise @failure.TaskFailed
+}
+
+// Type aliases
+
+// Traits

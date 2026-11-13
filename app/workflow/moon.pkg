@@ -1,0 +1,6 @@
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/share/failure",
+}
+
+supported_targets = "+native"

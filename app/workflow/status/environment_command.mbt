@@ -1,0 +1,32 @@
+///|
+const SOCKET_PROBE_TIMEOUT_MS : Int32 = 1500
+
+///|
+pub async fn environment_command(env : @environment.Env) -> Json {
+  let detected = match @environment.detect(env) {
+    Settled(declared) => declared
+    AskSocket(path) => {
+      @workflow.require_home(env)
+      if socket_accepts(path) {
+        @environment.Detected::socket_accepted()
+      } else {
+        @environment.Detected::undetermined()
+      }
+    }
+    NothingToAsk => {
+      @workflow.require_home(env)
+      @environment.Detected::undetermined()
+    }
+  }
+  detected.to_json()
+}
+
+///|
+async fn socket_accepts(path : String) -> Bool noraise {
+  try {
+    ignore(@socket.exchange_line(path, "", SOCKET_PROBE_TIMEOUT_MS))
+    true
+  } catch {
+    _ => false
+  }
+}

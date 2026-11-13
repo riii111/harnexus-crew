@@ -2,7 +2,7 @@ name = "riii111/harnexus-crew"
 
 version = "0.0.0"
 
-source = "native"
+source = "."
 
 preferred_target = "native"
 

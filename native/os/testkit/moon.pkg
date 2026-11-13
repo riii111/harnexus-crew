@@ -1,9 +1,0 @@
-import {
-  "riii111/harnexus-crew/sys",
-}
-
-options(
-  "native-stub": [ "stub.c" ],
-)
-
-supported_targets = "+native"

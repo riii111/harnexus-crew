@@ -1,0 +1,15 @@
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/infra/store",
+  "riii111/harnexus-crew/app/workflow",
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/os/socket",
+  "riii111/harnexus-crew/share/path",
+  "riii111/harnexus-crew/share/text",
+}
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"

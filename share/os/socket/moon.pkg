@@ -1,0 +1,21 @@
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/os_error",
+  "moonbitlang/core/async/raw_fd",
+  "moonbitlang/core/encoding/utf8",
+  "riii111/harnexus-crew/share/boundary",
+  "riii111/harnexus-crew/share/os/unix",
+  "riii111/harnexus-crew/share/sys",
+  "riii111/harnexus-crew/share/text",
+}
+
+import {
+  "riii111/harnexus-crew/share/os/testkit",
+} for "wbtest"
+
+options(
+  "allow-experimental-packages": true,
+  "native-stub": [ "stub.c" ],
+)
+
+supported_targets = "+native"
