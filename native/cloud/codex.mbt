@@ -118,7 +118,7 @@ fn reply_of(stdout : String) -> Reply {
         reply.failure = Some(
           match event.get("error") {
             Some(Object(error)) =>
-              as_text(error.get("message").unwrap_or(Json::null()))
+              @jsonio.as_text(error.get("message").unwrap_or(Json::null()))
             _ => "the turn failed"
           },
         )
@@ -156,11 +156,11 @@ fn review_argv(
   thinking : String?,
 ) -> Array[String] {
   // An empty value falls back like a missing one, as for a reviewer chat in the app.
-  let chosen_model = match named(model) {
+  let chosen_model = match @text.nonempty(model) {
     None if reviewer is None => Some(DEFAULT_MODEL)
     other => other
   }
-  let chosen_thinking = match named(thinking) {
+  let chosen_thinking = match @text.nonempty(thinking) {
     None if reviewer is None => Some(DEFAULT_THINKING)
     other => other
   }
@@ -171,9 +171,7 @@ fn review_argv(
   }
   if chosen_thinking is Some(thinking) {
     chosen.push("-c")
-    chosen.push(
-      "model_reasoning_effort=\{@jsonio.stringify(Json::string(thinking))}",
-    )
+    chosen.push("model_reasoning_effort=\{Json::string(thinking).stringify()}")
   }
   // The reviewer only reads; resume has no --sandbox or --cd, so it takes the setting and runs in the checkout.
   let argv = match reviewer {
@@ -192,14 +190,6 @@ fn ask_argv(reviewer : String) -> Array[String] {
   [
     "exec", "resume", reviewer, "--json", "-c", "sandbox_mode=\"read-only\"", "-",
   ]
-}
-
-///|
-fn named(value : String?) -> String? {
-  match value {
-    Some("") | None => None
-    other => other
-  }
 }
 
 ///|
@@ -278,14 +268,6 @@ fn is_whitespace(unit : UInt16) -> Bool {
 ///|
 fn is_line_end(unit : UInt16) -> Bool {
   unit == '\n' || unit == '\r' || unit == 0x2028 || unit == 0x2029
-}
-
-///|
-fn as_text(value : Json) -> String {
-  match value {
-    String(text) => text
-    other => @jsonio.stringify(other)
-  }
 }
 
 ///|

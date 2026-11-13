@@ -4,7 +4,6 @@ package "riii111/harnexus-crew/app"
 import {
   "moonbitlang/core/json",
   "riii111/harnexus-crew/environment",
-  "riii111/harnexus-crew/shared/call",
   "riii111/harnexus-crew/shared/failure",
 }
 
@@ -19,9 +18,9 @@ pub const REVIEW_ASK_UNKNOWN : String = "The message may or may not have reached
 
 pub const REVIEW_ASK_UNROUTED : String = "The Cloud session that ran this reviewer is not shown in a chat here, so its answer could not come back and the message was not sent. Link the worker's session with /cloud, or ask in the worker's chat."
 
-pub async fn call_app(@environment.Env, String, String, Map[String, @json.Json], timeout_ms? : Int32) -> @call.CallAnswer noraise
+pub async fn call_app(@environment.Env, String, String, Map[String, @json.Json], timeout_ms? : Int32) -> CallAnswer noraise
 
-pub async fn call_t3(T3Deps, String, Map[String, @json.Json]) -> @call.CallAnswer noraise
+pub async fn call_t3(T3Deps, String, Map[String, @json.Json]) -> CallAnswer noraise
 
 pub fn host_of(@environment.Env, which~ : (String) -> String?) -> Host
 
@@ -42,6 +41,23 @@ pub fn uuid_of(@json.Json?) -> String?
 // Errors
 
 // Types and methods
+pub struct CallAnswer {
+  outcome : String
+  fields : Map[String, @json.Json]
+}
+pub fn CallAnswer::failed(CallOutcome, error~ : String) -> Self
+pub fn CallAnswer::is_unsent(Self) -> Bool
+pub fn CallAnswer::new(CallOutcome, Array[(String, @json.Json)]) -> Self
+pub fn CallAnswer::of_json(@json.Json) -> Self?
+pub fn CallAnswer::to_json(Self) -> @json.Json
+
+pub(all) enum CallOutcome {
+  Done
+  NotSent
+  Unknown
+  Unsupported
+}
+
 pub(all) struct CloudReview {
   key : String
   reviewer : String
@@ -58,7 +74,7 @@ pub(all) struct DefaultThinking {
 
 pub struct Host {
   thread_variable : String
-  call : async (String, String, Map[String, @json.Json]) -> @call.CallAnswer noraise
+  call : async (String, String, Map[String, @json.Json]) -> CallAnswer noraise
   review_project : async (String) -> String raise @failure.TaskFailed
   worktrees : String
   thinking : DefaultThinking?

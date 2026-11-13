@@ -13,7 +13,7 @@ pub fn acquire(
       ("startedAt", Json::string(now_iso())),
     ])
     let created = io(() => {
-      write_exclusive(lock, @jsonio.stringify(Json::object(content)))
+      write_exclusive(lock, Json::object(content).stringify())
     })
     if created {
       return token
@@ -22,12 +22,12 @@ pub fn acquire(
     guard held is Some(current) && dead(current) else {
       let pid = match held {
         Some({ "pid": Number(pid, ..), .. }) =>
-          " (pid \{@jsonio.stringify(Json::number(pid))})"
+          " (pid \{Json::number(pid).stringify()})"
         _ => ""
       }
       @failure.fail("another \{holder}\{pid} is using this session")
     }
-    if !reap(lock, js_text(current.get("token"))) {
+    if !reap(lock, current.get("token")) {
       @failure.fail("another \{holder} is taking over this session")
     }
   }
@@ -111,11 +111,11 @@ fn abandoned_takeover(lock : String, takeover : String) -> String {
 
 ///|
 /// Takes the lock over from a dead holder: true when this run removed the lock it had observed.
-fn reap(lock : String, observed : String) -> Bool raise @failure.TaskFailed {
+fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
   // A second exclusive file marks the takeover, so of several runs only one removes the lock, and only the one it saw.
   let takeover = "\{lock}.reap"
   let pid = Json::number(current_pid().to_double())
-  let marker = @jsonio.stringify(Json::object(Map::from_array([("pid", pid)])))
+  let marker = Json::object({ "pid": pid }).stringify()
   let made = io(() => write_exclusive(takeover, marker))
   if !made {
     // Only the run that made the marker removes it: a second run deleting a dead marker could delete one made since, and two runs would then hold the lock.
@@ -125,8 +125,7 @@ fn reap(lock : String, observed : String) -> Bool raise @failure.TaskFailed {
     return false
   }
   let same = match held_by(lock) {
-    Some(now) =>
-      now.get("token") is Some(String(token)) && token == observed && dead(now)
+    Some(now) => now.get("token") == observed && dead(now)
     None => false
   }
   let removal = try {
@@ -150,20 +149,4 @@ fn reap(lock : String, observed : String) -> Bool raise @failure.TaskFailed {
     raise failed
   }
   same
-}
-
-///|
-/// What `String(value)` gives in JS for a member that may be absent, to compare a token as the TypeScript lock does.
-fn js_text(value : Json?) -> String {
-  match value {
-    None => "undefined"
-    Some(Null) => "null"
-    Some(String(text)) => text
-    Some(Array(items)) =>
-      items
-      .map(item => if item is Null { "" } else { js_text(Some(item)) })
-      .join(",")
-    Some(Object(_)) => "[object Object]"
-    Some(other) => @jsonio.stringify(other)
-  }
 }

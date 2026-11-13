@@ -97,7 +97,7 @@ fn json_of(text : String) -> Json {
 
 ///|
 fn text_of(value : Json) -> String {
-  @jsonio.stringify(value)
+  value.stringify()
 }
 
 ///|

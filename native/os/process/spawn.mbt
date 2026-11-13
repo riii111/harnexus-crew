@@ -199,7 +199,7 @@ fn Child::release_pipes(self : Child) -> Unit {
 fn pack(items : ArrayView[String]) -> Bytes {
   let buffer = @buffer.Buffer()
   for item in items {
-    buffer.write_bytes(@utf8.encode(@jsonio.lossy_text(item)))
+    buffer.write_bytes(@utf8.encode(item))
     buffer.write_byte(b'\x00')
   }
   buffer.to_bytes()

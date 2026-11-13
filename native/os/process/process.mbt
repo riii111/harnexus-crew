@@ -89,7 +89,7 @@ async fn feed_input(slot : Fd, input : String) -> Unit {
   let stream = slot.stream()
   defer stream.close()
   if input != "" {
-    stream.write(@utf8.encode(@jsonio.lossy_text(input))) catch {
+    stream.write(@utf8.encode(input)) catch {
       _ => ()
     }
   }

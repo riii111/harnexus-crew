@@ -50,7 +50,7 @@ async fn exchange_with(
     if line == "" {
       ""
     } else {
-      stream.write(@utf8.encode(@jsonio.lossy_text(line) + "\n"))
+      stream.write(@utf8.encode(line + "\n"))
       trim_end(@utf8.decode_lossy(stream.read_all()))
     }
   }) catch {
@@ -124,7 +124,7 @@ fn is_js_space(unit : Int32) -> Bool {
 
 ///|
 fn path_bytes(path : String) -> Bytes {
-  let bytes = @utf8.encode(@jsonio.lossy_text(path))
+  let bytes = @utf8.encode(path)
   let out = Array::makei(bytes.length() + 1, i => {
     if i < bytes.length() {
       bytes[i]

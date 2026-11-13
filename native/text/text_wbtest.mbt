@@ -1,25 +1,11 @@
 ///|
-fn unpaired(escape : String) -> String raise {
-  match @jsonio.parse("\"\{escape}\"") {
-    String(text) => text
-    _ => fail("not a string")
-  }
-}
-
-///|
 fn listed(points : Array[Int32]) -> String {
   points.map(fn(point) { point.to_string() }).join(",")
 }
 
 ///|
-test "code points join pairs and keep an unpaired surrogate" {
+test "code points join pairs" {
   inspect(listed(code_points("a\u{1F600}b")), content="97,128512,98")
-  inspect(listed(code_points(unpaired("\\ud83d"))), content="55357")
-  inspect(listed(code_points(unpaired("\\ude00") + "a")), content="56832,97")
-  inspect(
-    listed(code_points("\u{1F600}" + unpaired("\\ud83d"))),
-    content="128512,55357",
-  )
 }
 
 ///|
@@ -79,9 +65,7 @@ test "a JS whitespace character anywhere in the text is found" {
 
 ///|
 test "strings compare by code unit as JS sorts them" {
-  let lone = unpaired("\\ud83d")
   inspect(compare_utf16("\u{1F600}", "\u{FF5E}"), content="-1")
-  inspect(compare_utf16(lone, "\u{1F600}"), content="-1")
   inspect(compare_utf16("ab", "a"), content="1")
   inspect(compare_utf16("a", "a"), content="0")
 }

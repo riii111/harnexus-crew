@@ -86,7 +86,7 @@ fn c_path(path : String) -> Bytes? {
   if path.contains("\u{0}") {
     return None
   }
-  Some(@utf8.encode(@jsonio.lossy_text(path) + "\u{0}"))
+  Some(@utf8.encode(path + "\u{0}"))
 }
 
 ///|
@@ -134,7 +134,7 @@ fn link_at(from : String, to : String) -> Int32 {
 
 ///|
 fn write_all_text(fd : Int32, text : String) -> Int32 {
-  let bytes = @utf8.encode(@jsonio.lossy_text(text))
+  let bytes = @utf8.encode(text)
   write_all_raw(fd, bytes, bytes.length())
 }
 

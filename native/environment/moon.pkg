@@ -1,7 +1,6 @@
 import {
   "riii111/harnexus-crew/path",
   "riii111/harnexus-crew/shared/failure",
-  "riii111/harnexus-crew/shared/jsonio",
 }
 
 supported_targets = "+native"

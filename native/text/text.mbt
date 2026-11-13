@@ -131,3 +131,12 @@ fn in_ranges(ranges : FixedArray[Int32], code : Int32) -> Bool {
   }
   false
 }
+
+///|
+/// An empty text reads as none given.
+pub fn nonempty(value : String?) -> String? {
+  match value {
+    Some("") | None => None
+    other => other
+  }
+}

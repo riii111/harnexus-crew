@@ -39,7 +39,7 @@ test "a pull request is a number, #number or the URL of its page" {
 
 ///|
 async test "name links the PR first and renames only the thread of a launched worker" {
-  with_rig("n-1", [@call.CallAnswer::new(Done, [])], rig => {
+  with_rig("n-1", [@app.CallAnswer::new(Done, [])], rig => {
     ignore(
       {
         let launch = rig.context([])
@@ -73,7 +73,7 @@ async test "name links the PR first and renames only the thread of a launched wo
 
 ///|
 async test "a rename the app did not apply leaves the PR watched and says so" {
-  with_rig("n-2", [@call.CallAnswer::failed(Rejected, error="no")], rig => {
+  with_rig("n-2", [bridge_answer({ "outcome": "rejected", "error": "no" })], rig => {
     write_text(
       "\{rig.launch_dir()}/state.json",
       "{\"threadId\":\"w1\",\"request\":{\"taskId\":\"TR1\"}}",
@@ -94,7 +94,7 @@ async test "a rename the app did not apply leaves the PR watched and says so" {
 
 ///|
 async test "a PR the watch cannot see is never taken as watched, even after the thread was renamed" {
-  with_rig("n-3", [@call.CallAnswer::new(Done, [])], rig => {
+  with_rig("n-3", [@app.CallAnswer::new(Done, [])], rig => {
     write_text(
       "\{rig.launch_dir()}/state.json",
       "{\"threadId\":\"w1\",\"request\":{\"taskId\":\"TR1\"}}",
@@ -209,9 +209,9 @@ test "the helpers read records as the TypeScript build does" {
   assert_false(json_equal(one, @jsonio.parse("{\"a\":1}")))
   assert_false(json_equal(Json::string("1"), Json::number(1.0)))
   assert_false(json_equal(Json::null(), Json::boolean(false)))
-  assert_eq(as_text(Json::string("x")), "x")
-  assert_eq(as_text(Json::null()), "null")
-  assert_eq(as_text(@jsonio.parse("{\"a\":[1]}")), "{\"a\":[1]}")
+  assert_eq(@jsonio.as_text(Json::string("x")), "x")
+  assert_eq(@jsonio.as_text(Json::null()), "null")
+  assert_eq(@jsonio.as_text(@jsonio.parse("{\"a\":[1]}")), "{\"a\":[1]}")
   assert_eq(
     show(first_set([Json::null(), Json::string("a"), Json::string("b")])),
     "\"a\"",

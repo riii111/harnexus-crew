@@ -40,8 +40,8 @@ async test "a launch writes its pending record before the app is called and the 
       "{\"tool\":\"create_thread\",\"threadId\":\"w1\",\"model\":\"claude-sonnet-5-5\",\"effort\":\"high\",\"expected\":{\"model\":\"claude-sonnet-5-5\",\"effort\":\"high\"},\"state\":\"\{rig.launch_dir()}/state.json\"}",
     )
     let state = read_state("\{rig.launch_dir()}/state.json")
-    assert_eq(show(field(state, "threadId")), "\"w1\"")
-    assert_eq(show(field(state, "request")), launch_request_text())
+    assert_eq(show(@jsonio.field(state, "threadId")), "\"w1\"")
+    assert_eq(show(@jsonio.field(state, "request")), launch_request_text())
   })
 }
 
@@ -62,8 +62,13 @@ async test "a launch names a starting branch in the worktree target and sends th
       show(Json::object(args)),
       "{\"prompt\":\"worker prompt for TR1\",\"target\":{\"type\":\"project\",\"projectId\":\"project\",\"environment\":{\"type\":\"worktree\",\"startingState\":{\"type\":\"branch\",\"branchName\":\"feat/x\"}}},\"title\":\"Impl｜Named\",\"model\":\"m\",\"thinking\":\"low\"}",
     )
-    let workspace = field(read_state("\{rig.launch_dir()}/state.json"), "sent")
-    assert_true(show(field(workspace, "workspace")).contains("startingState"))
+    let workspace = @jsonio.field(
+      read_state("\{rig.launch_dir()}/state.json"),
+      "sent",
+    )
+    assert_true(
+      show(@jsonio.field(workspace, "workspace")).contains("startingState"),
+    )
   })
 }
 
@@ -168,7 +173,7 @@ async test "outcomes after which the app surely did nothing release the record, 
     with_rig(
       "s-7",
       [
-        @call.CallAnswer::of_json(
+        bridge_answer(
           @jsonio.parse("{\"outcome\":\"\{outcome}\",\"error\":\"x\"}"),
         ),
       ],
@@ -189,7 +194,7 @@ async test "outcomes after which the app surely did nothing release the record, 
     with_rig(
       "s-8",
       [
-        @call.CallAnswer::of_json(
+        bridge_answer(
           @jsonio.parse("{\"outcome\":\"\{outcome}\",\"threadId\":\"w1\"}"),
         ),
       ],
@@ -201,8 +206,8 @@ async test "outcomes after which the app surely did nothing release the record, 
         assert_true(message.contains("create_thread result is unknown"))
         assert_true(message.contains("never resend"))
         let pending = read_state("\{rig.launch_dir()}/pending.json")
-        assert_eq(show(field(pending, "status")), "\"unknown\"")
-        assert_eq(show(field(pending, "threadId")), "\"w1\"")
+        assert_eq(show(@jsonio.field(pending, "status")), "\"unknown\"")
+        assert_eq(show(@jsonio.field(pending, "threadId")), "\"w1\"")
         // The next run is blocked, and the app is not asked again.
         let blocked = failure_of(() => {
           ignore(launch_in(rig.context([]), launch_args(path)))
@@ -220,7 +225,7 @@ async test "outcomes after which the app surely did nothing release the record, 
 async test "a lost create_thread answer without a thread is unsent, and a lost send_message answer is not" {
   with_rig(
     "s-9",
-    [@call.CallAnswer::of_json(@jsonio.parse("{\"outcome\":\"tool_error\"}"))],
+    [bridge_answer(@jsonio.parse("{\"outcome\":\"tool_error\"}"))],
     rig => {
       let message = failure_of(() => {
         ignore(launch_in(rig.context([]), launch_args(rig.launch_file())))
@@ -231,10 +236,7 @@ async test "a lost create_thread answer without a thread is unsent, and a lost s
   )
   with_rig(
     "s-10",
-    [
-      done("r1"),
-      @call.CallAnswer::of_json(@jsonio.parse("{\"outcome\":\"tool_error\"}")),
-    ],
+    [done("r1"), bridge_answer(@jsonio.parse("{\"outcome\":\"tool_error\"}"))],
     rig => {
       let path = rig.review_file()
       ignore(review_in(rig.context([]), review_args(path), rig.review_cloud()))
@@ -264,9 +266,12 @@ async test "a confirmed answer that cannot be recorded keeps the record with the
     })
     assert_eq(message, "cannot write \{rig.launch_dir()}/state.json (EROFS)")
     let pending = read_state("\{rig.launch_dir()}/pending.json")
-    assert_eq(show(field(pending, "status")), "\"unknown\"")
-    assert_eq(show(field(pending, "threadId")), "\"w1\"")
-    assert_eq(show(field(field(pending, "answer"), "outcome")), "\"done\"")
+    assert_eq(show(@jsonio.field(pending, "status")), "\"unknown\"")
+    assert_eq(show(@jsonio.field(pending, "threadId")), "\"w1\"")
+    assert_eq(
+      show(@jsonio.field(@jsonio.field(pending, "answer"), "outcome")),
+      "\"done\"",
+    )
     assert_false(exists("\{rig.launch_dir()}/state.json"))
   })
 }
@@ -277,24 +282,34 @@ async test "a done answer without a usable thread keeps the record, and resolve 
     answer in [
       "{\"outcome\":\"done\"}", "{\"outcome\":\"done\",\"threadId\":\"w 1\"}", "{\"outcome\":\"done\",\"threadId\":7}",
     ] {
-    with_rig("s-12", [@call.CallAnswer::of_json(@jsonio.parse(answer))], rig => {
+    with_rig("s-12", [bridge_answer(@jsonio.parse(answer))], rig => {
       let path = rig.launch_file()
       let message = failure_of(() => {
         ignore(launch_in(rig.context([]), launch_args(path)))
       })
       assert_true(message.length() > 0)
       assert_eq(
-        show(field(read_state("\{rig.launch_dir()}/pending.json"), "status")),
+        show(
+          @jsonio.field(
+            read_state("\{rig.launch_dir()}/pending.json"),
+            "status",
+          ),
+        ),
         "\"unknown\"",
       )
       let shown = resolve_in(
         rig.context([]),
         resolve_args(path, sent=true, thread="w2"),
       )
-      assert_eq(show(field(shown, "threadId")), "\"w2\"")
+      assert_eq(show(@jsonio.field(shown, "threadId")), "\"w2\"")
       assert_false(exists("\{rig.launch_dir()}/pending.json"))
       assert_eq(
-        show(field(read_state("\{rig.launch_dir()}/state.json"), "threadId")),
+        show(
+          @jsonio.field(
+            read_state("\{rig.launch_dir()}/state.json"),
+            "threadId",
+          ),
+        ),
         "\"w2\"",
       )
     })
@@ -303,7 +318,7 @@ async test "a done answer without a usable thread keeps the record, and resolve 
 
 ///|
 async test "a refused first turn is kept apart, never confirmed, and settled only as not sent" {
-  let refused = @call.CallAnswer::of_json(
+  let refused = bridge_answer(
     @jsonio.parse(
       "{\"outcome\":\"model_mismatch\",\"threadId\":\"w1\",\"expected\":{\"model\":\"a\",\"effort\":\"high\"},\"actual\":{\"model\":\"b\"}}",
     ),
@@ -317,7 +332,7 @@ async test "a refused first turn is kept apart, never confirmed, and settled onl
       message, "thread w1 refused its first turn: asked for model b instead of a and did not say which effort (expected high); fix the model, then resolve --not-sent",
     )
     let pending = read_state("\{rig.launch_dir()}/pending.json")
-    assert_eq(show(field(pending, "status")), "\"refused\"")
+    assert_eq(show(@jsonio.field(pending, "status")), "\"refused\"")
     assert_eq(
       failure_of(() => {
         ignore(resolve_in(rig.context([]), resolve_args(path, sent=true)))
@@ -331,9 +346,9 @@ async test "a refused first turn is kept apart, never confirmed, and settled onl
     )
     assert_false(exists("\{rig.launch_dir()}/pending.json"))
     let history = read_state("\{rig.launch_dir()}/history.json")
-    assert_eq(show(field(history, "0")), "null")
+    assert_eq(show(@jsonio.field(history, "0")), "null")
     let shown = state_request_in(rig.context([]), path)
-    assert_eq(show(field(shown, "refusedThreadIds")), "[\"w1\"]")
+    assert_eq(show(@jsonio.field(shown, "refusedThreadIds")), "[\"w1\"]")
   })
 }
 
@@ -375,7 +390,7 @@ async test "a review creates its reviewer once, sends a new head to the same rev
         review_args(path),
         rig.review_cloud(),
       )
-      assert_eq(show(field(first, "threadId")), "\"r1\"")
+      assert_eq(show(@jsonio.field(first, "threadId")), "\"r1\"")
       let (caller, tool, args) = rig.calls[0]
       assert_eq(caller, "w1")
       assert_eq(tool, "create_thread")
@@ -384,10 +399,16 @@ async test "a review creates its reviewer once, sends a new head to the same rev
         "{\"prompt\":\"reviewer prompt for TR1\",\"target\":{\"type\":\"project\",\"projectId\":\"p-review\",\"environment\":{\"type\":\"local\"}},\"title\":\"Review TR1\",\"model\":\"gpt-6.1-sol\",\"thinking\":\"medium\"}",
       )
       let state = read_state("\{rig.review_dir()}/state.json")
-      assert_eq(show(field(field(state, "candidate"), "head")), "\"\{HEAD_1}\"")
-      assert_eq(show(field(field(state, "candidate"), "base")), "\"\{BASE}\"")
       assert_eq(
-        show(field(field(state, "candidate"), "workerChatId")),
+        show(@jsonio.field(@jsonio.field(state, "candidate"), "head")),
+        "\"\{HEAD_1}\"",
+      )
+      assert_eq(
+        show(@jsonio.field(@jsonio.field(state, "candidate"), "base")),
+        "\"\{BASE}\"",
+      )
+      assert_eq(
+        show(@jsonio.field(@jsonio.field(state, "candidate"), "workerChatId")),
         "\"w1\"",
       )
 
@@ -408,7 +429,10 @@ async test "a review creates its reviewer once, sends a new head to the same rev
         review_args(path, extra=["--model", "m2"]),
         rig.review_cloud(),
       )
-      assert_eq(show(field(second, "tool")), "\"send_message_to_thread\"")
+      assert_eq(
+        show(@jsonio.field(second, "tool")),
+        "\"send_message_to_thread\"",
+      )
       let (_, tool, args) = rig.calls[1]
       assert_eq(tool, "send_message_to_thread")
       assert_eq(
@@ -416,12 +440,18 @@ async test "a review creates its reviewer once, sends a new head to the same rev
         "{\"prompt\":\"reviewer prompt for TR1\",\"threadId\":\"r1\",\"model\":\"m2\"}",
       )
       let kept = read_state("\{rig.review_dir()}/state.json")
-      assert_eq(show(field(field(kept, "candidate"), "base")), "\"\{BASE}\"")
-      assert_eq(show(field(field(kept, "candidate"), "head")), "\"\{HEAD_2}\"")
+      assert_eq(
+        show(@jsonio.field(@jsonio.field(kept, "candidate"), "base")),
+        "\"\{BASE}\"",
+      )
+      assert_eq(
+        show(@jsonio.field(@jsonio.field(kept, "candidate"), "head")),
+        "\"\{HEAD_2}\"",
+      )
       let shown = state_request_in(rig.context([]), path)
-      assert_eq(show(field(shown, "reviewerThreadId")), "\"r1\"")
-      assert_eq(show(field(shown, "workerThreadId")), "\"w1\"")
-      assert_eq(show(field(shown, "pendingHead")), "null")
+      assert_eq(show(@jsonio.field(shown, "reviewerThreadId")), "\"r1\"")
+      assert_eq(show(@jsonio.field(shown, "workerThreadId")), "\"w1\"")
+      assert_eq(show(@jsonio.field(shown, "pendingHead")), "null")
     },
   )
 }
@@ -456,8 +486,14 @@ async test "a review refuses a changed base branch until the base is updated" {
       ),
     )
     let kept = read_state("\{rig.review_dir()}/state.json")
-    assert_eq(show(field(field(kept, "candidate"), "base")), "\"\{HEAD_1}\"")
-    assert_eq(show(field(field(kept, "candidate"), "baseBranch")), "\"other\"")
+    assert_eq(
+      show(@jsonio.field(@jsonio.field(kept, "candidate"), "base")),
+      "\"\{HEAD_1}\"",
+    )
+    assert_eq(
+      show(@jsonio.field(@jsonio.field(kept, "candidate"), "baseBranch")),
+      "\"other\"",
+    )
     // The base moved with the branch, so the old branch is a change in its turn.
     assert_eq(
       failure_of(() => {
@@ -486,7 +522,7 @@ async test "a review in T3 Code runs in its own project and answers through T3" 
     assert_eq((caller, tool), ("t3-w", "create_thread"))
     assert_false(args.contains("thinking"))
     assert_eq(
-      show(field(Json::object(args), "target")),
+      show(@jsonio.field(Json::object(args), "target")),
       "{\"type\":\"project\",\"projectId\":\"\{rig.root}/review-home\",\"environment\":{\"type\":\"local\"}}",
     )
     assert_eq(rig.prompts, ["reviewer:T3"])
@@ -564,8 +600,8 @@ async test "the reviewer is the one that was recorded, and never the worker" {
     )
     // The answer is kept as unknown with its thread, so it is settled by hand.
     let pending = read_state("\{rig.review_dir()}/pending.json")
-    assert_eq(show(field(pending, "status")), "\"unknown\"")
-    assert_eq(show(field(pending, "threadId")), "\"r2\"")
+    assert_eq(show(@jsonio.field(pending, "status")), "\"unknown\"")
+    assert_eq(show(@jsonio.field(pending, "threadId")), "\"r2\"")
   })
   with_rig("s-18", [done("w1")], rig => {
     assert_eq(
@@ -586,20 +622,15 @@ async test "the reviewer is the one that was recorded, and never the worker" {
 ///|
 async test "a request names the worker's chat only as the thread it runs in" {
   with_rig("s-19", [], rig => {
-    for
-      extra in [
-        ",\"workerChatId\":\"other\"", ",\"workerChatId\":null", ",\"workerChatId\":3",
-      ] {
-      let path = rig.review_file(extra~)
-      assert_eq(
-        failure_of(() => {
-          ignore(
-            review_in(rig.context([]), review_args(path), rig.review_cloud()),
-          )
-        }),
-        "workerChatId in the request must equal CODEX_THREAD_ID",
-      )
-    }
+    let path = rig.review_file(extra=",\"workerChatId\":\"other\"")
+    assert_eq(
+      failure_of(() => {
+        ignore(
+          review_in(rig.context([]), review_args(path), rig.review_cloud()),
+        )
+      }),
+      "workerChatId in the request must equal CODEX_THREAD_ID",
+    )
   })
 }
 

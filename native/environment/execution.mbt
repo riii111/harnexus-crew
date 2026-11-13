@@ -98,7 +98,7 @@ pub fn Detected::to_json(self : Detected) -> Json {
     OnMachine(app) => members.push(("app", Json::string(app.name())))
   }
   members.push(("note", Json::string(self.note)))
-  @jsonio.object_with_extra(members, {})
+  Json::object(Map::from_array(members))
 }
 
 ///|

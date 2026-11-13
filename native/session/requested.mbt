@@ -33,7 +33,7 @@ async fn resolve_in(
   args : @args.ResolveArgs,
 ) -> Json raise @failure.TaskFailed {
   @environment.refuse_in_cloud(ctx.env, "resolve")
-  let thread = match named(args.thread_id) {
+  let thread = match @text.nonempty(args.thread_id) {
     Some(id) => Some(@request.chat_id(id, "--thread-id"))
     None => None
   }
@@ -46,7 +46,7 @@ async fn requested_session(
   ctx : Context,
   path : String,
 ) -> Session raise @failure.TaskFailed {
-  let raw = read_json(path)
+  let raw = @store.read_json(path)
   if raw is Object(members) && members.contains("completionTarget") {
     let request = @request.LaunchRequest::from_json(raw, ctx.probe)
     return launch_session(ctx.env, ctx.ports, request)
