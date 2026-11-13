@@ -1,7 +1,5 @@
 {
   "name": "name-other-host-url-is-not-linkable",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["name", "--pr", "https://example.com/o/r/pull/3"],
   "env": {

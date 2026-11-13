@@ -1,7 +1,5 @@
 {
   "name": "name-keeps-the-title-of-a-chat-no-launch-started",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["name", "--pr", "https://github.com/o/r/pull/3"],
   "env": {

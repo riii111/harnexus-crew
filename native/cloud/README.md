@@ -1,13 +1,9 @@
 # Cloudレビューと `cloud`
 
 Claude CodeのCloudセッションでの `review` と、`cloud` コマンド。
-TS版の `src/task/cloud-review.ts` と `src/task/cli.ts` の `cloud` に対応する。
 セッションの共通の検査 `check_kept` は `session` を使い、App・T3 Codeの `review` は含まない。
 
-| 公開する関数                   | TS版          |
-| ------------------------------ | ------------- |
-| `review(args, env)`            | `cloudReview` |
-| `open_chat(args, env, which~)` | `cloud`       |
+公開する関数は `review(args, env)` と `open_chat(args, env, which~)`。
 
 `review` は `session::review` の `cloud` 引数へ渡す。
 実行環境がClaude CodeのCloudと宣言されたときだけ呼ばれ、それ以外のCloudは `session` が拒否する。
@@ -33,7 +29,7 @@ App側のようにチャットを作らず、`workerChatId` の既定はClaude C
 1. ロックを待たずに取る。別の実行が保持していれば `another review (pid N) is using this session` で失敗する。死んだ実行のロックは取り上げる。
 2. `pending.json` が残っていれば、`--recover discard` がない限り失敗する。`--recover discard` は `pending.json` を消して続ける。残っていないのに指定すると失敗する。
 3. 前回の候補があれば、`taskId`・`workerAI`・`checkout` が同じか確かめる。同じ `head` は、レビュアーが判定した後なら拒否する。`判定保留` と判定の行がない答えの `head` は、もう一度送れる。`verdict` を持たない古い状態は判定済みとして扱う。
-4. 環境変数 `HARNEXUS_CODEX_BIN`・`HARNEXUS_REVIEW_TIMEOUT_MS`・`HARNEXUS_REVIEW_KILL_GRACE_MS` を検査してから、`pending.json` を書く。時間の2つは2147483648以上でも受理し、TS版のタイマーと同じく1msで扱う。締切が1msになった実行は直ちに停止し、`pending.json` を残す。
+4. 環境変数 `HARNEXUS_CODEX_BIN`・`HARNEXUS_REVIEW_TIMEOUT_MS`・`HARNEXUS_REVIEW_KILL_GRACE_MS` を検査してから、`pending.json` を書く。時間の2つは2147483648以上でも受理し、1msで扱う。締切が1msになった実行は直ちに停止し、`pending.json` を残す。
 5. Codex CLIをチェックアウトの中で実行する。初回は新しいレビュアー（既定は `gpt-6.1-sol`、思考量 `medium`）を `--sandbox read-only` で作り、2回目からは `exec resume` で同じレビュアーを続ける。モデルと思考量は、空文字を未指定として扱う。
 
 実行の結果は次のとおり分かれる。
@@ -67,15 +63,14 @@ Cloud・T3 Codeでは何も送らずに拒否する。
 それ以外は、`unsent` の種類（未送信と分かるもの）なら `nothing was sent`、そうでなければ `never resend; check the app` を添えて失敗にする。
 カレントディレクトリ（`cwd`）を添えて送る。
 
-## TS版との差
+## 入力の扱い
 
-- 非文字列の `workerChatId`（null・数値・配列など）は、プロンプトにはJSの `String(値)` の形で入れ、保存する候補には入力のまま残す。TS版と同じ。
-- 2147483648以上の時間で、TS版が標準エラーへ書くBunの `TimeoutOverflowWarning` は、Native版では書かない。期待値は、この警告だけを除いて固定してある。
-- カレントディレクトリを読めないとき、`cloud` は `cannot read the current directory` で失敗する。TS版は例外で終わる。
+- 非文字列の `workerChatId`（null・数値・配列など）は、プロンプトにはJSの `String(値)` の形で入れ、保存する候補には入力のまま残す。
+- カレントディレクトリを読めないとき、`cloud` は `cannot read the current directory` で失敗する。
 
 ## 試験
 
 - `moon test` の `cloud`: Codex CLIの代役 `test/native/mocks/fake-cli.sh` を実際の子プロセスとして動かし、Gitとテンプレートは差し替える。初回と再レビュー、判定済みの `head`、実行の失敗と停止、保存できなかった答え、`ask`、ロック、`harnexus-task` が残した状態（`test/fixtures/legacy-state/cloud`）の継続を確かめる。
-- `test/cases/cloud-review-*`: 1回の実行の結果を、Codex CLIの出力を変えながら、TS版の出力を固定した期待値と照らす。
+- `test/cases/cloud-review-*`: 1回の実行の結果を、Codex CLIの出力を変えながら、期待値と照らす。
 - `test/cases/cloud-*`（ブリッジを使う事例）: `cloud` コマンドの要求・答え・失敗を、同じ期待値と照らす。
-- `test/test_cloud.py`: 複数回の実行にまたがる流れ（再レビュー、停止からの復旧、`ask`、ロックの取り上げ、保存済みの状態の継続）を、TS版の出力を固定した期待値と照らす。
+- `test/test_cloud.py`: 複数回の実行にまたがる流れ（再レビュー、停止からの復旧、`ask`、ロックの取り上げ、保存済みの状態の継続）を、期待値と照らす。

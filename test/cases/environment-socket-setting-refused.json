@@ -1,7 +1,5 @@
 {
   "name": "environment-socket-setting-refused",
-  "owner": "MB05",
-  "status": "active",
   "kind": "command",
   "argv": ["environment"],
   "env": {

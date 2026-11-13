@@ -1,7 +1,5 @@
 {
   "name": "state-request-review-empty",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["state", "--request", "review.json"],
   "env": {

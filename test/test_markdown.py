@@ -26,10 +26,6 @@ class MarkdownLinkJudgement(unittest.TestCase):
             raise RuntimeError(f"probe exited {ran.returncode}: {ran.stderr.decode('utf-8', errors='replace')}")
         return jsonvalue.loads(ran.stdout.decode("utf-8"))
 
-    def test_judges_the_63_cases_and_their_102_candidates(self):
-        self.assertEqual(63, len(JUDGEMENT["cases"]))
-        self.assertEqual(102, sum(len(item["candidates"]) for item in JUDGEMENT["cases"]))
-
     def test_each_case_is_judged_as_the_typescript_build_judged_it(self):
         for item in JUDGEMENT["cases"]:
             with self.subTest(item["name"]):

@@ -1,7 +1,5 @@
 {
   "name": "launch-request-missing-file",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["launch", "--request", "absent.json"],
   "env": {

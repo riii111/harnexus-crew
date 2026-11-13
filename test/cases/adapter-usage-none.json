@@ -1,14 +1,5 @@
 {
   "name": "adapter-usage-none",
-  "owner": "MB11",
-  "status": "active",
   "kind": "command",
-  "argv": ["adapter"],
-  "normalize": [
-    {
-      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
-      "with": "<TIME>",
-      "scopes": ["files", "stderr", "stdout"]
-    }
-  ]
+  "argv": ["adapter"]
 }

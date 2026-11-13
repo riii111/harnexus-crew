@@ -1,7 +1,5 @@
 {
   "name": "adapter-serve-write-no-project",
-  "owner": "MB11",
-  "status": "active",
   "kind": "session",
   "argv": ["adapter", "serve", "--id", "taskctl"],
   "steps": [
@@ -43,13 +41,6 @@
     },
     {
       "send": "{\"v\":1,\"type\":\"response\",\"id\":\"harnexus-crew-2\",\"bridgeId\":\"b1\",\"outcome\":\"not_sent\",\"reason\":\"down\"}"
-    }
-  ],
-  "normalize": [
-    {
-      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
-      "with": "<TIME>",
-      "scopes": ["files", "stderr", "stdout"]
     }
   ]
 }

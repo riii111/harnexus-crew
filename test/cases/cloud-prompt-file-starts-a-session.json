@@ -1,7 +1,5 @@
 {
   "name": "cloud-prompt-file-starts-a-session",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": ["cloud", "--prompt-file", "prompt.md"],
   "env": {

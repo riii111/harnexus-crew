@@ -1,7 +1,5 @@
 {
   "name": "review-t3-refuses-thinking",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "review.json", "--thinking", "high"],
   "env": {

@@ -1,7 +1,5 @@
 {
   "name": "cloud-answer-done-with-null-result",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": ["cloud", "--link", "session_01NfjPqrDm5ZNRA1m484J4Kt"],
   "env": {

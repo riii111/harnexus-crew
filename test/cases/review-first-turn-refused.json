@@ -1,7 +1,5 @@
 {
   "name": "review-first-turn-refused",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {

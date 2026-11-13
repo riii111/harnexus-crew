@@ -1,7 +1,5 @@
 {
   "name": "check-anchor-and-field-led-targets",
-  "owner": "MB06",
-  "status": "active",
   "kind": "command",
   "argv": ["check"],
   "files": {

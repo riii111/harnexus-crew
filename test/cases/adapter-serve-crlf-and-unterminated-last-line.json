@@ -1,16 +1,7 @@
 {
   "name": "adapter-serve-crlf-and-unterminated-last-line",
-  "owner": "MB11",
-  "status": "active",
   "kind": "command",
   "argv": ["adapter", "serve", "--id", "taskctl"],
-  "normalize": [
-    {
-      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
-      "with": "<TIME>",
-      "scopes": ["files", "stderr", "stdout"]
-    }
-  ],
   "stdin": "{\"v\":1,\"type\":\"hello\",\"mode\":\"observe\",\"versions\":[1]}\r\n{\"v\":1,\"type\":\"request\",\"id\":\"h1\",\"op\":\"history\",\"threadId\":\"t\"}",
   "compare": {
     "stdout": "exact"

@@ -1,7 +1,5 @@
 {
   "name": "check-no-config",
-  "owner": "MB06",
-  "status": "active",
   "kind": "command",
   "argv": ["check"]
 }

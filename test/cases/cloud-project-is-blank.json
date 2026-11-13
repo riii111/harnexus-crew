@@ -1,7 +1,5 @@
 {
   "name": "cloud-project-is-blank",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": [
     "cloud",

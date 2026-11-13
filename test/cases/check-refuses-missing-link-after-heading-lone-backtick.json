@@ -1,7 +1,5 @@
 {
   "name": "check-refuses-missing-link-after-heading-lone-backtick",
-  "owner": "MB06",
-  "status": "active",
   "kind": "command",
   "argv": ["check"],
   "files": {

@@ -1,7 +1,5 @@
 {
   "name": "launch-unknown-outcome-name-holds-the-record",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["launch", "--request", "launch.json"],
   "env": {

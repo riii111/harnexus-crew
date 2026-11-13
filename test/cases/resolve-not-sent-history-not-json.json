@@ -1,7 +1,5 @@
 {
   "name": "resolve-not-sent-history-not-json",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["resolve", "--request", "launch.json", "--not-sent"],
   "env": {

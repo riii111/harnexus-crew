@@ -1,7 +1,5 @@
 {
   "name": "resolve-sent-bad-thread-id",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": [
     "resolve",

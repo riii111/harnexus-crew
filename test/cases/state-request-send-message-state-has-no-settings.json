@@ -1,7 +1,5 @@
 {
   "name": "state-request-send-message-state-has-no-settings",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["state", "--request", "launch.json"],
   "env": {

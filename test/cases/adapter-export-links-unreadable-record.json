@@ -1,16 +1,7 @@
 {
   "name": "adapter-export-links-unreadable-record",
-  "owner": "MB11",
-  "status": "active",
   "kind": "command",
   "argv": ["adapter", "export-links"],
-  "normalize": [
-    {
-      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
-      "with": "<TIME>",
-      "scopes": ["files", "stderr", "stdout"]
-    }
-  ],
   "files": {
     "state/harnexus-crew/cloud-chats/session_A.json": "{\"threadId\":\"chat-a\",\"openedAt\":\"2026-11-01T00:00:00Z\"}",
     "state/harnexus-crew/cloud-chats/session_B.json": "{\"threadId\":null,\"startedAt\":\"2026-11-02T00:00:00Z\"}",

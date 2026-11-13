@@ -1,7 +1,5 @@
 {
   "name": "environment-claude-variable-not-true",
-  "owner": "MB05",
-  "status": "active",
   "kind": "command",
   "argv": ["environment"],
   "env": {

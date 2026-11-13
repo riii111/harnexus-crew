@@ -1,7 +1,5 @@
 {
   "name": "environment-socket-accepted",
-  "owner": "MB05",
-  "status": "active",
   "kind": "command",
   "argv": ["environment"],
   "env": {

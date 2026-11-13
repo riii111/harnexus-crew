@@ -1,7 +1,5 @@
 {
   "name": "watch-release",
-  "owner": "MB07",
-  "status": "active",
   "kind": "command",
   "argv": ["watch", "--release", "https://github.com/o/r/pull/3"],
   "commands": {

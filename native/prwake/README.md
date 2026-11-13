@@ -1,16 +1,11 @@
 # pr-wakeへの委譲と `watch`
 
 PRの監視をpr-wakeへ渡す層。
-TS版の `src/task/pr-wake.ts` と `src/task/cli.ts` の `watch` に対応する。
 監視の常駐処理、LaunchAgent、pr-wakeの保存状態には触れない。
 
-| 公開する関数・定数                    | TS版                         |
-| ------------------------------------- | ---------------------------- |
-| `watch(args, env, which~)`            | `watch`                      |
-| `call(env, args)`                     | `prWake`                     |
-| `is_github_pr(value)`、`NOT_LINKABLE` | `isGitHubPr`、`NOT_LINKABLE` |
+公開する関数・定数は `watch(args, env, which~)`、`call(env, args)`、`is_github_pr(value)`、`NOT_LINKABLE`。
 
-`call` は後続の `name`（MB09）が `["link", pr, "--take-over"]` で使う。
+`call` は `session` の `name` が `["link", pr, "--take-over"]` で使う。
 返す値は、pr-wakeが標準出力に書いたJSONオブジェクトで、メンバーの順序を保つ。
 PATH上のコマンド探索 `which` は呼び出し側が注入する（`cli/registry.mbt` が `which.in_env(env)` を渡す）。
 
@@ -30,4 +25,4 @@ PATH上のコマンド探索 `which` は呼び出し側が注入する（`cli/re
 代役は引数と環境を記録し、計画した出力・終了コード・待ちを返す。
 締切の試験は、`call` の内側の関数に短い締切を渡す。
 
-CLI全体の照合は `test/cases/watch-*.json`（TS版の出力を固定した期待値）で行う。
+CLI全体の照合は `test/cases/watch-*.json` で行う。

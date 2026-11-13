@@ -1,7 +1,5 @@
 {
   "name": "review-empty-model-and-thinking-are-defaults",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": [
     "review",

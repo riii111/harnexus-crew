@@ -1,7 +1,5 @@
 {
   "name": "state-request-launch-old-state-keeps-settings-in-create",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["state", "--request", "launch.json"],
   "env": {

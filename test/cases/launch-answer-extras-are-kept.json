@@ -1,7 +1,5 @@
 {
   "name": "launch-answer-extras-are-kept",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["launch", "--request", "launch.json"],
   "env": {

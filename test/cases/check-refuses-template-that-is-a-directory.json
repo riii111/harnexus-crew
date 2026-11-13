@@ -1,7 +1,5 @@
 {
   "name": "check-refuses-template-that-is-a-directory",
-  "owner": "MB06",
-  "status": "active",
   "kind": "command",
   "argv": ["check"],
   "files": {

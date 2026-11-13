@@ -1,7 +1,5 @@
 {
   "name": "review-model-mismatch",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {

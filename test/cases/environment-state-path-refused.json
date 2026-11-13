@@ -1,7 +1,5 @@
 {
   "name": "environment-state-path-refused",
-  "owner": "MB05",
-  "status": "active",
   "kind": "command",
   "argv": ["environment"],
   "env": {

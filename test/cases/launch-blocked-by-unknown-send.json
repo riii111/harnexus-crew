@@ -1,7 +1,5 @@
 {
   "name": "launch-blocked-by-unknown-send",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["launch", "--request", "launch.json"],
   "env": {

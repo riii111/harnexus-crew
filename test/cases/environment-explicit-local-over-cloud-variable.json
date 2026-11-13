@@ -1,7 +1,5 @@
 {
   "name": "environment-explicit-local-over-cloud-variable",
-  "owner": "MB05",
-  "status": "active",
   "kind": "command",
   "argv": ["environment"],
   "env": {

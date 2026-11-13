@@ -1,7 +1,5 @@
 {
   "name": "name-number-only-renames-but-is-not-watched",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["name", "--pr", "3"],
   "env": {

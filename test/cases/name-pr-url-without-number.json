@@ -1,7 +1,5 @@
 {
   "name": "name-pr-url-without-number",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["name", "--pr", "https://github.com/o/r/pull/x"],
   "env": {

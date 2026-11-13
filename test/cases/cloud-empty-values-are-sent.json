@@ -1,7 +1,5 @@
 {
   "name": "cloud-empty-values-are-sent",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": [
     "cloud",

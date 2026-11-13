@@ -1,7 +1,6 @@
 """Acceptance cases: each file in test/cases describes one run of the CLI and, under test/expected, what it must do."""
 
 import json
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -9,7 +8,7 @@ REPO = Path(__file__).resolve().parents[2]
 CASES = REPO / "test" / "cases"
 
 SCOPES = ("stdout", "stderr", "requests", "commands", "files", "lines")
-KINDS = ("command", "help", "session", "inherit")
+KINDS = ("command", "session")
 MODES = ("json", "lines", "exact")
 DEFAULT_SNAPSHOT = ["config", "state", "work", "home/.local", "home/.config"]
 
@@ -21,7 +20,6 @@ class InvalidCase(Exception):
 @dataclass
 class Case:
     name: str
-    owner: str
     kind: str
     argv: list
     env: dict = field(default_factory=dict)
@@ -56,12 +54,10 @@ def parse_case(data):
     name = data.get("name")
     _check(isinstance(name, str) and name != "", "case", "name must be a non-empty string")
     allowed = {
-        "name", "owner", "status", "kind", "argv", "env", "stdin", "steps", "files",
-        "seed", "git", "bridge", "commands", "snapshot", "normalize", "compare",
+        "name", "kind", "argv", "env", "stdin", "steps", "files", "seed",
+        "git", "bridge", "commands", "snapshot", "normalize", "compare",
     }
     _check(set(data) <= allowed, name, f"unknown members {sorted(set(data) - allowed)}")
-    _check(re.fullmatch(r"MB\d\d", str(data.get("owner", ""))) is not None, name, "owner must name a task")
-    _check(data.get("status") == "active", name, "status must be active")
     _check(data.get("kind") in KINDS, name, "kind is unknown")
     _check(_strings(data.get("argv")), name, "argv must be strings")
     _check(_string_map(data.get("env", {})), name, "env must map strings")
@@ -97,7 +93,6 @@ def parse_case(data):
     _check(set(compare) <= {"stdout", "stderr"} and set(compare.values()) <= set(MODES), name, "compare is invalid")
     return Case(
         name=name,
-        owner=data["owner"],
         kind=data["kind"],
         argv=data["argv"],
         env=data.get("env", {}),
@@ -116,7 +111,7 @@ def parse_case(data):
 
 def make_case(**fields):
     """A case built in code, such as a scenario's: it is checked like one read from a file."""
-    base = {"owner": "MB12", "status": "active", "kind": "command", "argv": []}
+    base = {"kind": "command", "argv": []}
     return parse_case({**base, **fields})
 
 

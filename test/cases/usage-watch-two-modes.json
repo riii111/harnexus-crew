@@ -1,7 +1,8 @@
 {
   "name": "usage-watch-two-modes",
-  "owner": "MB05",
-  "status": "active",
-  "kind": "help",
+  "kind": "command",
+  "compare": {
+    "stdout": "exact"
+  },
   "argv": ["watch", "--status", "--sender"]
 }

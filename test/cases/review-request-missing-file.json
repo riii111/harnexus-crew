@@ -1,7 +1,5 @@
 {
   "name": "review-request-missing-file",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "absent.json"],
   "env": {

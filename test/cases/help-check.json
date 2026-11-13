@@ -1,7 +1,8 @@
 {
   "name": "help-check",
-  "owner": "MB05",
-  "status": "active",
-  "kind": "help",
+  "kind": "command",
+  "compare": {
+    "stdout": "exact"
+  },
   "argv": ["check", "--help"]
 }

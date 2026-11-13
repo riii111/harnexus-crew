@@ -1,7 +1,5 @@
 {
   "name": "cloud-project-is-not-a-single-line",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": [
     "cloud",

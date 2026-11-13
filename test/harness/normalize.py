@@ -4,9 +4,14 @@ import re
 
 ROOT_MARK = "<ROOT>"
 
+DEFAULT_RULES = [
+    {"pattern": r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", "with": "<TIME>", "scopes": ["files", "stderr", "stdout"]}
+]
+
 
 def _replace_in(case, scope, text):
-    for rule in case.normalize:
+    # A case's rule may match text around a time, so it runs before the default rules replace the time.
+    for rule in [*case.normalize, *DEFAULT_RULES]:
         if scope in rule["scopes"]:
             replacement = rule["with"]
             text = re.sub(rule["pattern"], lambda _match: replacement, text, flags=re.ASCII)

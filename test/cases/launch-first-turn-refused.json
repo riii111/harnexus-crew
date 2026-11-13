@@ -1,7 +1,5 @@
 {
   "name": "launch-first-turn-refused",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["launch", "--request", "launch.json"],
   "env": {

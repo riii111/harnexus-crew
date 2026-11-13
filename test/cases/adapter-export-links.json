@@ -1,7 +1,5 @@
 {
   "name": "adapter-export-links",
-  "owner": "MB11",
-  "status": "active",
   "kind": "command",
   "argv": ["adapter", "export-links"],
   "normalize": [
@@ -9,11 +7,6 @@
       "pattern": "\"reservedAt\":\"\\d{4}-[^\"]+Z\"",
       "with": "\"reservedAt\":\"<TIME>\"",
       "scopes": ["stdout"]
-    },
-    {
-      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
-      "with": "<TIME>",
-      "scopes": ["files", "stderr", "stdout"]
     }
   ],
   "files": {
