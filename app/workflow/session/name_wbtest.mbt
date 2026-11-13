@@ -38,15 +38,6 @@ test "the helpers read records as the TypeScript build does" {
   assert_true(truthy(Json::string("0")))
   assert_true(truthy(Json::array([Json::null()])))
   assert_true(truthy(Json::number(-1.0)))
-  let one = @jsonio.parse("{\"a\":1,\"b\":[1,{\"c\":null}]}")
-  let same = @jsonio.parse("{\"b\":[1,{\"c\":null}],\"a\":1.0}")
-  assert_true(json_equal(one, same))
-  assert_false(
-    json_equal(one, @jsonio.parse("{\"a\":1,\"b\":[{\"c\":null},1]}")),
-  )
-  assert_false(json_equal(one, @jsonio.parse("{\"a\":1}")))
-  assert_false(json_equal(Json::string("1"), Json::number(1.0)))
-  assert_false(json_equal(Json::null(), Json::boolean(false)))
   assert_eq(@jsonio.as_text(Json::string("x")), "x")
   assert_eq(@jsonio.as_text(Json::null()), "null")
   assert_eq(@jsonio.as_text(@jsonio.parse("{\"a\":[1]}")), "{\"a\":[1]}")

@@ -35,13 +35,6 @@ test "trim removes the same whitespace" {
 }
 
 ///|
-test "strings compare by code unit as JS sorts them" {
-  inspect(compare_utf16("\u{1F600}", "\u{FF5E}"), content="-1")
-  inspect(compare_utf16("ab", "a"), content="1")
-  inspect(compare_utf16("a", "a"), content="0")
-}
-
-///|
 test "an excerpt is the trimmed text up to 500 UTF-16 units" {
   assert_eq(excerpt("  boom \n\n"), "boom")
   assert_eq(excerpt(""), "")

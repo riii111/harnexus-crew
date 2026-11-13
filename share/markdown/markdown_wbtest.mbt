@@ -44,8 +44,7 @@ test "records carry their length, so a destination may hold any byte" {
   let found = read_destinations(
     b"\x00A\x03\x00\x00\x00a\x00bI\x01\x00\x00\x00c",
   )
-  inspect(
-    found.map(fn(text) { text.length().to_string() }).join(","),
-    content="3,1",
-  )
+  assert_eq(found.length(), 2)
+  assert_true(found.contains("a\u{0}b"))
+  assert_true(found.contains("c"))
 }

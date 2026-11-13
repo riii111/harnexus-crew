@@ -245,12 +245,12 @@ fn read_request(
     }
   }
   if !unknown.is_empty() {
-    unknown.sort_by(@text.compare_utf16)
+    unknown.sort_by(String::lexical_compare)
     @failure.fail("unknown request fields: \{unknown.join(", ")}")
   }
   let missing = required.filter(fn(key) { !members.contains(key) })
   if !missing.is_empty() {
-    missing.sort_by(@text.compare_utf16)
+    missing.sort_by(String::lexical_compare)
     @failure.fail("missing request fields: \{missing.join(", ")}")
   }
   members

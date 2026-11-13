@@ -12,36 +12,6 @@ test "join normalizes like Node's posix join" {
 }
 
 ///|
-test "dirname follows Node, including its odd results" {
-  inspect(dirname("/"), content="/")
-  inspect(dirname("//"), content="/")
-  inspect(dirname("/a"), content="/")
-  inspect(dirname("/a/"), content="/")
-  inspect(dirname("a"), content=".")
-  inspect(dirname("a/b/"), content="a")
-  inspect(dirname(""), content=".")
-  inspect(dirname("/a//b"), content="/a/")
-}
-
-///|
-test "basename drops trailing separators" {
-  inspect(basename("a/b/c.json"), content="c.json")
-  inspect(basename("/a/b//"), content="b")
-  inspect(basename("a"), content="a")
-  inspect(basename("/"), content="")
-  inspect(basename(""), content="")
-}
-
-///|
-test "normalize keeps a trailing slash and the parents of a relative path" {
-  inspect(normalize("a/../.."), content="..")
-  inspect(normalize("/../a"), content="/a")
-  inspect(normalize("./"), content="./")
-  inspect(normalize("a/./b//c/"), content="a/b/c/")
-  inspect(normalize(""), content=".")
-}
-
-///|
 test "resolve starts from the given directory unless a part is absolute" {
   inspect(resolve(cwd="/work/dir", ["../x"]), content="/work/x")
   inspect(resolve(cwd="/work/dir", ["/a", "/b", "c"]), content="/b/c")

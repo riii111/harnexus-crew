@@ -78,7 +78,7 @@ async fn Session::send(
   }
   // To prevent resending an operation whose answer was lost, create its pending record exclusively before sending.
   (self.ports.save)(self.pending_path, Json::object(record), true)
-  if !json_equal(@store.load(self.state_path), self.loaded) {
+  if @store.load(self.state_path) != self.loaded {
     @store.remove_record(self.pending_path)
     @failure.fail(
       "another \{@environment.NAME} run changed the state; rerun to check it",

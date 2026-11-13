@@ -34,7 +34,7 @@ fn state_paths(root : String) -> Array[String] raise @failure.TaskFailed {
       }
     }
   }
-  paths.sort_by(@text.compare_utf16)
+  paths.sort_by(String::lexical_compare)
   paths
 }
 

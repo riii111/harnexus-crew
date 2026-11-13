@@ -90,7 +90,7 @@ fn launch_of_thread(
   // A worker is never told the request's path, so its launch is found from the thread it runs in.
   let root = @path.join([env.state_root(), "launch"])
   let keys = names_in(root)
-  keys.sort_by(@text.compare_utf16)
+  keys.sort_by(String::lexical_compare)
   for key in keys {
     let directory = @path.join([root, key])
     if !@store.is_directory(directory) {
