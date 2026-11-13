@@ -53,7 +53,7 @@ pub fn save_json(
   data : Json,
   exclusive~ : Bool,
 ) -> Unit raise @failure.TaskFailed {
-  io(() => prepare_directory(dirname(path)))
+  io(() => prepare_directory(@path.dirname(path)))
   let content = data.stringify(indent=1)
   if !exclusive {
     io(() => write_atomic(path, content))

@@ -53,6 +53,11 @@ test "trim removes JS whitespace, which has U+FEFF and lacks U+0085" {
   inspect(js_trim("\u{85}a\u{1F}"), content="\u{85}a\u{1F}")
   inspect(js_trim("   "), content="")
   inspect(js_trim("a"), content="a")
+  inspect(js_trim_end(" a b \u{feff}\u{b}"), content=" a b")
+  inspect(
+    js_trim_end("a\u{200b}\u{180e}\u{85}"),
+    content="a\u{200b}\u{180e}\u{85}",
+  )
 }
 
 ///|

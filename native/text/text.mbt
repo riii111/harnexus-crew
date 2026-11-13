@@ -81,6 +81,16 @@ pub fn js_trim(text : String) -> String {
 }
 
 ///|
+pub fn js_trim_end(text : String) -> String {
+  let units = text.code_units()
+  let mut end = units.length()
+  while end > 0 && is_js_whitespace(units[end - 1].to_int()) {
+    end -= 1
+  }
+  text[:end].to_owned()
+}
+
+///|
 /// True when the text holds a character that JS `\s` matches, which is the set `js_trim` strips.
 pub fn has_js_whitespace(text : String) -> Bool {
   text.code_units().iter().any(fn(unit) { is_js_whitespace(unit.to_int()) })

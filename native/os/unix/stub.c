@@ -1,81 +1,75 @@
 #include <errno.h>
 #include <stdint.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <moonbit.h>
 
-// The index is the position in the MoonBit table of names.
-// errno numbers differ between macOS and Linux, so the table is keyed by the macro.
+// Writes the symbolic name of an errno into the caller's buffer and returns its length, or 0 for an errno without a name here.
+// errno numbers differ between macOS and Linux, so the names come from the macros.
 MOONBIT_FFI_EXPORT
-int32_t harnexus_errno_index(int32_t err) {
-  switch (err) {
-  case ENOENT:
-    return 1;
-  case EACCES:
-    return 2;
-  case EPERM:
-    return 3;
-  case ECONNREFUSED:
-    return 4;
-  case ECONNRESET:
-    return 5;
-  case EPIPE:
-    return 6;
-  case ETIMEDOUT:
-    return 7;
-  case EAGAIN:
-    return 8;
-  case ENOTSOCK:
-    return 9;
-  case ENAMETOOLONG:
-    return 10;
-  case EMFILE:
-    return 11;
-  case ENFILE:
-    return 12;
-  case ENOMEM:
-    return 13;
-  case ENOTDIR:
-    return 14;
-  case ELOOP:
-    return 15;
-  case EIO:
-    return 16;
-  case ENOEXEC:
-    return 17;
-  case E2BIG:
-    return 18;
-  case ETXTBSY:
-    return 19;
-  case EISDIR:
-    return 20;
-  case EINVAL:
-    return 21;
-  case EADDRNOTAVAIL:
-    return 22;
-  case EAFNOSUPPORT:
-    return 23;
-  case EPROTOTYPE:
-    return 24;
-  case ENOBUFS:
-    return 25;
-  case EINTR:
-    return 26;
-  case EBADF:
-    return 27;
-  case ENOTCONN:
-    return 28;
-  case EINPROGRESS:
-    return 29;
-  case EALREADY:
-    return 30;
-  case EISCONN:
-    return 31;
-  case ECONNABORTED:
-    return 32;
+int32_t harnexus_errno_name(int32_t code, moonbit_bytes_t out, int32_t cap) {
+  const char *name = NULL;
+  switch (code) {
+#define NAMED(value)                                                                               \
+  case value:                                                                                      \
+    name = #value;                                                                                 \
+    break
+    NAMED(EPERM);
+    NAMED(ENOENT);
+    NAMED(ESRCH);
+    NAMED(EINTR);
+    NAMED(EIO);
+    NAMED(ENXIO);
+    NAMED(E2BIG);
+    NAMED(ENOEXEC);
+    NAMED(EBADF);
+    NAMED(EAGAIN);
+    NAMED(ENOMEM);
+    NAMED(EACCES);
+    NAMED(EBUSY);
+    NAMED(EEXIST);
+    NAMED(EXDEV);
+    NAMED(ENODEV);
+    NAMED(ENOTDIR);
+    NAMED(EISDIR);
+    NAMED(EINVAL);
+    NAMED(ENFILE);
+    NAMED(EMFILE);
+    NAMED(ETXTBSY);
+    NAMED(EFBIG);
+    NAMED(ENOSPC);
+    NAMED(EROFS);
+    NAMED(EMLINK);
+    NAMED(EPIPE);
+    NAMED(ERANGE);
+    NAMED(ENAMETOOLONG);
+    NAMED(ENOTEMPTY);
+    NAMED(ELOOP);
+    NAMED(EDQUOT);
+    NAMED(ENOTSOCK);
+    NAMED(EPROTOTYPE);
+    NAMED(EAFNOSUPPORT);
+    NAMED(EADDRNOTAVAIL);
+    NAMED(ENOBUFS);
+    NAMED(ENOTCONN);
+    NAMED(ECONNABORTED);
+    NAMED(ECONNRESET);
+    NAMED(ECONNREFUSED);
+    NAMED(ETIMEDOUT);
+    NAMED(EINPROGRESS);
+    NAMED(EALREADY);
+    NAMED(EISCONN);
+#undef NAMED
   default:
     return 0;
   }
+  size_t len = strlen(name);
+  if (len > (size_t)cap)
+    return 0;
+  // NOLINTNEXTLINE(bugprone-not-null-terminated-result): MoonBit reads the returned length, not a NUL.
+  memcpy(out, name, len);
+  return (int32_t)len;
 }
 
 // Returns 0 or the errno of close.

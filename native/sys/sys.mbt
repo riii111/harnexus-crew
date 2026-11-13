@@ -37,3 +37,12 @@ pub fn write_text(fd : Int32, text : String) -> Unit raise WriteFailed {
     raise WriteFailed(fd~, errno~)
   }
 }
+
+///|
+/// The text as NUL-terminated UTF-8 for a C call, or None for text with a NUL, which C would read as a shorter string.
+pub fn c_string(text : String) -> Bytes? {
+  if text.contains("\u{0}") {
+    return None
+  }
+  Some(@utf8.encode(text + "\u{0}"))
+}

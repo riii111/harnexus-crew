@@ -1,6 +1,8 @@
 import {
   "riii111/harnexus-crew/shared/boundary",
   "riii111/harnexus-crew/os/unix",
+  "riii111/harnexus-crew/sys",
+  "riii111/harnexus-crew/text",
   "moonbitlang/core/async",
   "moonbitlang/core/async/raw_fd",
   "moonbitlang/core/async/os_error",
@@ -9,7 +11,6 @@ import {
 
 import {
   "riii111/harnexus-crew/os/testkit",
-  "riii111/harnexus-crew/sys",
 } for "wbtest"
 
 options(

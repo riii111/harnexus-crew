@@ -9,8 +9,9 @@ pub async fn exchange_line(
   line : String,
   timeout_ms : Int32,
 ) -> String raise @boundary.LineExchangeFailed {
-  let target = path_bytes(path)
-  exchange_with(path, line, timeout_ms, fd => connect_once(fd, target))
+  let target = @sys.c_string(path)
+  // exchange_with refuses a path with a NUL before any attempt, so the unwrap only meets a path that has its C form.
+  exchange_with(path, line, timeout_ms, fd => connect_once(fd, target.unwrap()))
 }
 
 ///|
@@ -51,7 +52,7 @@ async fn exchange_with(
       ""
     } else {
       stream.write(@utf8.encode(line + "\n"))
-      trim_end(@utf8.decode_lossy(stream.read_all()))
+      @text.js_trim_end(@utf8.decode_lossy(stream.read_all()))
     }
   }) catch {
     @async.TimeoutError => raise failed(Some("ETIMEDOUT"), connected.val)
@@ -84,55 +85,6 @@ async fn connect_until_done(
     }
     @async.sleep(10)
   }
-}
-
-///|
-fn trim_end(text : String) -> String {
-  let mut end = text.length()
-  while end > 0 {
-    let unit = text[end - 1]
-    if is_js_space(unit.to_int()) {
-      end -= 1
-    } else {
-      break
-    }
-  }
-  text[:end].to_owned()
-}
-
-///|
-/// The code units JavaScript's `trimEnd` removes: white space and line terminators.
-fn is_js_space(unit : Int32) -> Bool {
-  match unit {
-    0x09
-    | 0x0A
-    | 0x0B
-    | 0x0C
-    | 0x0D
-    | 0x20
-    | 0xA0
-    | 0x1680
-    | 0x2028
-    | 0x2029
-    | 0x202F
-    | 0x205F
-    | 0x3000
-    | 0xFEFF => true
-    _ => unit >= 0x2000 && unit <= 0x200A
-  }
-}
-
-///|
-fn path_bytes(path : String) -> Bytes {
-  let bytes = @utf8.encode(path)
-  let out = Array::makei(bytes.length() + 1, i => {
-    if i < bytes.length() {
-      bytes[i]
-    } else {
-      b'\x00'
-    }
-  })
-  Bytes::from_array(out)
 }
 
 ///|
