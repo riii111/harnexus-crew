@@ -2,7 +2,7 @@
 /// Runs a short command and returns what it printed.
 /// exit status: Any status is a result; the caller decides what a failure means.
 /// raises     : When the command cannot start, is stopped by the timeout, prints more than 16 MiB, or dies from a signal.
-/// stdin      : An open pipe that is never written.
+/// stdin      : Closed at once, so a command that reads it sees the end of input.
 /// timeout    : A command that outlives it gets SIGTERM only.
 pub async fn run_command(
   file : String,
@@ -20,6 +20,8 @@ pub async fn run_command(
     child.stop_and_reap()
     child.release_pipes()
   }
+  // Nothing is ever written to the command, so closing stdin at once keeps a command that reads it from waiting for the timeout.
+  child.stdin.close_unless_taken()
   let capture = Capture::new()
   let stopped = Ref(false)
   let overflowed = Ref(false)

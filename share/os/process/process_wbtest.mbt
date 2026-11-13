@@ -505,16 +505,11 @@ async test "run_command reports a command that cannot start or dies from a signa
 }
 
 ///|
-async test "run_command leaves stdin open, so a command that waits for it runs into the timeout" {
+async test "run_command ends a command that reads stdin to its end instead of waiting for the timeout" {
   serial(() => {
-    try
-      run_command("/bin/cat", [], plain_env(), timeout_ms=300) |> ignore
-    catch {
-      @boundary.CommandFailed(message~, ..) =>
-        assert_eq(message, "/bin/cat was stopped after 300 ms")
-    } noraise {
-      _ => fail("expected a failure")
-    }
+    let ran = run_command("/bin/cat", [], plain_env(), timeout_ms=5000)
+    assert_eq(ran.status, 0)
+    assert_eq(ran.stdout, "")
   })
 }
 
