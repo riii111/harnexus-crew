@@ -1,1 +1,5 @@
+import {
+  "moonbitlang/core/path" @core_path,
+}
+
 supported_targets = "+native"
