@@ -1,13 +1,22 @@
 ///|
+priv suberror Unexpected {
+  Unexpected
+}
+
+///|
+fn homeless_env(vars : Array[(String, String)]) -> () -> @environment.Env raise {
+  let map : Map[String, String] = Map([])
+  for pair in vars {
+    map[pair.0] = pair.1
+  }
+  () => @environment.Env::new(map)
+}
+
+///|
 async test "usage is checked before anything is read from the environment" {
   let refusing : () -> @environment.Env raise = () => fail("env was read")
   assert_eq(run(["launch"][:], refusing).code, 2)
   assert_eq(run(["check", "-h"][:], refusing).code, 0)
-}
-
-///|
-priv suberror Unexpected {
-  Unexpected
 }
 
 ///|
@@ -24,15 +33,6 @@ async test "an error nothing expected is reported as a crash with where to repor
       #|
     ),
   )
-}
-
-///|
-fn homeless_env(vars : Array[(String, String)]) -> () -> @environment.Env raise {
-  let map : Map[String, String] = Map([])
-  for pair in vars {
-    map[pair.0] = pair.1
-  }
-  () => @environment.Env::new(map)
 }
 
 ///|

@@ -1,4 +1,14 @@
 ///|
+fn refusal(reply : Bytes) -> String {
+  try {
+    ignore(read_destinations(reply))
+    "accepted"
+  } catch {
+    @failure.TaskFailed(message) => message
+  }
+}
+
+///|
 test "offsets are UTF-16 positions of the target in the template" {
   let template = "日本 [a](x.md) 😀 [b](y.md)"
   let found = links(template, nonce="n")
@@ -14,16 +24,6 @@ test "comments are blanked with the newlines kept" {
   inspect(blank_comments("a<!--x\ny-->b"), content="a     \n    b")
   inspect(blank_comments("a<!--x"), content="a<!--x")
   inspect(blank_comments("<!-->x-->"), content="         ")
-}
-
-///|
-fn refusal(reply : Bytes) -> String {
-  try {
-    ignore(read_destinations(reply))
-    "accepted"
-  } catch {
-    @failure.TaskFailed(message) => message
-  }
 }
 
 ///|

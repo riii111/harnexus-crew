@@ -9,6 +9,29 @@ fn codex_env(pairs : Array[(String, String)]) -> @environment.Env {
 }
 
 ///|
+/// Runs `body` with a home whose review-home folder exists.
+async fn with_home(
+  name : String,
+  body : async (String, String) -> Unit,
+) -> Unit {
+  let home = scratch(name)
+  let review_home = "\{home}/review-home"
+  @store.prepare_directory(review_home) catch {
+    failed => abort(failed.user_message())
+  }
+  errdefer @async.protect_from_cancel(() => remove_tree(home))
+  body(home, @store.real_path_or_self(review_home))
+  remove_tree(home)
+}
+
+///|
+async fn review_project_of(host : Host) -> String {
+  (host.review_project)("w1") catch {
+    @failure.TaskFailed(message) => "failed: \{message}"
+  }
+}
+
+///|
 test "the Codex App host sends through the bridge and renames threads" {
   let host = host_of(codex_env([("CODEX_HOME", "/cx")]), which=no_which)
   inspect(host.thread_variable, content="CODEX_THREAD_ID")
@@ -56,29 +79,6 @@ async test "each host sends to its own app" {
     json_text((t3.call)("w1", "name_thread", {}).to_json()),
     content="{\"outcome\":\"unsupported\",\"error\":\"T3 Code does not offer name_thread\"}",
   )
-}
-
-///|
-/// Runs `body` with a home whose review-home folder exists.
-async fn with_home(
-  name : String,
-  body : async (String, String) -> Unit,
-) -> Unit {
-  let home = scratch(name)
-  let review_home = "\{home}/review-home"
-  @store.prepare_directory(review_home) catch {
-    failed => abort(failed.user_message())
-  }
-  errdefer @async.protect_from_cancel(() => remove_tree(home))
-  body(home, @store.real_path_or_self(review_home))
-  remove_tree(home)
-}
-
-///|
-async fn review_project_of(host : Host) -> String {
-  (host.review_project)("w1") catch {
-    @failure.TaskFailed(message) => "failed: \{message}"
-  }
 }
 
 ///|
