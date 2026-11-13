@@ -5,10 +5,10 @@ priv suberror ConnectFailed {
 
 ///|
 /// Sends one line to a Unix stream socket and returns what the peer answers before it closes, without trailing whitespace.
-/// One deadline covers the connect, the write and the read.
-/// An empty line only probes: the connection proves the peer is alive and nothing is sent.
-///
-/// A failure before the connection was made leaves the line unsent (`connected` is false); any later failure leaves it unknown.
+/// deadline      : Covers the connect, the write and the read.
+/// empty line    : Only probes; the connection proves the peer is alive and nothing is sent.
+/// before connect: A failure leaves the line unsent (`connected` is false).
+/// after connect : A failure leaves it unknown whether the line was sent.
 pub async fn exchange_line(
   path : String,
   line : String,

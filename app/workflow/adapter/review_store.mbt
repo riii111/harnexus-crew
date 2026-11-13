@@ -6,7 +6,10 @@ priv struct Chat {
 }
 
 ///|
-/// Where a review stands in the folder: sent, in a file that may stand over a sent one and so holds it, or neither, which is absent or kept but not sent.
+/// Where a review stands in the folder.
+/// Sent     : The review was sent.
+/// Held     : A file may stand over a sent review and holds it.
+/// Unsettled: The review is absent or kept but not sent.
 priv enum ReviewState {
   Sent
   Held

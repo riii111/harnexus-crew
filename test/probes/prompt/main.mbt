@@ -1,6 +1,9 @@
 ///|
 /// A test driver: `test/test_prompt.py` runs it to fill a template.
-/// Arguments: HOME, XDG_CONFIG_HOME, `worker` or `reviewer`, then the template's `name=value` fields.
+/// args[1] : HOME.
+/// args[2] : XDG_CONFIG_HOME.
+/// args[3] : `worker` or `reviewer`.
+/// args[4:]: The template's `name=value` fields.
 /// It is not part of the CLI.
 fn main {
   let args = @env.args()

@@ -1,6 +1,7 @@
 ///|
 /// What a directory of one session's records holds.
-/// `state.json` is what was confirmed; `pending.json` is a send whose result is unknown and blocks any resend.
+/// state.json  : Confirmed state.
+/// pending.json: A send whose result is unknown; blocks resending.
 pub struct Records {
   state_path : String
   pending_path : String

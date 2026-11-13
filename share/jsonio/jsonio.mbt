@@ -4,8 +4,10 @@ pub suberror JsonError {
 }
 
 ///|
-/// Parses JSON; an escaped surrogate that has no partner reads as U+FFFD, so every String it gives encodes to UTF-8.
-/// A repeated key keeps its last value, and nesting deeper than 1024 levels is refused.
+/// Parses JSON.
+/// unpaired surrogate: An escaped surrogate without a partner reads as U+FFFD, so every String encodes to UTF-8.
+/// repeated key      : Keeps the last value.
+/// nesting           : Deeper than 1024 levels is refused.
 pub fn parse(text : String) -> Json raise JsonError {
   @json.parse(replace_unpaired_escapes(text)) catch {
     error => raise JsonError("invalid JSON: \{error}")

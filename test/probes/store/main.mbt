@@ -30,7 +30,10 @@ async fn main {
 
 ///|
 /// Takes the lock at the shared start time, holds it for the given milliseconds and releases it.
-/// Arguments: lock, holder, hold milliseconds, start time.
+/// args[2]: Lock.
+/// args[3]: Holder.
+/// args[4]: Hold time in milliseconds.
+/// args[5]: Start time.
 async fn acquire_and_hold(args : Array[String]) -> Json {
   wait_until(number_arg(args, 5))
   try {
@@ -81,7 +84,10 @@ fn leave_marker(args : Array[String]) -> Json {
 
 ///|
 /// The content is `size` copies of one string, built here because an argument can hold only about 128 KiB on Linux.
-/// Arguments: path, string, size, start time.
+/// args[2]: Path.
+/// args[3]: String.
+/// args[4]: Size.
+/// args[5]: Start time.
 async fn create_exclusive(args : Array[String]) -> Json {
   let content = arg(args, 3).repeat(number_arg(args, 4).to_int())
   wait_until(number_arg(args, 5))
@@ -95,7 +101,10 @@ async fn create_exclusive(args : Array[String]) -> Json {
 
 ///|
 /// Replaces a file again and again with `size` copies of one character, so that a reader can tell a whole write from a torn one.
-/// Arguments: path, character, size, milliseconds to run.
+/// args[2]: Path.
+/// args[3]: Character.
+/// args[4]: Size.
+/// args[5]: Run time in milliseconds.
 async fn write_in_loop(args : Array[String]) -> Json {
   let content = arg(args, 3).repeat(number_arg(args, 4).to_int())
   let until = now_number() + number_arg(args, 5)
@@ -114,7 +123,12 @@ async fn write_in_loop(args : Array[String]) -> Json {
 
 ///|
 /// Adds one to a counter file `increments` times, each time under the lock, so a lost update shows as a smaller total.
-/// Arguments: lock directory, lock name, counter file, increments, start time, wait milliseconds.
+/// args[2]: Lock directory.
+/// args[3]: Lock name.
+/// args[4]: Counter file.
+/// args[5]: Increments.
+/// args[6]: Start time.
+/// args[7]: Wait time in milliseconds.
 async fn count_under_lock(args : Array[String]) -> Json {
   wait_until(number_arg(args, 6))
   let counter = arg(args, 4)
@@ -164,7 +178,9 @@ fn read_regular(args : Array[String]) -> Json {
 }
 
 ///|
-/// Arguments: path, JSON text, "exclusive" or "replace".
+/// args[2]: Path.
+/// args[3]: JSON text.
+/// args[4]: "exclusive" or "replace".
 fn save_record(args : Array[String]) -> Json {
   let data = @jsonio.parse(arg(args, 3)) catch {
     @jsonio.JsonError(message) => return refused(message)

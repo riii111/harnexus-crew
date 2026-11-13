@@ -287,7 +287,8 @@ fn reviewer_of(state : Json?) -> String? {
 
 ///|
 /// What a finished Codex run answered.
-/// A run that reviewed nothing clears the pending record so the candidate can be sent again; one whose result is unknown leaves it.
+/// reviewed nothing: Clears the pending record so the candidate can be sent again.
+/// result unknown  : Leaves the pending record.
 fn review_reply(
   ran : Result[@boundary.ProcessRun, @boundary.ProcessRunFailed],
   reviewer : String?,

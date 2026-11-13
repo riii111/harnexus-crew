@@ -3,11 +3,12 @@
 priv suberror StillAlive
 
 ///|
-/// Runs a command with `input` on its stdin and returns once it has exited and its output has been read to the end.
-/// The command leads its own process group, so a child it started does not outlive it.
-/// At the deadline, or when the output passes 16 MiB, the group gets SIGTERM and then SIGKILL after `kill_grace_ms`.
-/// The result then says why the run ended, and anything but `Exit` means the command's own result is unknown.
-/// A command still alive a second grace after SIGKILL raises with `started` true.
+/// Runs a command in its own process group, so a child it started does not outlive it.
+/// Returns after the command exits and its output is read to the end.
+/// input        : Sent to stdin.
+/// stop         : At the deadline or above 16 MiB of output, the group gets SIGTERM, then SIGKILL after `kill_grace_ms`.
+/// result       : Says why the run ended; anything but `Exit` means the command's own result is unknown.
+/// still running: Raises with `started` true if the command is alive a second grace after SIGKILL.
 pub async fn run_process(
   file : String,
   args : ArrayView[String],
