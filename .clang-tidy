@@ -1,0 +1,15 @@
+# Checks off here would only flag what the MoonBit FFI requires:
+# - easily-swappable-parameters: parameter order is fixed by the `extern "c"` declarations.
+# - multi-level-implicit-pointer-conversion: it fires on every calloc/free of a `char **` list.
+# - DeprecatedOrUnsafeBufferHandling: it asks for Annex K `_s` functions, which glibc and macOS lack.
+Checks: >-
+  -*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+WarningsAsErrors: "*"
+CheckOptions:
+  bugprone-reserved-identifier.AllowedIdentifiers: _GNU_SOURCE

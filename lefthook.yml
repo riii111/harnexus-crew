@@ -4,3 +4,7 @@ pre-commit:
       glob: "{moon.mod,native/**/*.{mbt,mbti},native/**/moon.pkg}"
       run: moon fmt
       stage_fixed: true
+    clang-format:
+      glob: "native/**/*.c"
+      run: clang-format -i {staged_files}
+      stage_fixed: true

@@ -13,7 +13,8 @@ int32_t harnexus_login_home(moonbit_bytes_t out, int32_t cap) {
   struct passwd entry;
   struct passwd *found = NULL;
   char scratch[4096];
-  if (getpwuid_r(getuid(), &entry, scratch, sizeof scratch, &found) != 0 || found == NULL || entry.pw_dir == NULL)
+  if (getpwuid_r(getuid(), &entry, scratch, sizeof scratch, &found) != 0 || found == NULL ||
+      entry.pw_dir == NULL)
     return 0;
   size_t len = strlen(entry.pw_dir);
   if (len > (size_t)cap)

@@ -42,6 +42,7 @@
               pkgs.python3
               pkgs.lefthook
               pkgs.actionlint
+              pkgs.llvmPackages_21.clang-tools
             ];
           };
         }

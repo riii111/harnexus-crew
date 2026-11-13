@@ -80,8 +80,7 @@ static const char *env_value(char **envp, const char *name) {
 // Looks a bare command name up in the PATH of the environment the command will run in, which is where the TypeScript CLI's runtime looks.
 // Without a PATH the usual system directories are searched.
 // Returns 0 with the path in `out`, or the errno execvp would give.
-static int find_in_path(const char *file, char **envp, const char *cwd, char *out,
-                        size_t size) {
+static int find_in_path(const char *file, char **envp, const char *cwd, char *out, size_t size) {
   const char *path = env_value(envp, "PATH");
   if (path == NULL)
     path = "/usr/bin:/bin";
@@ -118,8 +117,8 @@ static int find_in_path(const char *file, char **envp, const char *cwd, char *ou
 
 // Runs in the forked child, so it calls only async-signal-safe functions and never allocates.
 // Reports the errno of the step that failed on `status_fd`; the descriptor closes on a successful exec.
-static void exec_child(const char *path, char **argv, char **envp, const char *cwd,
-                       int flags, int in_r, int out_w, int err_w, int status_fd) {
+static void exec_child(const char *path, char **argv, char **envp, const char *cwd, int flags,
+                       int in_r, int out_w, int err_w, int status_fd) {
   int err = 0;
   if ((flags & SPAWN_NEW_SESSION) && setsid() < 0) {
     err = errno;
@@ -162,8 +161,8 @@ fail:
 // The strings are NUL-separated UTF-8 blobs owned by the caller (#borrow).
 MOONBIT_FFI_EXPORT
 int32_t harnexus_spawn(moonbit_bytes_t file, moonbit_bytes_t argv_blob, int32_t argc,
-                       moonbit_bytes_t env_blob, int32_t envc, moonbit_bytes_t cwd,
-                       int32_t flags, int32_t *out) {
+                       moonbit_bytes_t env_blob, int32_t envc, moonbit_bytes_t cwd, int32_t flags,
+                       int32_t *out) {
   // A write to a pipe whose reader is gone must fail with EPIPE rather than kill this process.
   signal(SIGPIPE, SIG_IGN);
   char **argv = split_blob(argv_blob, argc);

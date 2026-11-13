@@ -10,6 +10,8 @@ moon fmt --check
 moon check --deny-warn
 moon info              # 公開インターフェース native/**/pkg.generated.mbti を更新する
 moon test
+scripts/check-c.sh     # 自作Cの整形・警告・静的解析（clang-format・clang-tidy）
+scripts/test-sanitized.sh  # AddressSanitizer・UndefinedBehaviorSanitizer付きで moon test を実行する
 moon build --target native --release
 python3 -m unittest discover -s test
 ```
@@ -18,7 +20,11 @@ python3 -m unittest discover -s test
 別のビルドを試すときは、`HARNEXUS_CREW_NATIVE`・`HARNEXUS_STORE_PROBE`・`HARNEXUS_MARKDOWN_PROBE`・`HARNEXUS_PROMPT_PROBE` で実行ファイルを指す。
 
 CIの `native` ジョブは macOS（macos-15）と Linux（ubuntu-24.04）で同じ手順を実行する。
-`lefthook install` で、コミット前に `moon fmt` が走る。
+macOSではsanitizer付きの試験が終わらなかったため、`scripts/test-sanitized.sh` はLinuxだけで実行する。
+`lefthook install` で、コミット前に `moon fmt` と、自作Cへの `clang-format` が走る。
+
+自作Cの検査は、`moon` がCコンパイラへ渡すフラグに `-Wall -Wextra -Wconversion` を加えて行い、警告はすべて失敗にする。
+md4cの `md4c.c`・`md4c.h` は配布元のまま保つため、整形と検査の対象から外す。
 
 ## 固定版
 

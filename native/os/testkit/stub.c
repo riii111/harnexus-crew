@@ -44,8 +44,7 @@ int32_t harnexus_testkit_listen(moonbit_bytes_t path, int32_t backlog) {
   int fd = make_socket();
   if (fd < 0)
     return fd;
-  if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0 ||
-      listen(fd, backlog) < 0) {
+  if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0 || listen(fd, backlog) < 0) {
     err = errno;
     close(fd);
     return -err;
@@ -92,9 +91,7 @@ MOONBIT_FFI_EXPORT
 int32_t harnexus_testkit_close(int32_t fd) { return close(fd) < 0 ? errno : 0; }
 
 MOONBIT_FFI_EXPORT
-void harnexus_testkit_unlink(moonbit_bytes_t path) {
-  unlink((const char *)path);
-}
+void harnexus_testkit_unlink(moonbit_bytes_t path) { unlink((const char *)path); }
 
 // How many descriptors this process has open, to show that a run left none behind.
 MOONBIT_FFI_EXPORT
@@ -112,9 +109,7 @@ int32_t harnexus_testkit_getpid(void) { return (int32_t)getpid(); }
 
 // Whether the process can still be signalled; a zombie counts as alive.
 MOONBIT_FFI_EXPORT
-int32_t harnexus_testkit_alive(int32_t pid) {
-  return kill((pid_t)pid, 0) == 0 || errno == EPERM;
-}
+int32_t harnexus_testkit_alive(int32_t pid) { return kill((pid_t)pid, 0) == 0 || errno == EPERM; }
 
 // The errno a non-blocking connect reports when the listen queue is full; its number differs between macOS and Linux.
 MOONBIT_FFI_EXPORT
