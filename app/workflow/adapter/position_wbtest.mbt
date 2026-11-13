@@ -83,13 +83,12 @@ async test "a review made while the adapter was stopped is taken once after it r
       ])
       let position = position_file(at)
       assert_eq(field(position, "cursor"), Some(str("u-t-ccc3333-R1")))
-      assert_eq(field(position, "gaps"), Some(Json::array([])))
     })
   })
 }
 
 ///|
-async test "a cursor whose record is gone is recorded as a gap, and no review is taken again" {
+async test "a cursor whose record is gone reads the records again, and no review is taken again" {
   with_place("position-gap", at => {
     @async.with_task_group(group => {
       let link = connect(at, group)
@@ -112,10 +111,6 @@ async test "a cursor whose record is gone is recorded as a gap, and no review is
       )
       link.records("continued", [..reread, prompt("p2", "y")])
       assert_eq(pending_keys(link), [review_of_head("aaa1111").key])
-      let recorded = field(position_file(at), "gaps").unwrap()
-      guard recorded is Array(items) else { abort("gaps is not a list") }
-      assert_eq(items.length(), 1)
-      assert_eq(text_member(items[0], "cursor"), Some("u-t-aaa1111-R1"))
     })
   })
 }

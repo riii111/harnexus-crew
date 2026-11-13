@@ -17,6 +17,7 @@ async test "usage is checked before anything is read from the environment" {
   let refusing : () -> @environment.Env raise = () => fail("env was read")
   assert_eq(run(["launch"][:], refusing).code, 2)
   assert_eq(run(["check", "-h"][:], refusing).code, 0)
+  assert_eq(run(["-h"][:], refusing).code, 0)
 }
 
 ///|

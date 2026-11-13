@@ -1,18 +1,20 @@
 """scripts/install.sh builds a commit, checks the binary, and replaces the installed one only when everything held."""
 
+import functools
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
-from harness.binaries import binary
 from harness.cases import REPO
 
 SCRIPT = REPO / "scripts" / "install.sh"
 BUILD_TIMEOUT_SECONDS = 600
+INSTALL_BUILD_ARGS = ["build", "cmd/main", "--target", "native", "--release"]
 
 
 def run(args, env=None):
@@ -39,23 +41,44 @@ def head():
     return subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, check=True).stdout.decode().strip()
 
 
+@functools.cache
+def real_install():
+    """The one real build of the committed HEAD, installed into a prefix that does not exist yet."""
+    directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
+    unittest.addModuleCleanup(shutil.rmtree, directory, ignore_errors=True)
+    prefix = directory / "made" / "bin"
+    return prefix, run(["--prefix", str(prefix), "--repo", str(REPO), "--rev", head()])
+
+
+def moon_that_places_the_real_binary(directory):
+    """A moon whose build result is the binary the real build made, so install.sh runs its own checks against a real harnexus-crew."""
+    prefix, installed = real_install()
+    binary = prefix / "harnexus-crew"
+    if not binary.is_file():
+        raise FileNotFoundError(f"the real build left no {binary}: {installed}")
+    moon = directory / "moon"
+    moon.write_text(
+        "#!/bin/sh\n"
+        "mkdir -p _build/native/release/build/cmd/main\n"
+        f"cp {shlex.quote(str(binary))} _build/native/release/build/cmd/main/main.exe\n",
+        encoding="utf-8",
+    )
+    moon.chmod(0o755)
+    return moon
+
+
 class InstallScript(unittest.TestCase):
     def scratch(self):
         directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
         self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
         return directory
 
-    def prebuilt_moon(self):
-        # A real build takes tens of seconds, so the tests of how the script replaces a binary place the one this checkout already built.
-        moon = self.scratch() / "moon"
-        moon.write_text(
-            "#!/bin/sh\n"
-            "mkdir -p _build/native/release/build/cmd/main\n"
-            f"cp '{binary('HARNEXUS_CREW_NATIVE')}' _build/native/release/build/cmd/main/main.exe\n",
-            encoding="utf-8",
-        )
-        moon.chmod(0o755)
-        return ["--moon", str(moon)]
+    def install_the_real_binary(self, root):
+        prefix = root / "bin"
+        moon = moon_that_places_the_real_binary(root)
+        installed = run(["--prefix", str(prefix), "--moon", str(moon)])
+        self.assertEqual((0, ""), (installed[0], installed[2]))
+        return prefix, moon
 
     def test_rejects_what_it_cannot_install_from(self):
         for name, args, message in (
@@ -70,40 +93,36 @@ class InstallScript(unittest.TestCase):
                 self.assertEqual(2, status)
                 self.assertIn(message, stderr)
 
-    def test_installs_the_requested_commit_and_keeps_it_when_a_later_install_fails(self):
-        prefix = self.scratch() / "bin"
-        installed = run(["--prefix", str(prefix), "--repo", str(REPO), "--rev", head(), *self.prebuilt_moon()])
-        before = (prefix / "harnexus-crew").stat()
-        failed = run(["--prefix", str(prefix), "--rev", "0000000", *self.prebuilt_moon()])
-        after = (prefix / "harnexus-crew").stat()
-
-        self.assertEqual((0, ""), (installed[0], installed[2]))
-        self.assertIn(f"from {head()}", installed[1])
-        self.assertEqual("harnexus-crew: --request is required", usage_line(str(prefix / "harnexus-crew")))
-        self.assertEqual(1, failed[0])
-        self.assertIn("commit 0000000 is not in", failed[2])
-        self.assertEqual((before.st_ino, before.st_mtime_ns), (after.st_ino, after.st_mtime_ns))
-
-    def test_installs_to_a_prefix_that_does_not_exist_yet_and_the_binary_works(self):
-        prefix = self.scratch() / "made" / "bin"
-
-        status, stdout, stderr = run(["--prefix", str(prefix)])
+    def test_installs_the_requested_commit_into_a_prefix_that_does_not_exist_yet(self):
+        prefix, (status, stdout, stderr) = real_install()
 
         self.assertEqual((0, ""), (status, stderr))
-        self.assertIn(f"installed {prefix}/harnexus-crew", stdout)
+        self.assertIn(f"installed {prefix}/harnexus-crew from {head()}", stdout)
+        self.assertEqual("harnexus-crew: --request is required", usage_line(str(prefix / "harnexus-crew")))
         ran = subprocess.run([str(prefix / "harnexus-crew"), "--help"], capture_output=True)
         self.assertEqual(0, ran.returncode)
         self.assertTrue(ran.stdout.decode().startswith("usage:\n"))
         self.assertEqual(0o755, (prefix / "harnexus-crew").stat().st_mode & 0o777)
         self.assertEqual(["harnexus-crew"], sorted(path.name for path in prefix.iterdir()))
 
+    def test_keeps_the_installed_binary_when_the_requested_commit_is_missing(self):
+        prefix, _ = self.install_the_real_binary(self.scratch())
+        before = (prefix / "harnexus-crew").stat()
+
+        failed = run(["--prefix", str(prefix), "--rev", "0000000"])
+        after = (prefix / "harnexus-crew").stat()
+
+        self.assertEqual(1, failed[0])
+        self.assertIn("commit 0000000 is not in", failed[2])
+        self.assertEqual((before.st_ino, before.st_mtime_ns), (after.st_ino, after.st_mtime_ns))
+
     def test_keeps_the_installed_binary_when_the_build_fails(self):
         root = self.scratch()
-        prefix = root / "bin"
-        self.assertEqual(0, run(["--prefix", str(prefix), *self.prebuilt_moon()])[0])
+        prefix, _ = self.install_the_real_binary(root)
         before = (prefix / "harnexus-crew").stat()
-        broken = root / "moon"
-        broken.write_text("#!/bin/sh\necho 'cannot build' >&2\nexit 1\n", encoding="utf-8")
+        asked = root / "asked"
+        broken = root / "broken-moon"
+        broken.write_text(f"#!/bin/sh\necho \"$@\" >{shlex.quote(str(asked))}\necho 'cannot build' >&2\nexit 1\n", encoding="utf-8")
         broken.chmod(0o755)
 
         status, _, stderr = run(["--prefix", str(prefix), "--moon", str(broken)])
@@ -112,14 +131,13 @@ class InstallScript(unittest.TestCase):
         self.assertEqual(1, status)
         self.assertIn("the build failed; nothing was replaced", stderr)
         self.assertIn("cannot build", stderr)
+        self.assertEqual(" ".join(INSTALL_BUILD_ARGS), asked.read_text(encoding="utf-8").strip())
         self.assertEqual(before.st_ino, after.st_ino)
         self.assertEqual(["harnexus-crew"], sorted(path.name for path in prefix.iterdir()))
 
     def test_keeps_the_installed_binary_when_configured_templates_cannot_be_filled(self):
         root = self.scratch()
-        prefix = root / "bin"
-        moon = self.prebuilt_moon()
-        installed = run(["--prefix", str(prefix), *moon])
+        prefix, moon = self.install_the_real_binary(root)
         before = (prefix / "harnexus-crew").stat()
         config = root / "config"
         (config / "harnexus").mkdir(parents=True)
@@ -128,10 +146,9 @@ class InstallScript(unittest.TestCase):
             json.dumps({"templates": {"worker": str(root / "worker.md")}}), encoding="utf-8"
         )
 
-        failed = run(["--prefix", str(prefix), *moon], {"XDG_CONFIG_HOME": str(config)})
+        failed = run(["--prefix", str(prefix), "--moon", str(moon)], {"XDG_CONFIG_HOME": str(config)})
         after = (prefix / "harnexus-crew").stat()
 
-        self.assertEqual(0, installed[0])
         self.assertEqual(1, failed[0])
         self.assertIn("cannot use the configured templates", failed[2])
         self.assertEqual(before.st_ino, after.st_ino)
