@@ -74,6 +74,22 @@ pub fn fd_open(fd : Int32) -> Bool {
 }
 
 ///|
+/// The test runner's output goes through descriptors 0 to 2, so nothing may print or wait until `restore_stdio` is called with the result.
+pub fn close_stdio() -> FixedArray[Int32] raise Errno {
+  let saved = FixedArray::make(3, -1)
+  let err = close_stdio_raw(saved)
+  if err != 0 {
+    raise Errno(err)
+  }
+  saved
+}
+
+///|
+pub fn restore_stdio(saved : FixedArray[Int32]) -> Unit {
+  restore_stdio_raw(saved)
+}
+
+///|
 fn c_string(text : String) -> Bytes {
   @sys.c_string(text).unwrap()
 }
@@ -110,3 +126,11 @@ extern "C" fn fd_open_raw(fd : Int32) -> Int32 = "harnexus_testkit_fd_open"
 
 ///|
 extern "C" fn eagain_raw() -> Int32 = "harnexus_testkit_eagain"
+
+///|
+#borrow(saved)
+extern "C" fn close_stdio_raw(saved : FixedArray[Int32]) -> Int32 = "harnexus_testkit_close_stdio"
+
+///|
+#borrow(saved)
+extern "C" fn restore_stdio_raw(saved : FixedArray[Int32]) = "harnexus_testkit_restore_stdio"
