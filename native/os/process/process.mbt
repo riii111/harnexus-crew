@@ -20,7 +20,11 @@ pub async fn run_process(
     )
   }
   let child = spawn(file, args, env, cwd, piped=true, new_session=true) catch {
-    err => raise failed(false, spawn_reason(file, err))
+    err =>
+      raise @boundary.ProcessRunFailed(
+        started=false,
+        message="cannot run \{file} (\{err.code()})",
+      )
   }
   defer {
     child.stop_and_reap()

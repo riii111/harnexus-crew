@@ -93,22 +93,6 @@ int32_t harnexus_store_read(int32_t fd, moonbit_bytes_t buffer, int32_t len) {
   }
 }
 
-// Writes all `len` bytes, retrying partial writes.
-MOONBIT_FFI_EXPORT
-int32_t harnexus_store_write_all(int32_t fd, moonbit_bytes_t bytes, int32_t len) {
-  int32_t done = 0;
-  while (done < len) {
-    ssize_t n = write(fd, bytes + done, (size_t)(len - done));
-    if (n < 0) {
-      if (errno == EINTR)
-        continue;
-      return -errno;
-    }
-    done += (int32_t)n;
-  }
-  return 0;
-}
-
 MOONBIT_FFI_EXPORT
 int32_t harnexus_store_fd_kind(int32_t fd) {
   struct stat info;
@@ -201,56 +185,6 @@ int32_t harnexus_store_process_alive(int32_t pid) {
   if (kill((pid_t)pid, 0) == 0)
     return 1;
   return errno == EPERM ? 1 : 0;
-}
-
-// Writes the symbolic name of an errno into the caller's buffer and returns its length, or 0 for an errno without a name here.
-MOONBIT_FFI_EXPORT
-int32_t harnexus_store_errno_name(int32_t code, moonbit_bytes_t out, int32_t cap) {
-  const char *name = NULL;
-  switch (code) {
-#define NAMED(value)                                                                               \
-  case value:                                                                                      \
-    name = #value;                                                                                 \
-    break
-    NAMED(EPERM);
-    NAMED(ENOENT);
-    NAMED(ESRCH);
-    NAMED(EINTR);
-    NAMED(EIO);
-    NAMED(ENXIO);
-    NAMED(EBADF);
-    NAMED(EAGAIN);
-    NAMED(ENOMEM);
-    NAMED(EACCES);
-    NAMED(EBUSY);
-    NAMED(EEXIST);
-    NAMED(EXDEV);
-    NAMED(ENODEV);
-    NAMED(ENOTDIR);
-    NAMED(EISDIR);
-    NAMED(EINVAL);
-    NAMED(ENFILE);
-    NAMED(EMFILE);
-    NAMED(ETXTBSY);
-    NAMED(EFBIG);
-    NAMED(ENOSPC);
-    NAMED(EROFS);
-    NAMED(EMLINK);
-    NAMED(ERANGE);
-    NAMED(ENAMETOOLONG);
-    NAMED(ENOTEMPTY);
-    NAMED(ELOOP);
-    NAMED(EDQUOT);
-#undef NAMED
-  default:
-    return 0;
-  }
-  size_t len = strlen(name);
-  if (len > (size_t)cap)
-    return 0;
-  // NOLINTNEXTLINE(bugprone-not-null-terminated-result): MoonBit reads the returned length, not a NUL.
-  memcpy(out, name, len);
-  return (int32_t)len;
 }
 
 // SHA-256 of `len` bytes into the caller's 32-byte buffer.

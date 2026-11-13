@@ -213,7 +213,7 @@ test "real_path_or_self gives an absolute path, resolved when it exists" {
     assert_eq(real_path_or_self("\{directory}/./sub/../"), real)
     assert_eq(
       real_path_or_self("\{directory}/missing/../x"),
-      resolve_path("\{directory}/x"),
+      @path.normalize("\{directory}/x"),
     )
   })
 }

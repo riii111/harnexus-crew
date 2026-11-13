@@ -2,6 +2,8 @@
 package "riii111/harnexus-crew/sys"
 
 // Values
+pub fn c_string(String) -> Bytes?
+
 pub fn platform() -> Platform
 
 pub fn write_text(Int32, String) -> Unit raise WriteFailed
