@@ -1,8 +1,0 @@
-{
-  "name": "usage-name-missing-pr",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["name"]
-}

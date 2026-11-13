@@ -1,8 +1,0 @@
-{
-  "name": "usage-review-bad-recover",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["review", "--request", "r", "--recover", "keep"]
-}

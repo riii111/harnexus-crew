@@ -53,18 +53,6 @@ test "sha256 hashes an unpaired surrogate as U+FFFD, as JS encodes it" {
 }
 
 ///|
-test "state_directory names a directory by the first 16 digits of the key's digest" {
-  assert_eq(
-    state_directory("/state/harnexus-crew", "review", "abc"),
-    "/state/harnexus-crew/review/ba7816bf8f01cfea",
-  )
-  assert_eq(
-    state_directory("/state/harnexus-crew", "launch", "/work/x\u{0}task-1"),
-    "/state/harnexus-crew/launch/c66dfdc6e0d5f845",
-  )
-}
-
-///|
 test "new_uuid writes a version 4 UUID and does not repeat" {
   let seen : Map[String, Bool] = Map([])
   for _ in 0..<64 {

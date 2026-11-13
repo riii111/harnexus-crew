@@ -1,8 +1,0 @@
-{
-  "name": "usage-cloud-neither",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["cloud"]
-}

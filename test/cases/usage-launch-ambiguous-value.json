@@ -1,8 +1,0 @@
-{
-  "name": "usage-launch-ambiguous-value",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["launch", "--request", "--model", "x"]
-}

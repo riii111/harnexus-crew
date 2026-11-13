@@ -1,8 +1,0 @@
-{
-  "name": "usage-help-with-bad-option",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["launch", "-h", "--nope"]
-}

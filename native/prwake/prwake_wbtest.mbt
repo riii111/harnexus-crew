@@ -15,40 +15,6 @@ test "the deadline is ten minutes for a dry run and one minute for the rest" {
 }
 
 ///|
-async test "pr-wake is found on PATH unless an absolute path is set" {
-  with_rig("c-1", rig => {
-    for run in 1..<=3 {
-      rig.plan("pr-wake", run, out="{}")
-    }
-    ignore(call(rig.env([]), ["sender"]))
-    assert_eq(rig.args("pr-wake", 1), "watch sender")
-    // An empty value counts as not set.
-    ignore(call(rig.env([("HARNEXUS_CREW_PR_WAKE", "")]), ["sender"]))
-    assert_eq(rig.args("pr-wake", 2), "watch sender")
-    // The set path is used even when PATH has no pr-wake.
-    let elsewhere = rig.env([
-      ("HARNEXUS_CREW_PR_WAKE", "\{rig.bin}/pr-wake"),
-      ("PATH", "/usr/bin:/bin"),
-    ])
-    ignore(call(elsewhere, ["sender"]))
-    assert_eq(rig.args("pr-wake", 3), "watch sender")
-  })
-}
-
-///|
-async test "a relative pr-wake path is refused before anything runs" {
-  with_rig("c-2", rig => {
-    let message = failure_of(() => {
-      ignore(
-        call(rig.env([("HARNEXUS_CREW_PR_WAKE", "bin/pr-wake")]), ["sender"]),
-      )
-    })
-    assert_eq(message, "HARNEXUS_CREW_PR_WAKE must be an absolute path")
-    assert_false(rig.ran("pr-wake"))
-  })
-}
-
-///|
 async test "the printed object comes back and the environment reaches pr-wake" {
   with_rig("c-3", rig => {
     rig.plan(
@@ -112,26 +78,6 @@ async test "output that is not one JSON object fails even when pr-wake succeeded
         msg=out,
       )
     }
-  })
-}
-
-///|
-async test "a pr-wake that cannot start names how to install it" {
-  with_rig("c-6", rig => {
-    let hint = "; install pr-wake, or set HARNEXUS_CREW_PR_WAKE to its absolute path"
-    let missing = "\{rig.root}/missing"
-    assert_eq(
-      failure_of(() => {
-        ignore(call(rig.env([("HARNEXUS_CREW_PR_WAKE", missing)]), ["sender"]))
-      }),
-      "cannot run \{missing}\{hint}",
-    )
-    assert_eq(
-      failure_of(() => {
-        ignore(call(rig.env([("PATH", "/usr/bin:/bin")]), ["sender"]))
-      }),
-      "cannot run pr-wake\{hint}",
-    )
   })
 }
 

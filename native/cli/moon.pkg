@@ -17,7 +17,6 @@ import {
 }
 
 import {
-  "riii111/harnexus-crew/os/testkit",
   "moonbitlang/core/async",
 } for "wbtest"
 

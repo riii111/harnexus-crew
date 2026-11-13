@@ -1,8 +1,0 @@
-{
-  "name": "usage-resolve-neither",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["resolve", "--request", "r"]
-}

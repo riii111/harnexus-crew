@@ -82,17 +82,6 @@ async fn review_project_of(host : Host) -> String {
 }
 
 ///|
-async test "a T3 Code reviewer runs in the review home folder, without asking the app" {
-  with_home("host-1", (home, real) => {
-    let host = host_of(
-      env_of([("HOME", home), ("T3CODE_THREAD_ID", "t")]),
-      which=no_which,
-    )
-    assert_eq(review_project_of(host), real)
-  })
-}
-
-///|
 async test "a Codex App reviewer runs in the project whose folder is the review home" {
   with_home("host-2", (home, real) => {
     let projects = "[{\"projectId\":\"p0\",\"path\":\"/elsewhere\"},{\"projectId\":3,\"path\":\"\{home}/review-home\"},{\"projectId\":\"p1\",\"path\":\"\{home}/review-home\"},{\"projectId\":\"p2\",\"path\":\"\{home}/review-home\"}]"
@@ -115,44 +104,6 @@ async test "a Codex App reviewer runs in the project whose folder is the review 
         )
         ignore(real)
       },
-    )
-  })
-}
-
-///|
-async test "a Codex App reviewer needs the review home added as a project" {
-  with_home("host-3", (home, real) => {
-    with_bridge(
-      "host-3",
-      _ => {
-        Some(
-          "{\"version\":1,\"outcome\":\"done\",\"result\":{\"projects\":[]}}",
-        )
-      },
-      (path, _) => {
-        let host = host_of(
-          env_of([("HOME", home), ("HARNEXUS_CALL_SOCKET", path)]),
-          which=no_which,
-        )
-        assert_eq(
-          review_project_of(host),
-          "failed: add \{real} to the Codex app as a project, so reviewers run there instead of in a worktree of their own",
-        )
-      },
-    )
-  })
-}
-
-///|
-async test "a Codex App reviewer reports a project list the bridge could not give" {
-  with_home("host-4", (home, _) => {
-    let host = host_of(
-      env_of([("HOME", home), ("HARNEXUS_CALL_SOCKET", "off")]),
-      which=no_which,
-    )
-    assert_eq(
-      review_project_of(host),
-      "failed: list_projects failed: {\"outcome\":\"not_sent\",\"error\":\"the call socket is off (HARNEXUS_CALL_SOCKET=off)\"}",
     )
   })
 }

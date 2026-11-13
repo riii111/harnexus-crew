@@ -256,28 +256,6 @@ fn Rig::plan(
 }
 
 ///|
-/// What the fake recorded for a run: `args`, `cwd` or `stdin`.
-fn Rig::recorded(self : Rig, name : String, run : Int32) -> String {
-  let found = @store.read_text_if_exists("\{self.fake}/\{name}.\{run}") catch {
-    failed => abort(failed.user_message())
-  }
-  found.unwrap_or("")
-}
-
-///|
-fn Rig::args(self : Rig, run : Int32) -> Array[String] {
-  let text = self.recorded("args", run)
-  let lines : Array[String] = text
-    .split("\n")
-    .map(line => line.to_owned())
-    .collect()
-  if lines.last() is Some("") {
-    ignore(lines.pop())
-  }
-  lines
-}
-
-///|
 fn Rig::runs(self : Rig) -> Int32 {
   let mut count = 0
   while @store.path_exists("\{self.fake}/args.\{count + 1}") {

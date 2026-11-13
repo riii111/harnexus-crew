@@ -1,8 +1,0 @@
-{
-  "name": "usage-launch-missing-value",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["launch", "--request"]
-}

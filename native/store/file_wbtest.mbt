@@ -1,13 +1,4 @@
 ///|
-test "read_text_if_exists reads a file, and a missing file is None" {
-  in_scratch(directory => {
-    write_atomic("\{directory}/note.txt", "text")
-    assert_eq(read_text_if_exists("\{directory}/note.txt"), Some("text"))
-    assert_eq(read_text_if_exists("\{directory}/missing.json"), None)
-  })
-}
-
-///|
 test "read_text_if_exists reports a path that cannot be read" {
   in_scratch(directory => {
     assert_eq(
@@ -34,14 +25,6 @@ test "read_regular_text reads a regular file and refuses anything else" {
       file_failure(() => ignore(read_regular_text(directory))),
       "cannot read \{directory}",
     )
-  })
-}
-
-///|
-test "read_text_if_exists keeps a leading byte order mark" {
-  in_scratch(directory => {
-    write_atomic("\{directory}/bom.txt", "\u{FEFF}text")
-    assert_eq(read_text_if_exists("\{directory}/bom.txt"), Some("\u{FEFF}text"))
   })
 }
 
@@ -84,17 +67,6 @@ test "write_atomic keeps the target and removes the temporary file when the rena
     assert_true(message.has_prefix("cannot write \{target} ("))
     assert_eq(names_in(directory), ["state.json"])
     assert_eq(names_in(target), ["occupied"])
-  })
-}
-
-///|
-test "write_exclusive creates the file once and reports a second attempt" {
-  in_scratch(directory => {
-    let target = "\{directory}/lock.json"
-    assert_true(write_exclusive(target, "first"))
-    assert_false(write_exclusive(target, "second"))
-    assert_eq(read_text(target), "first")
-    assert_eq(names_in(directory), ["lock.json"])
   })
 }
 

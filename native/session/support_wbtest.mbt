@@ -291,31 +291,6 @@ fn review_args(
 }
 
 ///|
-fn resolve_args(
-  request : String,
-  sent~ : Bool,
-  thread? : String,
-) -> @args.ResolveArgs {
-  let argv = ["--request", request, if sent { "--sent" } else { "--not-sent" }]
-  if thread is Some(thread) {
-    argv.push("--thread-id")
-    argv.push(thread)
-  }
-  match parsed("resolve", argv) {
-    Resolve(args) => args
-    _ => abort("not a resolve")
-  }
-}
-
-///|
-fn name_args(pr : String) -> @args.NameArgs {
-  match parsed("name", ["--pr", pr]) {
-    Name(args) => args
-    _ => abort("not a name")
-  }
-}
-
-///|
 fn Rig::review_cloud(
   _ : Rig,
 ) -> async (@args.ReviewArgs) -> Json raise @failure.TaskFailed {
