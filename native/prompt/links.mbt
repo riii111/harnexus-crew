@@ -22,7 +22,7 @@ fn resolve_links(
       continue
     }
     // The app attaches a skill only from a bare target, so a relative one with angle brackets, a space or a title would reach the chat unresolved.
-    if raw.has_prefix("<") || @text.has_js_whitespace(raw) {
+    if raw.has_prefix("<") || @text.has_space(raw) {
       @failure.fail(
         "links to \"\{raw}\"; write a relative target without angle brackets, spaces or a title",
       )
@@ -107,7 +107,7 @@ fn is_ascii_letter(unit : UInt16) -> Bool {
 
 ///|
 fn has_unsafe_character(path : String) -> Bool {
-  @text.has_js_whitespace(path) ||
+  @text.has_space(path) ||
   path
   .code_units()
   .iter()

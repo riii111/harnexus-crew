@@ -1,11 +1,11 @@
 {
-  "name": "cloud-review-timeout-is-eleven-digits",
+  "name": "cloud-review-timeout-over-the-32-bit-limit-is-refused",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {
     "CLAUDE_CODE_REMOTE": "true",
     "CLAUDE_CODE_SESSION_ID": "worker-session",
-    "HARNEXUS_REVIEW_TIMEOUT_MS": "10000000000"
+    "HARNEXUS_REVIEW_TIMEOUT_MS": "2147483648"
   },
   "seed": {
     "skills": "test/fixtures/task-skills"

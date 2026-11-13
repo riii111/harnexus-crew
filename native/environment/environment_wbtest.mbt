@@ -5,7 +5,7 @@ fn env_of(pairs : Array[(String, String)]) -> Env {
     let (name, value) = pair
     vars[name] = value
   }
-  Env::new(vars, login_home="/login")
+  Env::new(vars)
 }
 
 ///|
@@ -110,8 +110,8 @@ test "a value other than cloud or local is refused" {
     content="refused: HARNEXUS_EXECUTION_ENV must be cloud or local, not \"x\"",
   )
   inspect(
-    detected([("CLAUDE_CODE_REMOTE", "1")]),
-    content="ask /login/.local/state/harnexus/call.sock",
+    detected([("CLAUDE_CODE_REMOTE", "1"), ("HOME", "/h")]),
+    content="ask /h/.local/state/harnexus/call.sock",
   )
 }
 
@@ -177,8 +177,7 @@ test "directories ignore a relative setting and fall back below HOME" {
 }
 
 ///|
-test "HOME falls back to the login home only when it is not set" {
-  inspect(env_of([]).home(), content="/login")
+test "an empty HOME is used as it is" {
   inspect(env_of([("HOME", "")]).home(), content="")
   inspect(env_of([("HOME", "")]).config_home(), content=".config/harnexus")
 }
@@ -224,27 +223,4 @@ test "a relative socket or state path is refused" {
     @failure.TaskFailed(message) => message
   }
   inspect(state, content="HARNEXUS_STATE_PATH must be an absolute path")
-}
-
-///|
-test "a deferred home is looked up only when HOME is not set" {
-  let looked = Ref(0)
-  let find = () => {
-    looked.val += 1
-    Some("/home/login")
-  }
-  let set = Env::deferred_home({ "HOME": "/home/set" }, find)
-  assert_eq(set.home(), "/home/set")
-  assert_true(set.home_known())
-  assert_eq(looked.val, 0)
-  let unset = Env::deferred_home({}, find)
-  assert_eq(unset.home(), "/home/login")
-}
-
-///|
-test "a deferred home that finds nothing is unknown and reads as empty" {
-  let env = Env::deferred_home({}, () => None)
-  assert_false(env.home_known())
-  assert_eq(env.home(), "")
-  assert_true(Env::deferred_home({ "HOME": "" }, () => None).home_known())
 }

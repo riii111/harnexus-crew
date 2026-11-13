@@ -1,43 +1,4 @@
 ///|
-test "a pull request is a number, #number or the URL of its page" {
-  for
-    pair in [
-      ("12", Some("12")),
-      ("#12", Some("12")),
-      ("https://github.com/o/r/pull/12", Some("12")),
-      ("https://github.com/o/r/pull/12/", Some("12")),
-      ("https://github.com/o/r/pull/12/files", Some("12")),
-      ("https://github.com/o/r/pull/12?x=y", Some("12")),
-      ("https://github.com/o/r/pull/12#discussion", Some("12")),
-      ("https://example.com/any/path/pull/7/commits/abc", Some("7")),
-      // The last "/pull/" that is followed by a number decides.
-      ("https://x/pull/3/pull/9", Some("9")),
-      ("https://x/pull/3/pull/x/pull/5#f", Some("5")),
-      ("https://x/pull/3/pull/x", Some("3")),
-      ("0", None),
-      ("#0", None),
-      ("01", None),
-      ("012", None),
-      ("1a", None),
-      ("##1", None),
-      ("# 1", None),
-      ("", None),
-      ("https://github.com/o/r/pull/", None),
-      ("https://github.com/o/r/pull/0", None),
-      ("https://github.com/o/r/pull/12x", None),
-      ("https://github.com/o/r/pull/12 ", None),
-      ("https://github.com/o/r/pull/12/a b", None),
-      (" https://github.com/o/r/pull/12", None),
-      ("https:///pull/12", None),
-      ("http://github.com/o/r/pull/12", None),
-      ("/pull/12", None),
-    ] {
-    let (given, expected) = pair
-    assert_eq(pr_number(given), expected)
-  }
-}
-
-///|
 async test "name links the PR first and renames only the thread of a launched worker" {
   with_rig("n-1", [@app.CallAnswer::new(Done, [])], rig => {
     ignore(
@@ -93,24 +54,19 @@ async test "a rename the app did not apply leaves the PR watched and says so" {
 }
 
 ///|
-async test "a PR the watch cannot see is never taken as watched, even after the thread was renamed" {
+async test "a PR that is not a GitHub PR URL is refused before the thread is renamed" {
   with_rig("n-3", [@app.CallAnswer::new(Done, [])], rig => {
     write_text(
       "\{rig.launch_dir()}/state.json",
       "{\"threadId\":\"w1\",\"request\":{\"taskId\":\"TR1\"}}",
     )
-    assert_eq(
-      failure_of(() => ignore(name_in(rig.context([]), name_args("3")))),
-      "3 is not watched (the thread is named Impl TR1 PR#3): the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>",
-    )
-    // Not a GitHub URL: pr-wake is not asked.
+    for pr in ["3", "#3", "https://example.com/o/r/pull/3"] {
+      assert_eq(
+        failure_of(() => ignore(name_in(rig.context([]), name_args(pr)))),
+        "\{pr} is not watched: the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>",
+      )
+    }
     assert_eq(rig.pr_wake_calls.length(), 0)
-  })
-  with_rig("n-4", [], rig => {
-    assert_eq(
-      failure_of(() => ignore(name_in(rig.context([]), name_args("3")))),
-      "3 is not watched: the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>",
-    )
     assert_eq(rig.calls.length(), 0)
   })
 }

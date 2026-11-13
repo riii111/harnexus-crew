@@ -31,7 +31,7 @@ pub fn harnexus_state_path(env : Env) -> String raise @failure.TaskFailed {
 
 ///|
 /// Where the bridge's call socket is, even when the setting turns it off, for a probe that only asks whether a bridge runs.
-pub fn call_socket_path(env : Env) -> String raise @failure.TaskFailed {
+fn call_socket_path(env : Env) -> String raise @failure.TaskFailed {
   match call_socket_setting(env) {
     At(path) => path
     Off | Default =>

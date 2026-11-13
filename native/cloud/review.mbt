@@ -54,15 +54,8 @@ priv struct Context {
 fn Context::of_env(env : @environment.Env) -> Context {
   {
     env,
-    probe: {
-      path_exists: path => @store.path_exists(path),
-      is_directory: path => @store.is_directory(path),
-      real_path_or_self: path => @store.real_path_or_self(path),
-    },
-    git: @request.Git::new(
-      { run: (argv, vars) => @process.run_command(argv[0], argv[1:], vars), },
-      env,
-    ),
+    probe: @request.FileProbe::of_machine(),
+    git: @request.Git::of_env(env),
     prompt: fields => @prompt.task_prompt(env, Reviewer, fields),
     save: (path, data) => @store.save_json(path, data, exclusive=false),
   }
@@ -87,14 +80,17 @@ async fn reviewed(
   request : @request.ReviewRequest,
 ) -> Json raise @failure.TaskFailed {
   let records = @store.read_records(directory)
-  @store.settle_pending(
-    records,
-    recover_of(args.recover),
-    blocked=pending => {
-      "the review of head \{@jsonio.as_text(@jsonio.field(pending, "head"))} did not report back: \{recovery_hint}"
-    },
-    nothing_pending="--recover applies only when a review is pending",
-  )
+  match (records.pending, args.discard_pending) {
+    (None, false) => ()
+    (None, true) =>
+      @failure.fail("--recover applies only when a review is pending")
+    // Only the user, having checked what the lost send did, releases it.
+    (Some(pending), false) =>
+      @failure.fail(
+        "the review of head \{@jsonio.as_text(@jsonio.field(pending, "head"))} did not report back: \{recovery_hint}",
+      )
+    (Some(_), true) => @store.remove_record(records.pending_path)
+  }
   let state = records.state
   let previous = match field_of(state, "candidate") {
     Object(members) => Some(members)
@@ -195,14 +191,6 @@ async fn reviewed(
 }
 
 ///|
-fn recover_of(recover : @args.RecoverMode?) -> @store.Recover? {
-  match recover {
-    Some(Discard) => Some(Discard)
-    None => None
-  }
-}
-
-///|
 /// A review session keeps its task, worker AI and checkout.
 /// A head the reviewer could not judge is sent again once what it lacked is given, such as a document it could not read.
 fn check_continuation(
@@ -290,7 +278,9 @@ fn review_reply(
       Some(failure) => failure
       None => run.stderr
     }
-    @failure.fail("codex did not review (exit \{run.status}): \{detail(cause)}")
+    @failure.fail(
+      "codex did not review (exit \{run.status}): \{@text.excerpt(cause)}",
+    )
   }
   let thread = match reply.thread_id {
     Some(id) => id
@@ -349,7 +339,7 @@ async fn asked(
       None => run.stderr
     }
     @failure.fail(
-      "reviewer \{reviewer} did not answer (exit \{run.status}): \{detail(cause)}",
+      "reviewer \{reviewer} did not answer (exit \{run.status}): \{@text.excerpt(cause)}",
     )
   }
   let reviewed = field_of(state, "candidate")

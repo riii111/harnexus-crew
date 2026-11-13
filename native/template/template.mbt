@@ -1,5 +1,5 @@
 ///|
-/// An unknown name or a single brace fails, and the first problem found is reported.
+/// An unknown name or a single brace fails.
 /// `refuse` names what is wrong with a value at the place it goes, or returns None to accept it.
 pub fn format(
   template : String,
@@ -8,7 +8,6 @@ pub fn format(
 ) -> String raise @failure.TaskFailed {
   let units = template.code_units()
   let out = StringBuilder()
-  let mut problem : String? = None
   let mut at = 0
   while at < units.length() {
     let unit = units[at]
@@ -22,19 +21,13 @@ pub fn format(
     } else if unit == OPEN {
       let close = closing_brace(units, at + 1)
       if close < 0 {
-        problem = keep_first(problem, Some("single '{' in template"))
-        out.write_char('{')
-        at += 1
-      } else {
-        let name = template[at + 1:close].to_owned()
-        problem = keep_first(problem, problem_of_field(name, fields, refuse))
-        out.write_string(fields.get(name).unwrap_or("{" + name + "}"))
-        at = close + 1
+        @failure.fail("single '{' in template")
       }
+      let name = template[at + 1:close].to_owned()
+      out.write_string(field_value(name, fields, refuse))
+      at = close + 1
     } else if unit == CLOSE {
-      problem = keep_first(problem, Some("single '}' in template"))
-      out.write_char('}')
-      at += 1
+      @failure.fail("single '}' in template")
     } else {
       let start = at
       while at < units.length() && units[at] != OPEN && units[at] != CLOSE {
@@ -43,10 +36,7 @@ pub fn format(
       out.write_view(template[start:at])
     }
   }
-  match problem {
-    Some(message) => @failure.fail(message)
-    None => out.to_string()
-  }
+  out.to_string()
 }
 
 ///|
@@ -57,15 +47,12 @@ pub fn escape_braces(text : String) -> String {
 ///|
 /// For a value that goes inside a link target: a name, never a path, so none can lead the link to another folder or break it.
 pub fn refuse_unless_name(value : String) -> String? {
-  let points = @text.code_points(value)
-  if points.length() > 0 &&
-    points
+  let units = value.code_units()
+  if units.length() > 0 &&
+    units
     .iter()
-    .all(fn(point) {
-      @text.is_letter(point) ||
-      @text.is_number(point) ||
-      point == 0x5F ||
-      point == 0x2D
+    .all(fn(unit) {
+      @text.is_ascii_alphanumeric(unit.to_int()) || unit == '_' || unit == '-'
     }) {
     None
   } else {
@@ -95,25 +82,16 @@ fn closing_brace(units : ArrayView[UInt16], from : Int32) -> Int32 {
 }
 
 ///|
-fn problem_of_field(
+fn field_value(
   name : String,
   fields : Map[String, String],
   refuse : (String) -> String?,
-) -> String? {
-  match fields.get(name) {
-    None => Some("unknown template field {\{name}}")
-    Some(value) =>
-      match refuse(value) {
-        Some(reason) => Some("{\{name}} \{reason}")
-        None => None
-      }
+) -> String raise @failure.TaskFailed {
+  guard fields.get(name) is Some(value) else {
+    @failure.fail("unknown template field {\{name}}")
   }
-}
-
-///|
-fn keep_first(first : String?, later : String?) -> String? {
-  match first {
-    Some(_) => first
-    None => later
+  if refuse(value) is Some(reason) {
+    @failure.fail("{\{name}} \{reason}")
   }
+  value
 }

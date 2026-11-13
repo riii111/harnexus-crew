@@ -73,11 +73,8 @@ test "the real check accepts a runnable file and refuses a directory and a missi
 
 ///|
 test "in_env searches the PATH of the environment it is given" {
-  let env = @environment.Env::new(
-    { "PATH": "/nonexistent:/bin" },
-    login_home="/home/x",
-  )
+  let env = @environment.Env::new({ "PATH": "/nonexistent:/bin" })
   assert_eq(in_env(env)("sh"), Some("/bin/sh"))
-  let empty = @environment.Env::new({}, login_home="/home/x")
+  let empty = @environment.Env::new({})
   assert_eq(in_env(empty)("sh"), None)
 }

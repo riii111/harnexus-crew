@@ -126,49 +126,6 @@ test "read_records refuses a record that is not an object" {
 }
 
 ///|
-test "settle_pending lets a send through when nothing is pending" {
-  in_scratch(directory => {
-    let records = read_records(directory)
-    settle_pending(
-      records,
-      None,
-      blocked=_ => "blocked",
-      nothing_pending="none",
-    )
-    assert_eq(
-      task_failure(() => {
-        settle_pending(
-          records,
-          Some(Discard),
-          blocked=_ => "blocked",
-          nothing_pending="nothing pending",
-        )
-      }),
-      "nothing pending",
-    )
-  })
-}
-
-///|
-test "settle_pending blocks until the user discards the pending send" {
-  in_scratch(directory => {
-    save_json("\{directory}/pending.json", json("{\"id\":7}"), exclusive=true)
-    let records = read_records(directory)
-    let blocked = (pending : Json) => "pending \{pending.stringify()}"
-    assert_eq(
-      task_failure(() => {
-        settle_pending(records, None, blocked~, nothing_pending="none")
-      }),
-      "pending {\"id\":7}",
-    )
-    assert_true(is_file("\{directory}/pending.json"))
-    settle_pending(records, Some(Discard), blocked~, nothing_pending="none")
-    assert_false(path_exists("\{directory}/pending.json"))
-    assert_eq(read_records(directory).pending, None)
-  })
-}
-
-///|
 test "remove_record treats a missing record as removed" {
   in_scratch(directory => remove_record("\{directory}/state.json"))
 }

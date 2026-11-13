@@ -1,10 +1,10 @@
 ///|
 fn env_of(vars : Array[(String, String)]) -> () -> @environment.Env raise {
-  let map : Map[String, String] = Map([])
+  let map : Map[String, String] = { "HOME": "/nonexistent-home" }
   for pair in vars {
     map[pair.0] = pair.1
   }
-  () => @environment.Env::new(map, login_home="/home/login")
+  () => @environment.Env::new(map)
 }
 
 ///|
@@ -100,7 +100,7 @@ async test "the session commands are run by the session package" {
   let run = run_with(["name", "--pr", "x"], [])
   assert_eq(
     run.stderr,
-    "harnexus-crew: --pr must be a pull request URL or number\n",
+    "harnexus-crew: x is not watched: the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>\n",
   )
 }
 
@@ -135,15 +135,20 @@ async test "watch is run by the pr-wake package" {
 }
 
 ///|
+priv suberror Unexpected {
+  Unexpected
+}
+
+///|
 async test "an error nothing expected is reported as a crash with where to report it" {
-  let crashing : () -> @environment.Env raise = () => raise HomeNotFound
+  let crashing : () -> @environment.Env raise = () => raise Unexpected
   let run = run(["environment"][:], crashing)
   assert_eq(run.code, 1)
   assert_eq(run.stdout, "")
   inspect(
     run.stderr,
     content=(
-      #|harnexus-crew: unexpected failure: riii111/harnexus-crew/cli.HomeNotFound.HomeNotFound
+      #|harnexus-crew: unexpected failure: riii111/harnexus-crew/cli.Unexpected.Unexpected
       #|To report a bug, open an issue at https://github.com/riii111/taskctl/issues with the command you ran and its output.
       #|
     ),
@@ -205,7 +210,7 @@ fn homeless_env(vars : Array[(String, String)]) -> () -> @environment.Env raise 
   for pair in vars {
     map[pair.0] = pair.1
   }
-  () => @environment.Env::deferred_home(map, () => None)
+  () => @environment.Env::new(map)
 }
 
 ///|
@@ -219,12 +224,11 @@ async test "environment needs no home when the declaration settles it" {
 }
 
 ///|
-async test "a command that needs the home fails as a crash when there is none" {
-  for argv in [["environment"], ["state"]] {
+async test "a command that needs the home fails when HOME is not set" {
+  for argv in [["environment"], ["state"], ["adapter", "serve", "--id", "a"]] {
     let run = run(argv[:], homeless_env([]))
     assert_eq(run.code, 1)
-    assert_true(run.stderr.contains("unexpected failure"))
-    assert_true(run.stderr.contains("HomeNotFound"))
+    assert_eq(run.stderr, "harnexus-crew: HOME is not set\n")
   }
 }
 

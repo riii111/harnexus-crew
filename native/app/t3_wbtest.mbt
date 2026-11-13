@@ -554,15 +554,3 @@ test "the worktree base is the starting branch, else HEAD, and none outside a wo
   assert_true(worktree_base(target(Json::string("worktree"))) is None)
   assert_true(worktree_base({}) is None)
 }
-
-///|
-test "brief trims and keeps the first 500 UTF-16 units, a split pair leaving U+FFFD" {
-  inspect(brief("  text \n"), content="text")
-  inspect(brief("a".repeat(500)).length(), content="500")
-  inspect(brief("a".repeat(600)).length(), content="500")
-  let split = brief("a".repeat(499) + "\u{1F600}tail")
-  inspect(split.length(), content="500")
-  inspect(split.has_suffix("\u{FFFD}"), content="true")
-  let whole = brief("a".repeat(498) + "\u{1F600}tail")
-  inspect(whole.has_suffix("\u{1F600}"), content="true")
-}

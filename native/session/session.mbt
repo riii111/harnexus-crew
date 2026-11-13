@@ -9,7 +9,7 @@ pub(all) struct Ports {
 
 ///|
 /// The ports of a run: the app's bridge or T3 CLI, and the state files.
-pub fn ports_of(host : @app.Host) -> Ports {
+fn ports_of(host : @app.Host) -> Ports {
   {
     call: host.call,
     save: (path, data, exclusive) => @store.save_json(path, data, exclusive~),

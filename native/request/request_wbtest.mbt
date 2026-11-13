@@ -5,7 +5,7 @@ fn env_of(pairs : Array[(String, String)]) -> @environment.Env {
     let (name, value) = pair
     vars[name] = value
   }
-  @environment.Env::new(vars, login_home="/login")
+  @environment.Env::new(vars)
 }
 
 ///|
@@ -134,12 +134,12 @@ async test "a launch request is refused on its first problem in member order" {
 }
 
 ///|
-async test "a task ID takes letters and digits of any script and a few marks" {
-  for id in ["T-1", "名前", "#12", "a/b:c.d", "٣"] {
+async test "a task ID takes ASCII letters and digits and a few marks" {
+  for id in ["T-1", "#12", "a/b:c.d"] {
     let text = "{\"taskId\":\"\{id}\",\"documentRefs\":[\"https://e.com/t\"],\"completionTarget\":\"merge\",\"projectId\":\"p\"}"
     inspect(launch(text).has_prefix("ok "), content="true")
   }
-  for id in ["-a", "a b", "a\\nb", "", "a$"] {
+  for id in ["-a", "a b", "a\\nb", "", "a$", "名前", "٣"] {
     let text = "{\"taskId\":\"\{id}\",\"documentRefs\":[\"https://e.com/t\"],\"completionTarget\":\"merge\",\"projectId\":\"p\"}"
     inspect(launch(text).has_prefix("refused: "), content="true")
   }

@@ -16,6 +16,14 @@ pub fn Git::new(runner : GitRunner, env : @environment.Env) -> Git {
 }
 
 ///|
+pub fn Git::of_env(env : @environment.Env) -> Git {
+  Git::new(
+    { run: (argv, vars) => @process.run_command(argv[0], argv[1:], vars), },
+    env,
+  )
+}
+
+///|
 /// Repository config never starts helpers or transports, because the command runs unsandboxed.
 let git_safety : Array[String] = [
   "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "protocol.allow=never",

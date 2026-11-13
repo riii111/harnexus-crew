@@ -26,15 +26,8 @@ fn Context::of_env(
     host,
     ports: ports_of(host),
     review_project: host.review_project,
-    probe: {
-      path_exists: path => @store.path_exists(path),
-      is_directory: path => @store.is_directory(path),
-      real_path_or_self: path => @store.real_path_or_self(path),
-    },
-    git: @request.Git::new(
-      { run: (argv, vars) => @process.run_command(argv[0], argv[1:], vars), },
-      env,
-    ),
+    probe: @request.FileProbe::of_machine(),
+    git: @request.Git::of_env(env),
     prompt: (kind, fields) => @prompt.task_prompt(env, kind, fields),
     pr_wake: args => @prwake.call(env, args),
   }

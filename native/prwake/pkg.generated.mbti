@@ -13,7 +13,7 @@ pub const NOT_LINKABLE : String = "the PR watch needs the URL https://github.com
 
 pub async fn call(@environment.Env, Array[String]) -> Map[String, @json.Json] raise @failure.TaskFailed
 
-pub fn is_github_pr(String) -> Bool
+pub fn github_pr_number(String) -> String?
 
 pub async fn watch(@args.WatchArgs, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
 

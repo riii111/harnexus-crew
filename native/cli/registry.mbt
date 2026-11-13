@@ -15,7 +15,7 @@ async fn run_command(command : @args.Command, env : @environment.Env) -> Json {
     Name(args) => @session.name(args, env, which=@which.in_env(env))
     Watch(args) => @prwake.watch(args, env, which=@which.in_env(env))
     Check => @prompt.check_templates(env)
-    Cloud(args) => @cloud.open_chat(args, env, which=@which.in_env(env))
+    Cloud(args) => @cloud.open_chat(args, env)
   }
 }
 
@@ -27,9 +27,7 @@ async fn adapter_run(
 ) -> @run.CommandRun {
   @adapter.run(argv, () => {
     let env = read_env()
-    if !env.home_known() {
-      raise HomeNotFound
-    }
+    require_home(env)
     env
   })
 }

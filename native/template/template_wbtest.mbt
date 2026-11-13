@@ -25,7 +25,7 @@ test "a field is filled and a doubled brace is one brace" {
 }
 
 ///|
-test "an unknown field or a single brace is refused with the first problem" {
+test "an unknown field or a single brace is refused at the first problem" {
   inspect(
     outcome("{unknown}", fields),
     content="refused: unknown template field {unknown}",
@@ -61,8 +61,9 @@ test "a value can be refused at the place it goes" {
 }
 
 ///|
-test "a name may hold letters and digits of any script" {
-  inspect(refuse_unless_name("名前_2-é") is None, content="true")
+test "a name may hold only ASCII letters and digits, _ and -" {
+  inspect(refuse_unless_name("Name_2-x") is None, content="true")
+  inspect(refuse_unless_name("名前") is Some(_), content="true")
   inspect(refuse_unless_name("") is Some(_), content="true")
   inspect(refuse_unless_name("a.b") is Some(_), content="true")
 }

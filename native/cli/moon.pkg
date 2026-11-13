@@ -13,7 +13,6 @@ import {
   "riii111/harnexus-crew/store",
   "riii111/harnexus-crew/text",
   "riii111/harnexus-crew/which",
-  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 }
 
@@ -24,7 +23,6 @@ import {
 
 options(
   "allow-experimental-packages": true,
-  "native-stub": [ "stub.c" ],
 )
 
 supported_targets = "+native"

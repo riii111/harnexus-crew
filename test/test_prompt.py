@@ -56,7 +56,7 @@ REFUSED_LINKS = [
 REFUSED_CONFIGS = [
     ("a missing config", None, "harnexus/task.json does not exist; set templates.worker"),
     ("a config without the worker template", {"templates": {"reviewer": "/reviewer.md"}}, "templates.worker is not set in"),
-    ("a relative template path", {"templates": {"worker": "worker.md"}}, "must be absolute"),
+    ("a relative template path", {"templates": {"worker": "worker.md"}}, "templates.worker must be an absolute path"),
     ("an unknown config field", {"templates": {}, "prompts": {}}, "is invalid"),
     (
         "a missing template",

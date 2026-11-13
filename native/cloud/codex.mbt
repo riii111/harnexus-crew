@@ -2,6 +2,9 @@
 const DEFAULT_TIMEOUT_MS : Int32 = 1800000
 
 ///|
+const MAX_TIMER_MS : Int64 = 2147483647L
+
+///|
 const DEFAULT_KILL_GRACE_MS : Int32 = 5000
 
 ///|
@@ -59,8 +62,7 @@ fn configured_binary(
 }
 
 ///|
-/// A positive whole number of milliseconds of at most ten digits.
-/// A value a 32-bit timer cannot hold runs for 1 millisecond, as the TypeScript build's timers do.
+/// A positive whole number of milliseconds that a 32-bit timer can hold.
 fn milliseconds(
   env : @environment.Env,
   name : String,
@@ -69,7 +71,6 @@ fn milliseconds(
   guard env.get_nonempty(name) is Some(value) else { return fallback }
   let digits = value.code_units()
   let valid = digits.length() >= 1 &&
-    digits.length() <= 10 &&
     digits[0] != '0' &&
     digits.iter().all(unit => unit >= '0' && unit <= '9')
   guard valid else {
@@ -78,12 +79,11 @@ fn milliseconds(
   let mut total : Int64 = 0
   for unit in digits {
     total = total * 10L + (unit.to_int() - 48).to_int64()
+    if total > MAX_TIMER_MS {
+      @failure.fail("\{name} must be at most \{MAX_TIMER_MS} milliseconds")
+    }
   }
-  if total > 2147483647L {
-    1
-  } else {
-    total.to_int()
-  }
+  total.to_int()
 }
 
 ///|
@@ -242,7 +242,7 @@ fn matches_at(
 /// Whether only whitespace lies between the marker and the start of its line, as `^\s*` does with the `m` flag.
 fn starts_a_line(units : ArrayView[UInt16], at : Int32) -> Bool {
   let mut back = at
-  while back > 0 && is_whitespace(units[back - 1]) {
+  while back > 0 && @text.is_space(units[back - 1].to_int()) {
     back -= 1
     if is_line_end(units[back]) {
       return true
@@ -254,33 +254,13 @@ fn starts_a_line(units : ArrayView[UInt16], at : Int32) -> Bool {
 ///|
 fn skip_whitespace(units : ArrayView[UInt16], from : Int32) -> Int32 {
   let mut at = from
-  while at < units.length() && is_whitespace(units[at]) {
+  while at < units.length() && @text.is_space(units[at].to_int()) {
     at += 1
   }
   at
 }
 
 ///|
-fn is_whitespace(unit : UInt16) -> Bool {
-  @text.has_js_whitespace(unit.to_int().unsafe_to_char().to_string())
-}
-
-///|
 fn is_line_end(unit : UInt16) -> Bool {
   unit == '\n' || unit == '\r' || unit == 0x2028 || unit == 0x2029
-}
-
-///|
-/// A child's output is repeated in an error only as far as it names the cause: the trimmed text up to 500 UTF-16 units.
-fn detail(text : String) -> String {
-  let trimmed = @text.js_trim(text)
-  if trimmed.length() <= 500 {
-    return trimmed
-  }
-  // A cut through a surrogate pair leaves half of it, which the output shows as U+FFFD.
-  if trimmed.code_unit_at(499).to_int() is (0xD800..<=0xDBFF) {
-    "\{trimmed[:499]}\u{FFFD}"
-  } else {
-    trimmed[:500].to_owned()
-  }
 }

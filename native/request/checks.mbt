@@ -4,7 +4,7 @@ pub fn single_line(
   name : String,
 ) -> String raise @failure.TaskFailed {
   if @text.is_blank(value) ||
-    @text.code_points(value).iter().any(fn(point) { point < 32 }) {
+    value.code_units().iter().any(fn(unit) { unit < 32 }) {
     @failure.fail("\{name} must be a nonempty single-line string")
   }
   value
@@ -50,13 +50,15 @@ fn json_single_line(
 /// The ID is pasted into worker and reviewer prompts, so it may not carry spaces or prose.
 fn task_id_of(value : Json?) -> String raise @failure.TaskFailed {
   let id = json_single_line(value, "taskId")
-  let points = @text.code_points(id)
-  let first_ok = is_letter_or_number(points[0]) ||
+  let points = units_of(id)
+  let first_ok = @text.is_ascii_alphanumeric(points[0]) ||
     points[0] == 0x5F ||
     points[0] == 0x23
   let rest_ok = points[1:]
     .iter()
-    .all(fn(point) { is_letter_or_number(point) || is_one_of(point, "_.#/:-") })
+    .all(fn(point) {
+      @text.is_ascii_alphanumeric(point) || is_one_of(point, "_.#/:-")
+    })
   if !(first_ok && rest_ok) {
     @failure.fail(
       "taskId must start with a letter, digit, _ or # and contain only letters, digits and _ . # / : -",
@@ -92,12 +94,14 @@ fn starting_branch_of(value : Json?) -> OptionalText raise @failure.TaskFailed {
 
 ///|
 fn is_branch_name(branch : String) -> Bool {
-  let points = @text.code_points(branch)
+  let points = units_of(branch)
   points.length() > 0 &&
-  (is_letter_or_number(points[0]) || points[0] == 0x5F) &&
+  (@text.is_ascii_alphanumeric(points[0]) || points[0] == 0x5F) &&
   points[1:]
   .iter()
-  .all(fn(point) { is_letter_or_number(point) || is_one_of(point, "_./-") }) &&
+  .all(fn(point) {
+    @text.is_ascii_alphanumeric(point) || is_one_of(point, "_./-")
+  }) &&
   !branch.contains("..") &&
   !branch.has_suffix(".lock") &&
   !branch.has_suffix("/") &&
@@ -167,8 +171,8 @@ fn is_positive_number(text : String) -> Bool {
 }
 
 ///|
-fn is_letter_or_number(point : Int32) -> Bool {
-  @text.is_letter(point) || @text.is_number(point)
+fn units_of(text : String) -> Array[Int32] {
+  text.code_units().map(unit => unit.to_int())
 }
 
 ///|

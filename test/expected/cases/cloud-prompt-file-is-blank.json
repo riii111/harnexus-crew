@@ -7,6 +7,6 @@
  "requests": [],
  "commands": [],
  "files": {
-  "work/prompt.md": "\u001c"
+  "work/prompt.md": "\ufeff \n"
  }
 }

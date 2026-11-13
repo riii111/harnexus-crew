@@ -44,7 +44,7 @@ pub fn current_pid() -> Int32 {
 /// A process of another user counts as alive.
 /// A value that is not a 32-bit integer is dead, as `process.kill` of Node refuses it.
 /// 0 and -1 signal process groups, so they count as alive.
-pub fn process_alive(pid : Double) -> Bool {
+fn process_alive(pid : Double) -> Bool {
   if pid != pid.floor() || pid < -2147483648.0 || pid > 2147483647.0 {
     return false
   }

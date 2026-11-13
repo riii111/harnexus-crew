@@ -1,7 +1,7 @@
 {
   "name": "name-needs-a-thread",
   "kind": "command",
-  "argv": ["name", "--pr", "3"],
+  "argv": ["name", "--pr", "https://github.com/o/r/pull/3"],
   "env": {
     "HARNEXUS_CALL_SOCKET": "{{bridge}}"
   },

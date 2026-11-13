@@ -8,7 +8,7 @@ fn env_of(pairs : Array[(String, String)]) -> @environment.Env {
     let (name, value) = pair
     vars[name] = value
   }
-  @environment.Env::new(vars, login_home="/login")
+  @environment.Env::new(vars)
 }
 
 ///|
@@ -38,19 +38,19 @@ test "the Codex binary is codex unless an absolute path is set" {
 }
 
 ///|
-test "a duration is a positive whole number of at most ten digits" {
+test "a duration is a positive whole number a 32-bit timer can hold" {
   assert_eq(milliseconds(env_of([]), "T", 7), 7)
   assert_eq(milliseconds(env_of([("T", "")]), "T", 7), 7)
   assert_eq(milliseconds(env_of([("T", "1")]), "T", 7), 1)
   assert_eq(milliseconds(env_of([("T", "30000")]), "T", 7), 30000)
   assert_eq(milliseconds(env_of([("T", "2147483647")]), "T", 7), 2147483647)
-  // A timer that long cannot be set, so it runs for 1 millisecond.
-  assert_eq(milliseconds(env_of([("T", "2147483648")]), "T", 7), 1)
-  assert_eq(milliseconds(env_of([("T", "9999999999")]), "T", 7), 1)
-  for
-    value in [
-      "0", "05", "-1", "1.5", "1e3", "soon", " 5", "5 ", "10000000000", "٣", "+5",
-    ] {
+  for value in ["2147483648", "99999999999999999999999"] {
+    inspect(
+      failure_text(() => ignore(milliseconds(env_of([("T", value)]), "T", 7))),
+      content="T must be at most 2147483647 milliseconds",
+    )
+  }
+  for value in ["0", "05", "-1", "1.5", "1e3", "soon", " 5", "5 ", "٣", "+5"] {
     inspect(
       failure_text(() => ignore(milliseconds(env_of([("T", value)]), "T", 7))),
       content="T must be a positive number of milliseconds",
@@ -193,14 +193,4 @@ test "a resumed review keeps the reviewer's own settings unless it is told other
     "sandbox_mode=\"read-only\"",
     "-",
   ])
-}
-
-///|
-test "an error repeats a child's output only as far as it names the cause" {
-  assert_eq(detail("  boom \n\n"), "boom")
-  assert_eq(detail(""), "")
-  assert_eq(detail("あ".repeat(500)), "あ".repeat(500))
-  assert_eq(detail("あ".repeat(600)), "あ".repeat(500))
-  assert_eq(detail("a".repeat(498) + "😀tail"), "a".repeat(498) + "😀")
-  assert_eq(detail("a".repeat(499) + "😀tail"), "a".repeat(499) + "\u{FFFD}")
 }

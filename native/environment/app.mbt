@@ -13,10 +13,10 @@ pub fn App::name(self : App) -> String {
 }
 
 ///|
-pub const T3_THREAD_VARIABLE : String = "T3CODE_THREAD_ID"
+const T3_THREAD_VARIABLE : String = "T3CODE_THREAD_ID"
 
 ///|
-pub const CODEX_THREAD_VARIABLE : String = "CODEX_THREAD_ID"
+const CODEX_THREAD_VARIABLE : String = "CODEX_THREAD_ID"
 
 ///|
 /// T3 Code sets its thread for every agent and job it starts, and runs Codex there with a thread ID of Codex's own, so its variable decides first.

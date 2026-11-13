@@ -64,7 +64,8 @@ pub fn reviews_in(
 ///|
 pub fn review_text(review : CloudReview) -> String {
   let head = match review.head {
-    Some(head) => " on `\{utf16_prefix(head, 7)}`"
+    Some(head) if head.length() > 7 => " on `\{head[:7]}`"
+    Some(head) => " on `\{head}`"
     None => ""
   }
   "\{@text.js_trim(review.answer)}\n\n_Codex reviewer `\{review.reviewer}`\{head}, run in a Cloud session. Ask for changes in the worker's chat._"

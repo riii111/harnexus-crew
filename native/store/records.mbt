@@ -13,12 +13,6 @@ pub struct Records {
 }
 
 ///|
-/// What the user asked to do about a pending send.
-pub(all) enum Recover {
-  Discard
-}
-
-///|
 pub fn read_records(directory : String) -> Records raise @failure.TaskFailed {
   let state_path = "\{directory}/state.json"
   let pending_path = "\{directory}/pending.json"
@@ -29,24 +23,7 @@ pub fn read_records(directory : String) -> Records raise @failure.TaskFailed {
 }
 
 ///|
-/// Settles a pending send: it blocks the next one until the user discards it.
-/// `blocked` and `nothing_pending` are the messages for those two refusals.
-pub fn settle_pending(
-  records : Records,
-  recover : Recover?,
-  blocked~ : (Json) -> String,
-  nothing_pending~ : String,
-) -> Unit raise @failure.TaskFailed {
-  match (records.pending, recover) {
-    (None, None) => ()
-    (None, Some(_)) => @failure.fail(nothing_pending)
-    // Only the user, having checked what the lost send did, releases it.
-    (Some(pending), None) => @failure.fail(blocked(pending))
-    (Some(_), Some(Discard)) => remove_record(records.pending_path)
-  }
-}
-
-///|
+/// Saves a record as `JSON.stringify(data, null, 1)` would, so the files read alike in either version.
 /// With `exclusive`, the record is created only if none exists, and another run having created it is a failure.
 pub fn save_json(
   path : String,

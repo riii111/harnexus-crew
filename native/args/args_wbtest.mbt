@@ -11,7 +11,7 @@ fn outcome(command : String, rest : Array[String]) -> String {
       Run(Launch(a)) =>
         "launch request=\{a.request} model=\{opt(a.model)} thinking=\{opt(a.thinking)}"
       Run(Review(a)) =>
-        "review request=\{a.request} update_base=\{a.update_base} discard=\{a.recover is Some(Discard)} ask=\{opt(a.ask)}"
+        "review request=\{a.request} update_base=\{a.update_base} discard=\{a.discard_pending} ask=\{opt(a.ask)}"
       Run(State(a)) => "state request=\{opt(a.request)}"
       Run(Resolve(a)) =>
         "resolve request=\{a.request} sent=\{a.sent} thread=\{opt(a.thread_id)}"
@@ -48,7 +48,7 @@ test "options are read with a value after a space or after an equals sign" {
 test "help wins over a missing option but not over a bad one" {
   inspect(outcome("launch", ["-h"]), content="help")
   inspect(outcome("launch", ["--help"]), content="help")
-  inspect(outcome("launch", ["-hh"]), content="help")
+  inspect(outcome("launch", ["-hh"]), content="usage: Unknown option '-hh'")
   inspect(
     outcome("launch", ["-h", "--nope"]),
     content="usage: Unknown option '--nope'",
@@ -56,7 +56,7 @@ test "help wins over a missing option but not over a bad one" {
 }
 
 ///|
-test "an unknown option or a stray argument is refused as Node words it" {
+test "an unknown option or a stray argument is refused" {
   inspect(
     outcome("check", ["--nope"]),
     content="usage: Unknown option '--nope'",
@@ -66,8 +66,8 @@ test "an unknown option or a stray argument is refused as Node words it" {
     content="usage: Unknown option '--nope'",
   )
   inspect(outcome("check", ["-x"]), content="usage: Unknown option '-x'")
-  inspect(outcome("check", ["-hx"]), content="usage: Unknown option 'x'")
-  inspect(outcome("check", ["-h=1"]), content="usage: Unknown option '='")
+  inspect(outcome("check", ["-hx"]), content="usage: Unknown option '-hx'")
+  inspect(outcome("check", ["-h=1"]), content="usage: Unknown option '-h=1'")
   inspect(outcome("check", ["--=x"]), content="usage: Unknown option '--=x'")
   inspect(outcome("check", ["---x"]), content="usage: Unknown option '---x'")
   inspect(outcome("check", ["--req"]), content="usage: Unknown option '--req'")
@@ -119,30 +119,14 @@ test "a value that looks like an option is ambiguous, and a missing one is named
 }
 
 ///|
-test "a flag takes no value, and help names its short form" {
+test "a flag takes no value" {
   inspect(
     outcome("review", ["--request", "a", "--update-base=1"]),
     content="usage: Option '--update-base' does not take an argument",
   )
   inspect(
     outcome("review", ["--help=1"]),
-    content="usage: Option '-h, --help' does not take an argument",
-  )
-}
-
-///|
-test "half of a surrogate pair prints as a replacement character" {
-  inspect(
-    outcome("check", ["-\u{1F600}"]),
-    content="usage: Unknown option '\u{FFFD}'",
-  )
-  inspect(
-    outcome("check", ["-\u{E9}"]),
-    content="usage: Unknown option '-\u{E9}'",
-  )
-  inspect(
-    outcome("check", ["--\u{E9}"]),
-    content="usage: Unknown option '--\u{E9}'",
+    content="usage: Option '--help' does not take an argument",
   )
 }
 

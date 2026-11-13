@@ -3,7 +3,7 @@
  "exitCode": 1,
  "signal": null,
  "stdout": "",
- "stderr": "harnexus-crew: HARNEXUS_REVIEW_TIMEOUT_MS must be a positive number of milliseconds\n",
+ "stderr": "harnexus-crew: HARNEXUS_REVIEW_KILL_GRACE_MS must be at most 2147483647 milliseconds\n",
  "requests": [],
  "commands": [],
  "files": {

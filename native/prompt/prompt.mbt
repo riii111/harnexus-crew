@@ -20,7 +20,7 @@ pub fn task_prompt(
   kind : TemplateKind,
   fields : Map[String, String],
 ) -> String raise @failure.TaskFailed {
-  let config_path = @config.template_config_path(env)
+  let config_path = template_config_path(env)
   if !@store.path_exists(config_path) {
     @failure.fail(
       "\{config_path} does not exist; set templates.\{kind.name()} there to the \{kind.name()} prompt template",
@@ -44,7 +44,7 @@ pub fn task_prompt(
 pub fn check_templates(
   env : @environment.Env,
 ) -> Json raise @failure.TaskFailed {
-  let config_path = @config.template_config_path(env)
+  let config_path = template_config_path(env)
   if !@store.path_exists(config_path) {
     return checked(None, None, Json::null())
   }
@@ -111,11 +111,11 @@ fn object(members : Array[(String, Json)]) -> Json {
 ///|
 fn read_config(
   config_path : String,
-) -> @config.TemplateConfig raise @failure.TaskFailed {
+) -> TemplateConfig raise @failure.TaskFailed {
   let json = @jsonio.parse(read_text(config_path)) catch {
     _ => @failure.fail("\{config_path} is not valid JSON")
   }
-  @config.TemplateConfig::from_json(config_path, json)
+  TemplateConfig::from_json(config_path, json)
 }
 
 ///|

@@ -1,13 +1,13 @@
 ///|
 /// `which` finds a program on PATH.
-pub(all) struct T3Deps {
+priv struct T3Deps {
   env : @environment.Env
   which : (String) -> String?
 }
 
 ///|
 /// Carries the harnexus App operations a task sends to T3 Code's t3 CLI, answering with the same outcomes.
-pub async fn call_t3(
+async fn call_t3(
   deps : T3Deps,
   tool : String,
   args : Map[String, Json],
@@ -77,7 +77,7 @@ async fn start_thread(
   guard printed(stdout) is Some(started) &&
     started.get("threadId") is Some(String(thread_id)) else {
     return unknown(
-      "t3 thread start answered without a thread: \{brief(stdout)}",
+      "t3 thread start answered without a thread: \{@text.excerpt(stdout)}",
     )
   }
   CallAnswer::new(Done, [
@@ -201,7 +201,7 @@ async fn run_t3(
   if run.status == 0 {
     return Ran(run.stdout)
   }
-  let brief_stderr = brief(run.stderr)
+  let brief_stderr = @text.excerpt(run.stderr)
   let reason = if brief_stderr == "" {
     "t3 exited with \{run.status}"
   } else {
@@ -285,18 +285,5 @@ fn text_of(members : Map[String, Json], key : String) -> String? {
   match members.get(key) {
     Some(String(text)) => Some(text)
     _ => None
-  }
-}
-
-///|
-const BRIEF_LIMIT : Int32 = 500
-
-///|
-fn brief(text : String) -> String {
-  let trimmed = @text.js_trim(text)
-  if trimmed.length() <= BRIEF_LIMIT {
-    trimmed
-  } else {
-    utf16_prefix(trimmed, BRIEF_LIMIT)
   }
 }

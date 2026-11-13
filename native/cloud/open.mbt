@@ -3,7 +3,6 @@
 pub async fn open_chat(
   args : @args.CloudArgs,
   env : @environment.Env,
-  which~ : (String) -> String?,
 ) -> Json raise @failure.TaskFailed {
   @environment.refuse_in_cloud(env, "cloud")
   @environment.refuse_in_t3(
@@ -36,7 +35,7 @@ pub async fn open_chat(
   add(sent, "title", args.title)
   add(sent, "model", args.model)
   add(sent, "thinking", args.thinking)
-  let answer = (@app.host_of(env, which~).call)(caller, "cloud_open", sent)
+  let answer = @app.call_app(env, caller, "cloud_open", sent)
   if answer.outcome == "done" {
     if answer.fields.get("result") is Some(Object(_) as result) {
       return result

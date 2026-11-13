@@ -51,10 +51,6 @@ pub enum Parsed {
   Run(Command)
 }
 
-pub enum RecoverMode {
-  Discard
-}
-
 pub struct ResolveArgs {
   request : String
   sent : Bool
@@ -66,7 +62,7 @@ pub struct ReviewArgs {
   model : String?
   thinking : String?
   update_base : Bool
-  recover : RecoverMode?
+  discard_pending : Bool
   ask : String?
 }
 
