@@ -50,4 +50,4 @@ jobs:
       - name: Build native release
         run: moon build --target native --release
       - name: Run the acceptance tests
-        run: python3 -m unittest discover -s test -v
+        run: python3 test/parallel.py -v

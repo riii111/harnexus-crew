@@ -5,7 +5,8 @@
 
 ```sh
 moon build --target native --release
-python3 -m unittest discover -s test
+python3 test/parallel.py            # 3つのプロセスに分けて同時に動かす（-j で数を変える）
+python3 -m unittest discover -s test # 1つのプロセスで順に動かす
 ```
 
 実行ファイルの場所は `test/harness/binaries.py` が決める。
