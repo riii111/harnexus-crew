@@ -91,7 +91,8 @@ moonbit_bytes_t harnexus_md_destinations(moonbit_bytes_t text, int32_t size) {
   int status = md_parse((const MD_CHAR *)text, (MD_SIZE)size, &parser, &out);
   struct records none = {NULL, 0, 0, 0};
   moonbit_bytes_t result;
-  if (out.failed)
+  // A longer result fails here because the reply's length is an Int32 that counts the status byte.
+  if (out.failed || out.length > (size_t)INT32_MAX - 1)
     result = reply(STATUS_NO_MEMORY, &none);
   else if (status != 0)
     result = reply(STATUS_PARSE_FAILED, &none);
