@@ -3,7 +3,7 @@
  "exitCode": 2,
  "signal": null,
  "stdout": "",
- "stderr": "usage:\n  harnexus-crew adapter serve --id ADAPTER_ID\n  harnexus-crew adapter handover\n  harnexus-crew adapter export-links\n  harnexus-crew adapter import-links FILE\nharnexus-crew: Unexpected argument 'extra'. This command does not take positional arguments\n",
+ "stderr": "usage:\n  harnexus-crew adapter serve --id ADAPTER_ID\nharnexus-crew: Unexpected argument 'extra'. This command does not take positional arguments\n",
  "requests": [],
  "commands": [],
  "files": {}

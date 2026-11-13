@@ -1,8 +1,0 @@
-{
-  "name": "adapter-import-links-refuses-empty-links",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/links.json"],
-  "files": {
-    "work/links.json": "{\"version\":1,\"links\":[]}"
-  }
-}

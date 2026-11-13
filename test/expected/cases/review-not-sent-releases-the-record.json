@@ -5,9 +5,7 @@
  "stdout": "",
  "stderr": "harnexus-crew: create_thread was not sent: {\"outcome\":\"not_sent\",\"error\":\"no\"}\n",
  "requests": [
-  "{\"version\":1,\"query\":\"capabilities\"}",
   "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"list_projects\",\"arguments\":{}}",
-  "{\"version\":1,\"query\":\"capabilities\"}",
   "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"create_thread\",\"arguments\":{\"prompt\":\"[$ai-code-review](<ROOT>/skills/ai-code-review/SKILL.md)\\nタスクID: TR1\\n参照文書のパス・URL:\\n- https://example.com/task\\nworkerの担当AI: Codex\\nworkerのチャットID: w1\\nworkerの作業ディレクトリ: <ROOT>/home/.codex/worktrees/ab12/repo\\nレビュー対象のコミット範囲: af314261c610837f3606d61aa2dff1981debda94...a6bc63c9fd9d736a274586bb4a3989bc27297649\\nPRのURL: null\\n\\n[レビュー時の確認事項](<ROOT>/skills/task-review-cycle/SKILL.md#レビュー時の確認事項)と[返却方法](<ROOT>/skills/task-review-cycle/references/reply-Codex.md)に従ってください。\\n\",\"target\":{\"type\":\"project\",\"projectId\":\"p-review\",\"environment\":{\"type\":\"local\"}},\"title\":\"Review TR1\",\"model\":\"gpt-6.1-sol\",\"thinking\":\"medium\"}}"
  ],
  "commands": [],

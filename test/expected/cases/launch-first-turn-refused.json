@@ -10,7 +10,6 @@
  "stdout": "",
  "stderr": "harnexus-crew: the bridge refused the first turn of thread w1: quota; fix the cause, then resolve --not-sent\n",
  "requests": [
-  "{\"version\":1,\"query\":\"capabilities\"}",
   "{\"version\":1,\"threadId\":\"caller\",\"tool\":\"create_thread\",\"arguments\":{\"prompt\":\"タスクID: TR1\\n参照文書のパス・URL:\\n- https://example.com/task\\n進めてよい範囲: draft_pr\\n\\n[$task-worker](<ROOT>/skills/task-worker/SKILL.md)\\n\",\"target\":{\"type\":\"project\",\"projectId\":\"project\",\"environment\":{\"type\":\"worktree\"}},\"title\":\"Impl TR1\",\"model\":\"claude-sonnet-5-5\",\"thinking\":\"high\"}}"
  ],
  "commands": [],

@@ -22,30 +22,6 @@ async fn with_bridge(
 }
 
 ///|
-/// Answers a capabilities query with the operations, and every other line with `answer`.
-fn offering(
-  operations : Array[String],
-  answer : String?,
-) -> (String) -> String? {
-  line => {
-    if line.contains("\"query\":\"capabilities\"") {
-      let listed = operations.map(name => Json::string(name))
-      Some(
-        json_text(
-          Json::object({
-            "version": Json::number(1.0),
-            "outcome": Json::string("done"),
-            "operations": Json::array(listed),
-          }),
-        ),
-      )
-    } else {
-      answer
-    }
-  }
-}
-
-///|
 fn bridge_env(path : String) -> @environment.Env {
   env_of([("HARNEXUS_CALL_SOCKET", path), ("HOME", "/nonexistent")])
 }
@@ -65,22 +41,18 @@ async fn call_json(
 }
 
 ///|
-async test "asks for protocol 1, then sends the call with it and answers without the version" {
+async test "sends the call with protocol 1 and answers without the version" {
   with_bridge(
     "call-1",
-    offering(
-      ["name_thread"],
-      Some("{\"version\":1,\"outcome\":\"done\",\"result\":{}}"),
-    ),
+    _ => Some("{\"version\":1,\"outcome\":\"done\",\"result\":{}}"),
     (path, lines) => {
       let answer = call_json(bridge_env(path), "name_thread", {
         "name": Json::string("Impl TR1"),
       })
       assert_eq(answer, "{\"outcome\":\"done\",\"result\":{}}")
-      assert_eq(lines.length(), 2)
-      assert_eq(lines[0], "{\"version\":1,\"query\":\"capabilities\"}")
+      assert_eq(lines.length(), 1)
       assert_eq(
-        lines[1],
+        lines[0],
         "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"name_thread\",\"arguments\":{\"name\":\"Impl TR1\"}}",
       )
     },
@@ -91,12 +63,11 @@ async test "asks for protocol 1, then sends the call with it and answers without
 async test "a bridge's answer keeps every field" {
   with_bridge(
     "call-2",
-    offering(
-      ["create_thread"],
+    _ => {
       Some(
         "{\"version\":1,\"result\":[1],\"outcome\":\"newly_added\",\"later\":{\"a\":null}}",
-      ),
-    ),
+      )
+    },
     (path, _) => {
       let answer = call_json(bridge_env(path), "create_thread", {})
       assert_eq(
@@ -110,56 +81,9 @@ async test "a bridge's answer keeps every field" {
 }
 
 ///|
-async test "an older bridge's invalid answer is unsupported and gets nothing more" {
-  with_bridge(
-    "call-3",
-    _ => {
-      Some(
-        "{\"outcome\":\"invalid\",\"message\":\"expected {threadId,tool,arguments}\"}",
-      )
-    },
-    (path, lines) => {
-      let answer = call_json(bridge_env(path), "create_thread", {})
-      assert_eq(
-        answer, "{\"outcome\":\"unsupported\",\"error\":\"the bridge does not offer call protocol 1; update harnexus and restart the app\"}",
-      )
-      assert_eq(lines.length(), 1)
-    },
-  )
-}
-
-///|
-async test "a capabilities answer of another version or shape is unsupported" {
-  for
-    reply in [
-      "{\"version\":2,\"outcome\":\"done\",\"operations\":[\"create_thread\"]}",
-      "{\"version\":1,\"outcome\":\"rejected\",\"operations\":[\"create_thread\"]}",
-      "{\"version\":1,\"outcome\":\"done\",\"operations\":\"create_thread\"}", "{\"version\":\"1\",\"outcome\":\"done\",\"operations\":[]}",
-      "not json", "",
-    ] {
-    with_bridge("call-4", _ => Some(reply), (path, lines) => {
-      let answer = parse(call_json(bridge_env(path), "create_thread", {}))
-      assert_true(json_text(answer).contains("\"outcome\":\"unsupported\""))
-      assert_eq(lines.length(), 1)
-    })
-  }
-}
-
-///|
-async test "a tool the bridge does not offer is unsupported and sends nothing" {
-  with_bridge("call-5", offering(["create_thread"], None), (path, lines) => {
-    let answer = call_json(bridge_env(path), "cloud_open", {})
-    assert_eq(
-      answer, "{\"outcome\":\"unsupported\",\"error\":\"the bridge does not offer cloud_open\"}",
-    )
-    assert_eq(lines.length(), 1)
-  })
-}
-
-///|
 async test "a call sent without an answer in time is unknown" {
   serial(() => {
-    with_bridge("call-6", offering(["create_thread"], None), (path, lines) => {
+    with_bridge("call-6", _ => None, (path, lines) => {
       let answer = call_json(
         bridge_env(path),
         "create_thread",
@@ -169,7 +93,7 @@ async test "a call sent without an answer in time is unknown" {
       assert_eq(
         answer, "{\"outcome\":\"unknown\",\"error\":\"no answer: ETIMEDOUT\"}",
       )
-      assert_eq(lines.length(), 2)
+      assert_eq(lines.length(), 1)
     })
   })
 }
@@ -177,7 +101,7 @@ async test "a call sent without an answer in time is unknown" {
 ///|
 async test "an answer without an outcome is unknown" {
   for reply in ["{\"version\":1}", "{\"outcome\":3}", "[]", "nope", ""] {
-    with_bridge("call-7", offering(["create_thread"], Some(reply)), (path, _) => {
+    with_bridge("call-7", _ => Some(reply), (path, _) => {
       let answer = call_json(bridge_env(path), "create_thread", {})
       assert_eq(
         answer, "{\"outcome\":\"unknown\",\"error\":\"no answer: answer without outcome\"}",
@@ -188,27 +112,12 @@ async test "an answer without an outcome is unknown" {
 
 ///|
 async test "a bridge that hangs up on the call leaves it unknown" {
-  let calls = Ref(0)
-  with_server(
-    "call-8",
-    stream => {
-      let line = read_request(stream).unwrap_or("")
-      calls.val += 1
-      if line.contains("\"query\":\"capabilities\"") {
-        stream.write(
-          @utf8.encode(
-            "{\"version\":1,\"outcome\":\"done\",\"operations\":[\"create_thread\"]}\n",
-          ),
-        )
-      }
-    },
-    path => {
-      let answer = call_json(bridge_env(path), "create_thread", {})
-      assert_eq(
-        answer, "{\"outcome\":\"unknown\",\"error\":\"no answer: answer without outcome\"}",
-      )
-    },
-  )
+  with_server("call-8", stream => ignore(read_request(stream)), path => {
+    let answer = call_json(bridge_env(path), "create_thread", {})
+    assert_eq(
+      answer, "{\"outcome\":\"unknown\",\"error\":\"no answer: answer without outcome\"}",
+    )
+  })
 }
 
 ///|

@@ -1,8 +1,0 @@
-{
-  "name": "adapter-import-links-refuses-empty-thread",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/links.json"],
-  "files": {
-    "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"session_A\",\"threadId\":\"\",\"reservedAt\":\"x\"}]}"
-  }
-}

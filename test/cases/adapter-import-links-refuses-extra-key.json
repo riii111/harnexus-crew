@@ -1,8 +1,0 @@
-{
-  "name": "adapter-import-links-refuses-extra-key",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/links.json"],
-  "files": {
-    "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"session_A\",\"threadId\":null,\"reservedAt\":\"x\",\"extra\":1}]}"
-  }
-}

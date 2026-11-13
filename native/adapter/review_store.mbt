@@ -260,11 +260,6 @@ fn ReviewStore::claim(self : ReviewStore, key : String) -> Claim {
 }
 
 ///|
-fn ReviewStore::is_reserved(self : ReviewStore, key : String) -> Bool {
-  !(read_object(self.reservation_path(key)) is Absent)
-}
-
-///|
 fn ReviewStore::unclaim(self : ReviewStore, key : String) -> Unit {
   ignore(
     Ok(@store.remove_file(self.reservation_path(key))) catch {
@@ -384,16 +379,4 @@ fn ReviewStore::history_of(
     history.append(pair.1.entries)
   }
   history
-}
-
-///|
-/// The review a `/cloud-review` message names, as its file keeps it.
-fn ReviewStore::review_of(
-  self : ReviewStore,
-  key : String,
-) -> @app.CloudReview? {
-  match read_object(self.review_path(key)) {
-    Found(kept) => review_in(key, Some(kept))
-    _ => None
-  }
 }

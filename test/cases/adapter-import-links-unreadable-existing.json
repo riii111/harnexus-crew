@@ -1,9 +1,0 @@
-{
-  "name": "adapter-import-links-unreadable-existing",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/links.json"],
-  "files": {
-    "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"session_A\",\"threadId\":\"chat-a\",\"reservedAt\":\"2026-11-05T00:00:00Z\"}]}",
-    "state/harnexus-crew/cloud-chats/session_A.json": "{\"unrelated\":true}"
-  }
-}

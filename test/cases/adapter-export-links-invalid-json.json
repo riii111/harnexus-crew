@@ -1,8 +1,0 @@
-{
-  "name": "adapter-export-links-invalid-json",
-  "kind": "command",
-  "argv": ["adapter", "export-links"],
-  "files": {
-    "state/harnexus-crew/cloud-chats/session_D.json": "{"
-  }
-}

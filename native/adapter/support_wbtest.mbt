@@ -106,22 +106,6 @@ fn str(text : String) -> Json {
 }
 
 ///|
-fn journal_lines(at : Place) -> Array[Json] {
-  let lines = []
-  for line in read_file("\{at.observe}/journal.jsonl").split("\n") {
-    if line.length() > 0 {
-      lines.push(json_of(line.to_owned()))
-    }
-  }
-  lines
-}
-
-///|
-fn journal_of_kind(at : Place, kind : String) -> Array[Json] {
-  journal_lines(at).filter(line => text_member(line, "kind") == Some(kind))
-}
-
-///|
 /// A prompt record of a Cloud session.
 fn prompt(uuid : String, text : String) -> Json {
   object([
@@ -391,16 +375,6 @@ fn Link::lines_of_type(self : Link, kind : String) -> Array[Json] {
 ///|
 fn Link::texts(self : Link, op : String) -> Array[String] {
   self.requests(op~).map(line => text_member(line, "text").unwrap_or(""))
-}
-
-///|
-fn heads_of(lines : Array[Json]) -> Array[String] {
-  lines.map(line => {
-    match field(line, "review") {
-      Some(review) => text_member(review, "head").unwrap_or("")
-      None => ""
-    }
-  })
 }
 
 ///|

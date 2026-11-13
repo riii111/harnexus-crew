@@ -9,8 +9,6 @@ import {
 // Values
 pub fn acquire(String, String) -> String raise @failure.TaskFailed
 
-pub fn append_line(String, String) -> Unit raise FileFailed
-
 pub fn current_pid() -> Int32
 
 pub fn is_directory(String) -> Bool
@@ -74,7 +72,6 @@ pub(all) enum FileAction {
   Sync
   Remove
   Prepare
-  Append
 }
 
 pub struct Records {

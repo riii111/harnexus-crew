@@ -167,31 +167,6 @@ test "a question for a reviewer asks the session to pass it on" {
 }
 
 ///|
-test "a /cloud-review message names one review" {
-  let long = "a".repeat(128)
-  for
-    case in [
-      ("/cloud-review abc", "abc"),
-      (" /cloud-review   a-b_9 \n", "a-b_9"),
-      ("/cloud-review", "none"),
-      ("/cloud-review ", "none"),
-      ("/cloud-reviewabc", "none"),
-      ("/cloud-review a b", "none"),
-      ("/cloud-review x", "x"),
-      ("/cloud-review\u{FEFF}x", "x"),
-      ("/cloud-review\u{3000}x", "x"),
-      ("/cloud-review " + long, long),
-      ("/cloud-review " + long + "a", "none"),
-      ("/cloud-review é", "none"),
-      ("/cloud-review\tx\n", "x"),
-      ("cloud-review x", "none"),
-    ] {
-    let (text, expected) = case
-    inspect(or_none(review_command_of(text)), content=expected)
-  }
-}
-
-///|
 test "a session record's uuid is read only from an object with a string uuid" {
   inspect(or_none(uuid_of(None)), content="none")
   inspect(or_none(uuid_of(Some(parse("{\"uuid\":\"x\"}")))), content="x")

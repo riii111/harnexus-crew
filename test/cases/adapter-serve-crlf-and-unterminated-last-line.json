@@ -2,7 +2,7 @@
   "name": "adapter-serve-crlf-and-unterminated-last-line",
   "kind": "command",
   "argv": ["adapter", "serve", "--id", "taskctl"],
-  "stdin": "{\"v\":1,\"type\":\"hello\",\"mode\":\"observe\",\"versions\":[1]}\r\n{\"v\":1,\"type\":\"request\",\"id\":\"h1\",\"op\":\"history\",\"threadId\":\"t\"}",
+  "stdin": "{\"v\":1,\"type\":\"hello\",\"mode\":\"write\",\"versions\":[1]}\r\n{\"v\":1,\"type\":\"request\",\"id\":\"h1\",\"op\":\"history\",\"threadId\":\"t\"}",
   "compare": {
     "stdout": "exact"
   }

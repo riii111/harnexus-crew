@@ -1,8 +1,0 @@
-{
-  "name": "adapter-import-links-refuses-twice",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/links.json"],
-  "files": {
-    "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"session_A\",\"threadId\":null,\"reservedAt\":\"x\"},{\"sessionId\":\"session_A\",\"threadId\":\"chat-a\",\"reservedAt\":\"x\"}]}"
-  }
-}

@@ -17,21 +17,6 @@
   "bridge": [
     {
       "match": {
-        "query": "capabilities"
-      },
-      "answer": {
-        "version": 1,
-        "outcome": "done",
-        "operations": [
-          "list_projects",
-          "create_thread",
-          "send_message_to_thread",
-          "name_thread"
-        ]
-      }
-    },
-    {
-      "match": {
         "tool": "name_thread"
       },
       "answer": "drop"
