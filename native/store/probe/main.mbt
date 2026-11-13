@@ -72,7 +72,7 @@ fn leave_marker(args : Array[String]) -> Json {
   try {
     let made = @store.write_exclusive(
       marker,
-      @jsonio.stringify(object([("pid", pid)])),
+      object([("pid", pid)]).stringify(),
     )
     object([("ok", Json::boolean(made))])
   } catch {
@@ -237,7 +237,7 @@ fn refused(message : String) -> Json {
 
 ///|
 fn emit(line : Json) -> Unit {
-  @sys.write_text(1, @jsonio.stringify(line) + "\n") catch {
+  @sys.write_text(1, line.stringify() + "\n") catch {
     _ => abort("cannot write")
   }
 }

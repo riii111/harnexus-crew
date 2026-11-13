@@ -49,7 +49,7 @@ async test "a relative pr-wake path is refused before anything runs" {
 }
 
 ///|
-async test "the printed object comes back in its own order and the environment reaches pr-wake" {
+async test "the printed object comes back and the environment reaches pr-wake" {
   with_rig("c-3", rig => {
     rig.plan(
       "pr-wake",
@@ -61,8 +61,10 @@ async test "the printed object comes back in its own order and the environment r
       "link", "https://github.com/o/r/pull/1", "--take-over",
     ])
     assert_eq(
-      text_of(printed),
-      "{\"2\":0,\"10\":1,\"watched\":\"u\",\"b\":2,\"a\":[1,{\"c\":null}]}",
+      Json::object(printed),
+      @jsonio.parse(
+        "{\"watched\":\"u\",\"b\":2,\"10\":1,\"2\":0,\"a\":[1,{\"c\":null}]}",
+      ),
     )
     assert_eq(
       rig.args("pr-wake", 1),

@@ -9,7 +9,7 @@ fn state_command(env : @environment.Env) -> Json raise @failure.TaskFailed {
   for path in state_paths(env.state_root()) {
     listed.push((path, @store.load(path)))
   }
-  @jsonio.object_with_extra(listed, {})
+  Json::object(Map::from_array(listed))
 }
 
 ///|

@@ -26,7 +26,7 @@ async fn emit(
 ) -> Unit noraise {
   gate.acquire()
   defer gate.release()
-  stream.write(@utf8.encode(@jsonio.lossy_text(text))) catch {
+  stream.write(@utf8.encode(text)) catch {
     _ => ()
   }
 }
@@ -34,7 +34,7 @@ async fn emit(
 ///|
 fn log_text(entry : Array[(String, Json)]) -> String {
   let line = [("time", Json::string(@store.now_iso())), ..entry]
-  @jsonio.stringify(object(line)) + "\n"
+  object(line).stringify() + "\n"
 }
 
 ///|

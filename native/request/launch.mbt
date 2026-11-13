@@ -53,9 +53,8 @@ pub fn LaunchRequest::to_json(self : LaunchRequest) -> Json {
 
 ///|
 /// What names the saved session of a request, before it is hashed: the same task in the same project is the same session.
-/// Text that leaves JSON for a hash goes through `lossy_text`, as UTF-8 encoding does in JS.
 pub fn LaunchRequest::session_key(self : LaunchRequest) -> String {
-  @jsonio.lossy_text("\{self.project_id}\n\{self.task_id}")
+  "\{self.project_id}\n\{self.task_id}"
 }
 
 ///|

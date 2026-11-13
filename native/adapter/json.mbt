@@ -67,24 +67,6 @@ fn text_or_none(value : Json?) -> String? {
 }
 
 ///|
-/// What `String(value)` gives in JS for a member that may be absent.
-fn js_string(value : Json?) -> String {
-  match value {
-    None => "undefined"
-    Some(Null) => "null"
-    Some(String(text)) => text
-    Some(True) => "true"
-    Some(False) => "false"
-    Some(Array(items)) =>
-      items
-      .map(item => if item is Null { "" } else { js_string(Some(item)) })
-      .join(",")
-    Some(Object(_)) => "[object Object]"
-    Some(other) => @jsonio.stringify(other)
-  }
-}
-
-///|
 /// A session id the bridge and the state files agree on: 1 to 128 ASCII letters, digits, `_` and `-`.
 fn is_session_id(text : String) -> Bool {
   let units = text.code_units()

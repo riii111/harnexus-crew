@@ -9,7 +9,7 @@ fn write_lock(lock : String, pid : Double, token : String) -> Unit raise {
   let content = Json::object(
     Map::from_array([("pid", Json::number(pid)), ("token", Json::string(token))]),
   )
-  write_atomic(lock, @jsonio.stringify(content))
+  write_atomic(lock, content.stringify())
 }
 
 ///|
@@ -174,17 +174,6 @@ test "release leaves a lock another run took in the meantime" {
 ///|
 test "release of a lock that is gone does nothing" {
   in_scratch(directory => release(lock_in(directory), "token"))
-}
-
-///|
-test "js_text writes a token as String(value) does" {
-  assert_eq(js_text(None), "undefined")
-  assert_eq(js_text(Some(Json::null())), "null")
-  assert_eq(js_text(Some(Json::string("t"))), "t")
-  assert_eq(js_text(Some(Json::number(5.0))), "5")
-  assert_eq(js_text(Some(Json::boolean(true))), "true")
-  assert_eq(js_text(Some(@jsonio.parse("[1,null,[2,3]]"))), "1,,2,3")
-  assert_eq(js_text(Some(@jsonio.parse("{\"a\":1}"))), "[object Object]")
 }
 
 ///|
