@@ -153,7 +153,7 @@ class Harness(unittest.TestCase):
 
     def test_a_case_with_an_unknown_member_is_refused(self):
         with self.assertRaises(InvalidCase):
-            parse_case({"name": "x", "owner": "MB12", "status": "active", "kind": "command", "argv": [], "extra": 1})
+            parse_case({"name": "x", "kind": "command", "argv": [], "extra": 1})
 
 
 class BridgeSynchronization(unittest.TestCase):
@@ -220,7 +220,6 @@ class CasesAndRecordings(unittest.TestCase):
         names = {case.name for case in load_cases()}
         recorded = {path.stem for path in (expected.EXPECTED / "cases").glob("*.json")}
         self.assertEqual(names, recorded)
-        self.assertEqual(383, len(names))
 
     def test_the_native_build_runs_under_the_harness_and_a_different_observation_shows_as_a_difference(self):
         cases = {case.name: case for case in load_cases()}

@@ -1,7 +1,5 @@
 {
   "name": "cloud-refused-in-t3-before-checking-the-project",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": [
     "cloud",

@@ -1,7 +1,5 @@
 {
   "name": "cloud-link-opens-the-chat",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": [
     "cloud",

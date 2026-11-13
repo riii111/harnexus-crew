@@ -1,7 +1,5 @@
 {
   "name": "watch-status",
-  "owner": "MB07",
-  "status": "active",
   "kind": "command",
   "argv": ["watch", "--status"],
   "commands": {

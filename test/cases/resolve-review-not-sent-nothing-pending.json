@@ -1,7 +1,5 @@
 {
   "name": "resolve-review-not-sent-nothing-pending",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["resolve", "--request", "review.json", "--not-sent"],
   "env": {

@@ -1,7 +1,5 @@
 {
   "name": "name-url-with-tab-and-query",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["name", "--pr", "https://github.com/o/r/pull/3/files?x=y#z"],
   "env": {

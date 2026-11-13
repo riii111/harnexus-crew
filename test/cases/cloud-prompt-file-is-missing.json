@@ -1,7 +1,5 @@
 {
   "name": "cloud-prompt-file-is-missing",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": ["cloud", "--prompt-file", "absent.md"],
   "env": {

@@ -1,7 +1,8 @@
 {
   "name": "watch-engine-missing-pr-wake",
-  "owner": "MB07",
-  "status": "active",
-  "kind": "inherit",
+  "kind": "command",
+  "compare": {
+    "stdout": "exact"
+  },
   "argv": ["watch"]
 }

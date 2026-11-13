@@ -1,7 +1,5 @@
 {
   "name": "watch-pr-wake-env-absolute",
-  "owner": "MB07",
-  "status": "active",
   "kind": "command",
   "argv": ["watch", "--status"],
   "env": {

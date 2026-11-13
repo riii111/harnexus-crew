@@ -1,7 +1,5 @@
 {
   "name": "review-ask-is-for-cloud",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "review.json", "--ask", "q.md"],
   "env": {

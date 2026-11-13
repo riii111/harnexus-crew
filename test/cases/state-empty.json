@@ -1,7 +1,5 @@
 {
   "name": "state-empty",
-  "owner": "MB05",
-  "status": "active",
   "kind": "command",
   "argv": ["state"],
   "compare": {

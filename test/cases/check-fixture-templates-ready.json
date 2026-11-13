@@ -1,7 +1,5 @@
 {
   "name": "check-fixture-templates-ready",
-  "owner": "MB06",
-  "status": "active",
   "kind": "command",
   "argv": ["check"],
   "seed": {

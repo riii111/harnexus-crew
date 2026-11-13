@@ -1,7 +1,5 @@
 {
   "name": "check-refuses-unknown-field",
-  "owner": "MB06",
-  "status": "active",
   "kind": "command",
   "argv": ["check"],
   "files": {

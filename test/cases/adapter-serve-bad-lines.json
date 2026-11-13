@@ -1,16 +1,7 @@
 {
   "name": "adapter-serve-bad-lines",
-  "owner": "MB11",
-  "status": "active",
   "kind": "session",
   "argv": ["adapter", "serve", "--id", "taskctl"],
-  "normalize": [
-    {
-      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
-      "with": "<TIME>",
-      "scopes": ["files", "stderr", "stdout"]
-    }
-  ],
   "steps": [
     {
       "send": "not json"

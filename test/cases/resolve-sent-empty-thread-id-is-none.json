@@ -1,7 +1,5 @@
 {
   "name": "resolve-sent-empty-thread-id-is-none",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["resolve", "--request", "launch.json", "--sent", "--thread-id", ""],
   "env": {

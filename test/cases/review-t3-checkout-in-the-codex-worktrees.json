@@ -1,7 +1,5 @@
 {
   "name": "review-t3-checkout-in-the-codex-worktrees",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {

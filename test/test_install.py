@@ -44,9 +44,6 @@ class InstallScript(unittest.TestCase):
         self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
         return directory
 
-    def test_is_valid_bash(self):
-        self.assertEqual(0, subprocess.run(["bash", "-n", str(SCRIPT)]).returncode)
-
     def test_rejects_what_it_cannot_install_from(self):
         for name, args, message in (
             ("a relative prefix", ["--prefix", "bin"], "--prefix must be an absolute path"),

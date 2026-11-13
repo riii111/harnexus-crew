@@ -1,7 +1,5 @@
 {
   "name": "launch-model-thinking-branch-name",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": [
     "launch",

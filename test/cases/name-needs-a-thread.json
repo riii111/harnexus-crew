@@ -1,7 +1,5 @@
 {
   "name": "name-needs-a-thread",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["name", "--pr", "3"],
   "env": {

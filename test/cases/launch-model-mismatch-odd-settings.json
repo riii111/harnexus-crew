@@ -1,7 +1,5 @@
 {
   "name": "launch-model-mismatch-odd-settings",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["launch", "--request", "launch.json"],
   "env": {

@@ -1,7 +1,5 @@
 {
   "name": "environment-socket-beside-state-path",
-  "owner": "MB05",
-  "status": "active",
   "kind": "command",
   "argv": ["environment"],
   "env": {

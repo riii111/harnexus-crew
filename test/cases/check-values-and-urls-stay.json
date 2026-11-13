@@ -1,7 +1,5 @@
 {
   "name": "check-values-and-urls-stay",
-  "owner": "MB06",
-  "status": "active",
   "kind": "command",
   "argv": ["check"],
   "files": {

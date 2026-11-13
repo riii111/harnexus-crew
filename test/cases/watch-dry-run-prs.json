@@ -1,7 +1,5 @@
 {
   "name": "watch-dry-run-prs",
-  "owner": "MB07",
-  "status": "active",
   "kind": "command",
   "argv": [
     "watch",

@@ -1,7 +1,5 @@
 {
   "name": "cloud-review-bad-later-thread-id-clears-the-thread",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {
@@ -32,12 +30,5 @@
     "codex": {
       "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a18d52-e03a-74c1-a50e-4e697b47172b\"}\n{\"type\":\"thread.started\",\"thread_id\":\"01A18D52-E03A-74C1-A50E-4E697B47172B\"}\n{\"type\":\"item.completed\",\"item\":{\"type\":\"agent_message\",\"text\":\"判定: LGTM\"}}"
     }
-  },
-  "normalize": [
-    {
-      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
-      "with": "<TIME>",
-      "scopes": ["files", "stderr", "stdout"]
-    }
-  ]
+  }
 }

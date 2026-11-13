@@ -1,17 +1,16 @@
 # AppとT3 Codeの接続
 
 Codex AppのブリッジとT3 Codeの `t3` CLIへ、タスクの操作を送る層。
-TS版の `src/app/`、`src/task/host.ts`、`src/integrations/harnexus/reviews.ts` に対応する。
-セッションの状態遷移は持たず、呼び出しの結果を `CallAnswer` で返すだけにとどめる（MB09）。
+セッションの状態遷移は持たず、呼び出しの結果を `CallAnswer` で返すだけにとどめる（状態遷移は `session`）。
 
-| 公開する関数・型                                                | TS版                                      |
-| --------------------------------------------------------------- | ----------------------------------------- |
-| `call_app(env, caller, tool, args, timeout_ms?)`                | `callApp`                                 |
-| `call_t3(T3Deps, tool, args)`                                   | `callT3`                                  |
-| `host_of(env, which~)` と `Host`                                | `hostOf` と `Host`                        |
-| `projects_in(result)`                                           | `projectsIn`                              |
-| `TurnSettings`、`refusal_of`                                    | `TurnSettings`、`refusalOf`               |
-| `CloudReview`、`reviews_in`、`review_text`、`reviewer_ask` ほか | `integrations/harnexus/reviews.ts` の全体 |
+| 公開する関数・型                                                |
+| --------------------------------------------------------------- |
+| `call_app(env, caller, tool, args, timeout_ms?)`                |
+| `call_t3(T3Deps, tool, args)`                                   |
+| `host_of(env, which~)` と `Host`                                |
+| `projects_in(result)`                                           |
+| `TurnSettings`、`refusal_of`                                    |
+| `CloudReview`、`reviews_in`、`review_text`、`reviewer_ask` ほか |
 
 ソケットのパス、App/T3の判定、呼び出し元のチャットIDは `environment` と `request` を使う。
 `call_app` と `call_t3` は失敗を例外にせず、結果の種類を `CallAnswer` に入れて返す。
@@ -36,12 +35,11 @@ TS版の `src/app/`、`src/task/host.ts`、`src/integrations/harnexus/reviews.ts
 
 `Host`: AppとT3 Codeの違い（スレッド変数、worktreeの置き場、既定の思考量、返信テンプレート、スレッド名の変更可否、レビュー用プロジェクトの決め方）を一箇所にまとめる。
 
-## 試作・TS版からの変更
+## 補足
 
-- TS版の `projectOf`（フォルダを含むプロジェクトの検索）はどこからも呼ばれていないため移していない。
-- `which`（PATH上のコマンド探索）は注入する。実体は入口（MB05）が、pr-wake探索（MB07）と共用で用意する。
+- `which`（PATH上のコマンド探索）は注入する。実体は `cli` が、`prwake` のpr-wake探索と共用で用意する。
 - `CallAnswer::to_json` は、ブリッジが書いた位置に `outcome` を置く。以前は常に最後へ移り、`list_projects failed: {...}` などの表示が変わっていた。
-- 共有の `store` から `sha256_hex` を公開した。Cloudレビューの `key` は、reviewer・head・質問時刻・答えのSHA-256の先頭32桁で、TS版の値と一致する。
+- 共有の `store` から `sha256_hex` を公開した。Cloudレビューの `key` は、reviewer・head・質問時刻・答えのSHA-256の先頭32桁。
 
 ## 試験
 
@@ -49,6 +47,6 @@ TS版の `src/app/`、`src/task/host.ts`、`src/integrations/harnexus/reviews.ts
 
 - `call_wbtest.mbt`: 模擬ブリッジ（Unixソケット）で、能力照会、旧ブリッジ、未提供の操作、無応答、切断、ソケットなし・off・相対パス。
 - `t3_wbtest.mbt`: 模擬CLI `test/native/mocks/fake-cli.sh` で、起動・送信の引数と標準入力、未送信と結果不明の分類、締切後の結果不明、`HARNEXUS_T3_BIN` と `which` の探索、T3固有のモデル・思考量の拒否。
-- `reviews_wbtest.mbt`: TS版（Bun 1.4.4）で得た `key` と抽出結果との一致。
+- `reviews_wbtest.mbt`: 固定した `key` と抽出結果との一致。
 
 ソケットの試験は、ソケットの作成を禁じる環境では動かない。

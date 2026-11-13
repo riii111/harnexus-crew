@@ -1,7 +1,5 @@
 {
   "name": "check-reviewer-not-ready-for-t3",
-  "owner": "MB06",
-  "status": "active",
   "kind": "command",
   "argv": ["check"],
   "files": {

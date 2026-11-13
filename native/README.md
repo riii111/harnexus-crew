@@ -36,58 +36,45 @@ md4cの `md4c.c`・`md4c.h` は配布元のまま保つため、整形と検査�
 | md4c                      | v0.6.0（タグ d4eeb1ace5d0a64d6a1245e97bf9c8105c4f3df7、コミット 7fc1815a5eeba2af7d6120a76202bf59f3b6e6e4）、MIT | `native/markdown/` の `md4c.c`・`md4c.h`・`md4c-LICENSE.md` |
 | 期待値の元になったTS版    | `51af56c5ee443de97e244be1c9eee97ebb34a6ac`（Bun 1.4.4で実行）                                                    | [test/README.md](../test/README.md)                         |
 
-非同期処理は、ツールチェーン同梱の実験的パッケージ `moonbitlang/core/async` を使う（試作と同じ）。
+非同期処理は、ツールチェーン同梱の実験的パッケージ `moonbitlang/core/async` を使う。
 使うパッケージは `moon.pkg` の `options("allow-experimental-packages": true)` で許可する。
 mooncakesの `moonbitlang/async` は使わない。
 ツールチェーンを上げるときは、`flake.nix` の版名と、この表と、`moon info` の差分を同じ変更で更新する。
 
 TS版は撤去済みで、期待値は固定したまま使う。契約を変える場合は、期待値と対応する事例を同じ変更で更新する。
 
-## パッケージの境界と担当
+## パッケージの境界
 
 ソースは `native/` に置く（`moon.mod` の `source`）。
-各タスクは自分のパッケージと `cmd/main` の登録箇所だけを変更する。
-共通型の変更が必要なときは、統括が影響する担当を調整してから行う。
 
-| パッケージ        | 内容                                                             | 担当               |
-| ----------------- | ---------------------------------------------------------------- | ------------------ |
-| `shared/failure`  | 利用者へメッセージを返す失敗 `TaskFailed`                        | MB01               |
-| `shared/jsonio`   | JSONの読み書き、未知フィールドを残す `Fields`                    | MB01               |
-| `shared/call`     | 呼び出し結果 `CallOutcome`、応答 `CallAnswer`                    | MB01（利用はMB08） |
-| `shared/boundary` | ソケット・子プロセスの結果型と失敗型                             | MB01（実装はMB02） |
-| `shared/run`      | コマンド実行結果 `CommandRun` と、出力して終了する `finish`      | MB01               |
-| `sys`             | 最小のC連携（OS種別、fdへの全量書き込み）                        | MB01               |
-| `store`           | 状態ファイルの読み書き、`records`、排他ロック、状態の保存先      | MB03               |
-| `store/probe`     | `store` を別プロセスで競合させる試験用の実行ファイル             | MB03               |
-| `os/unix`         | errno名と説明、fdを閉じる                                        | MB02               |
-| `os/socket`       | Unixソケットへ1行を送り、答えを受ける                            | MB02               |
-| `os/process`      | 子プロセスの実行（締切・出力上限・プロセス群）                   | MB02               |
-| `os/testkit`      | 上の試験が使うサーバー・fd数の確認（試験だけが取り込む）         | MB02               |
-| `markdown`        | md4cで判定するMarkdown上のリンク先（C連携とライセンスを含む）    | MB06               |
-| `markdown/probe`  | `markdown` の判定を63件の事例で確かめる試験用の実行ファイル      | MB06               |
-| `prompt`          | テンプレートの展開（リンク解決・値の埋め込み）と `check`         | MB06               |
-| `prompt/probe`    | `prompt` を外側から確かめる試験用の実行ファイル                  | MB06               |
-| `cli`             | 振り分け、usage、クラッシュ報告、`environment`・`state`・`check` | MB05・MB06         |
-| `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）                   | MB05               |
-| `prwake`          | pr-wakeの呼び出しと `watch` コマンド、GitHubのPRのURL判定        | MB07               |
-| `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                              | MB05               |
-| `adapter`         | `adapter` コマンド（serve・handover・リンクの出入力）            | MB11               |
-| `session`         | 起動・ローカルレビュー・`resolve`・`name` の状態遷移             | MB09               |
-| `cloud`           | Cloudレビュー（Codex CLI）と `cloud` コマンド                    | MB10               |
-
-後続の新しいパッケージは、次の名前を目安にする。
-
-| タスク | パッケージ                                                             |
-| ------ | ---------------------------------------------------------------------- |
-| MB04   | `request`、`config`、`environment`、`args`、`template`、`path`、`text` |
-| MB07   | `prwake`                                                               |
-| MB08   | `app`                                                                  |
-| MB09   | `session`                                                              |
-| MB10   | `cloud`                                                                |
-| MB11   | `adapter`                                                              |
+| パッケージ        | 内容                                                             |
+| ----------------- | ---------------------------------------------------------------- |
+| `shared/failure`  | 利用者へメッセージを返す失敗 `TaskFailed`                        |
+| `shared/jsonio`   | JSONの読み書き、未知フィールドを残す `Fields`                    |
+| `shared/call`     | 呼び出し結果 `CallOutcome`、応答 `CallAnswer`                    |
+| `shared/boundary` | ソケット・子プロセスの結果型と失敗型                             |
+| `shared/run`      | コマンド実行結果 `CommandRun` と、出力して終了する `finish`      |
+| `sys`             | 最小のC連携（OS種別、fdへの全量書き込み）                        |
+| `store`           | 状態ファイルの読み書き、`records`、排他ロック、状態の保存先      |
+| `store/probe`     | `store` を別プロセスで競合させる試験用の実行ファイル             |
+| `os/unix`         | errno名と説明、fdを閉じる                                        |
+| `os/socket`       | Unixソケットへ1行を送り、答えを受ける                            |
+| `os/process`      | 子プロセスの実行（締切・出力上限・プロセス群）                   |
+| `os/testkit`      | 上の試験が使うサーバー・fd数の確認（試験だけが取り込む）         |
+| `markdown`        | md4cで判定するMarkdown上のリンク先（C連携とライセンスを含む）    |
+| `markdown/probe`  | `markdown` の判定を63件の事例で確かめる試験用の実行ファイル      |
+| `prompt`          | テンプレートの展開（リンク解決・値の埋め込み）と `check`         |
+| `prompt/probe`    | `prompt` を外側から確かめる試験用の実行ファイル                  |
+| `cli`             | 振り分け、usage、クラッシュ報告、`environment`・`state`・`check` |
+| `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）                   |
+| `prwake`          | pr-wakeの呼び出しと `watch` コマンド、GitHubのPRのURL判定        |
+| `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                              |
+| `adapter`         | `adapter` コマンド（serve・handover・リンクの出入力）            |
+| `session`         | 起動・ローカルレビュー・`resolve`・`name` の状態遷移             |
+| `cloud`           | Cloudレビュー（Codex CLI）と `cloud` コマンド                    |
 
 Cのソースは、それを使うパッケージの `native-stub` に置く。
-`sys` へ追加するのは、複数のタスクが共用する最小の関数だけにする。
+`sys` へ追加するのは、複数のパッケージが共用する最小の関数だけにする。
 
 ## 共通型の約束
 
@@ -116,9 +103,8 @@ usageの文面、`-h` と使い方エラー（終了コード2）、成功時の
 `TaskFailed` 以外のエラーはクラッシュとして報告する。
 環境変数は引数が受理されてから読む。HOMEがないときだけアカウントのホームを調べ、見つからなければクラッシュとして報告する。
 
-後続のコマンド担当は、自分のパッケージと `cli/registry.mbt` の自分の分岐だけを変更する。
-全コマンドの分岐が各担当のパッケージを呼ぶ。TS版へ委譲する経路はない。
-PATH上のコマンド探索が要る担当（`app` のT3 CLI探索、MB07のpr-wake探索）は、`(String) -> String?` の引数を受け取り、`cli/registry.mbt` の分岐が `@which.in_env(env)` を渡す。
+`cli/registry.mbt` の分岐が、コマンドごとのパッケージを呼ぶ。
+PATH上のコマンド探索が要るパッケージ（`app` のT3 CLI探索、`prwake` のpr-wake探索）は、`(String) -> String?` の引数を受け取り、`cli/registry.mbt` の分岐が `@which.in_env(env)` を渡す。
 実体は `which` パッケージにあり、相対のPATH要素と空の要素、実行できない通常ファイルの扱いを `Bun.which` に合わせている。
 `state --request` は `session` が扱い、`state` の一覧は `launch`・`review`・`cloud-review` の状態ファイルだけを読む（pr-wakeの `watch` は読まない）。
 
@@ -132,8 +118,8 @@ JSONや文字列から型への変換は副作用を持たない。
 | `environment` | 環境変数 `Env`、App/T3の判定、各種ディレクトリ、call socketとharnexus状態ファイルのパス、実行環境の判定（`detect`）、Cloud・T3での拒否                         |
 | `request`     | 起動要求 `LaunchRequest`、レビュー要求 `ReviewRequest`、固定base/headを持つ `ReviewCandidate`、チャットIDの検証、テンプレートへ渡す値、Gitの実行器 `GitRunner` |
 | `config`      | テンプレート設定 `task.json` の検査                                                                                                                            |
-| `args`        | コマンドの引数。オプション定義と型付きの `Command`。usageの文面と入口の振り分けはMB05                                                                          |
-| `template`    | `{name}` の埋め込み規則とリンク先に入れる値の制約。Markdownの判定とリンク解決はMB06                                                                            |
+| `args`        | コマンドの引数。オプション定義と型付きの `Command`。usageの文面と入口の振り分けは `cli`                                                                        |
+| `template`    | `{name}` の埋め込み規則とリンク先に入れる値の制約。Markdownの判定は `markdown`、リンク解決は `prompt`                                                          |
 | `path`        | Nodeの `path.posix` と同じ結果の `join`・`normalize`・`dirname`・`resolve`                                                                                     |
 | `text`        | `\p{L}`・`\p{N}`、Pythonの空白、JSの `trim`・`\s` と文字列の順序                                                                                               |
 
@@ -172,7 +158,7 @@ md4cのフラグは、tables・strikethrough・tasklistsに、NOHTMLBLOCKSとNOI
 - fd: 作った関数が呼び出し側へ渡すか、同じ関数の中で閉じる。失敗・キャンセル・正常終了のどれでも、渡さなかったfdは作った側が閉じる。
 - 子プロセス: 起動した境界が、結果を返すまでプロセス群の終了を保証する。結果を返した後に残るプロセスはない。
 - Cへ渡す領域: `#borrow` で借りるだけで、Cは保持しない。Cが返す値は整数（fd、errno）にとどめ、確保した領域を返さない。
-- 状態ファイル: 書き込みはMB03の `store` だけが行う。他は読み込みと型への変換を行う。
+- 状態ファイル: 書き込みは `store` だけが行う。他は読み込みと型への変換を行う。
 
 ## 状態保存と排他ロック
 
@@ -191,33 +177,13 @@ md4cのフラグは、tables・strikethrough・tasklistsに、NOHTMLBLOCKSとNOI
 - 解除は、自分のtokenのロックだけを消す。
 - 待機付きロック `with_lock` は `moonbitlang/core/async` の `sleep` で待つため、待っている間も他の非同期処理は進む。
 
-状態の保存先のルート（`$XDG_STATE_HOME/harnexus-crew`）の決定はMB04の担当で、`state_directory` はそのルートを受け取る。
+状態の保存先のルート（`$XDG_STATE_HOME/harnexus-crew`）は `environment` が決め、`state_directory` はそのルートを受け取る。
 
 fdはすべてclose-on-execで開く。ロックや一時ファイルのfdが、後から起動する子へ継承されない。
 
 `store` の試験は2種類ある。
 単一プロセスの試験は `moon test` が実行する。
 競合・強制終了・TS版が書く内容との一致は、`store/probe` を複数起動する `test/test_store.py` が確かめる。
-
-## 試作から取り込んだ資料
-
-一時領域の試作（`/private/tmp/harnexus-crew-moonbit-spike-20261112`）のコードは取り込まない。
-次を通常のテスト領域へ収めた。
-
-| ファイル                                   | 内容                                                                                        | 使う担当 |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------- | -------- |
-| `test/native/boundary-cases.json`          | ソケット11件、プロセス10件の入力と期待。注入を要する事例は `seam` に必要な条件を書いた      | MB02     |
-| `test/native/mocks/`                       | 事例が使う模擬サーバー（Python）と模擬コマンド                                              | MB02     |
-| `test/native/markdown-link-judgement.json` | リンク判定63件と候補102件。期待はTS版（Bun 1.4.4）の判定で、md4c v0.6.0の判定と一致していた | MB06     |
-
-`test/test_imported.py` が、件数と参照先の存在を確かめる。
-
-試作で得た設計上の判断のうち、実装に残すものは次のとおり。
-
-- ソケットの接続は非ブロッキングで行い、EAGAIN・EINPROGRESS・EALREADY・EINTRのときは10msずつ待って再試行する。接続・書き込み・EOFまでの受信を一つの締切で囲む。
-- execの失敗は、子が書く通知用のパイプで判別する。ただし再execする自身のコピーは使わず、C内でforkしてexecし、結果の判別まで同期して待つ。複数の子を同時に起動しても、通知と書き込み側のfdは起動ごとに閉じるので混ざらない（[os/README.md](os/README.md)）。
-- md4cのフラグは、tables・strikethrough・tasklistsに、NOHTMLBLOCKSとNOINDENTEDCODEBLOCKSを加える。原文を直接パースしたときのエスケープ差は、マーカー経路の一致とは別に扱う。
-- 試作の性能値（バイナリ約0.6MB、実行時間約2.5ms）は合格値にしない。
 
 ## 受入試験
 

@@ -4,9 +4,7 @@ from . import jsonvalue
 
 DEFAULT_MODES = {
     "command": {"stdout": "json", "stderr": "exact"},
-    "help": {"stdout": "exact", "stderr": "exact"},
     "session": {"stdout": "lines", "stderr": "exact"},
-    "inherit": {"stdout": "exact", "stderr": "exact"},
 }
 
 

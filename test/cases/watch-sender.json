@@ -1,7 +1,5 @@
 {
   "name": "watch-sender",
-  "owner": "MB07",
-  "status": "active",
   "kind": "command",
   "argv": ["watch", "--sender"],
   "commands": {

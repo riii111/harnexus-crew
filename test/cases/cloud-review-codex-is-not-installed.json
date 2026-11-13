@@ -1,7 +1,5 @@
 {
   "name": "cloud-review-codex-is-not-installed",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {
@@ -27,12 +25,5 @@
       "-qm",
       "test: candidate 1"
     ]
-  ],
-  "normalize": [
-    {
-      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
-      "with": "<TIME>",
-      "scopes": ["files", "stderr", "stdout"]
-    }
   ]
 }

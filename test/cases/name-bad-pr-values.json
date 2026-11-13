@@ -1,7 +1,5 @@
 {
   "name": "name-bad-pr-values",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["name", "--pr", "0"],
   "env": {

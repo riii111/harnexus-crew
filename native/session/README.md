@@ -1,10 +1,9 @@
 # 起動とローカルレビューの状態遷移
 
 `launch`・`review`（AppとT3 Code）・`state --request`・`resolve`・`name` と、それらが共有するセッションの状態遷移。
-TS版の `src/task/session.ts` と `src/task/cli.ts` の該当コマンドに対応する。
 Cloudでのレビュー（Codex CLI）と `cloud` コマンドは含まず、`review` が `cloud` 引数で受け取る関数（`cloud` パッケージ）に渡す。
 
-| 公開する関数・型                      | TS版                                              |
+| 公開する関数・型                      | 内容                                              |
 | ------------------------------------- | ------------------------------------------------- |
 | `launch(args, env, which~)`           | `launch`                                          |
 | `review(args, env, which~, cloud~)`   | `review`                                          |
@@ -12,7 +11,7 @@ Cloudでのレビュー（Codex CLI）と `cloud` コマンドは含まず、`re
 | `resolve(args, env, which~)`          | `resolve`                                         |
 | `name(args, env, which~)`             | `name`                                            |
 | `check_kept(previous, current, keys)` | `review` と `cloud-review` の「元の値を保つ」検査 |
-| `Ports`、`ports_of(host)`             | `SessionDeps` の `call` と `saveJson`             |
+| `Ports`、`ports_of(host)`             | Appの呼び出しと状態の保存                         |
 
 `which` は `cli/registry.mbt` の分岐が `@which.in_env(env)` を渡す。
 `review` の `cloud` は、`HARNEXUS_EXECUTION_ENV` などが Claude Code のCloudと宣言する場合だけ呼ばれ、それ以外のCloudは `review` の拒否になる。
@@ -40,8 +39,8 @@ Cloudでのレビュー（Codex CLI）と `cloud` コマンドは含まず、`re
 
 2つの実行が同時に始まっても、`create_thread` を送るのは1つだけである。
 送信中に実行が死んだときの `pending.json`（`sending`）は自動では回収せず、`resolve --sent` または `--not-sent` で解く。
-TS版の `launch`・`review` はロックファイルを使わず、この排他作成が使用中の判定を兼ねる。
-ロックの待機・回収（`store::with_lock`・`acquire`）は、TS版でCloudレビューとアダプターだけが使う。
+`launch`・`review` はロックファイルを使わず、この排他作成が使用中の判定を兼ねる。
+ロックの待機・回収（`store::with_lock`・`acquire`）は、Cloudレビューとアダプターだけが使う。
 
 ## 共有する検査
 
@@ -52,5 +51,5 @@ Cloudレビューは `taskId`・`workerAI`・`checkout` を、Appのレビュー
 ## 試験
 
 - `moon test` の `session`: 模擬のApp・Git・テンプレート・pr-wakeを注入し、実際のファイルへ状態を保存して、送信の順序、排他作成の競合、状態が書き換わった場合、記録を残す失敗、拒否、`resolve`、レビューの継続、`name` を確かめる。
-- `test/cases`: `launch-*`、`resolve-*`、`state-request-*`、`name-*`、`review-*` を、TS版の出力を固定した期待値と照らす（stdout・stderr・終了コード・状態・Appへの要求・pr-wakeとT3 CLIの呼び出し）。
+- `test/cases`: `launch-*`、`resolve-*`、`state-request-*`、`name-*`、`review-*` を、期待値と照らす（stdout・stderr・終了コード・状態・Appへの要求・pr-wakeとT3 CLIの呼び出し）。
 - `test/test_session.py`: 複数の実行にまたがる流れ（結果不明からの再開、レビューの継続、拒否、送信中に死んだ実行、同時起動、`test/fixtures/legacy-state` のApp側の記録）を、同じ期待値と照らす。

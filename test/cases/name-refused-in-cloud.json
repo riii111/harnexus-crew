@@ -1,7 +1,5 @@
 {
   "name": "name-refused-in-cloud",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["name", "--pr", "3"],
   "env": {

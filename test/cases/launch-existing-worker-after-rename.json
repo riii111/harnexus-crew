@@ -1,7 +1,5 @@
 {
   "name": "launch-existing-worker-after-rename",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["launch", "--request", "launch.json"],
   "env": {

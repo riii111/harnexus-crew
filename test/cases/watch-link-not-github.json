@@ -1,7 +1,5 @@
 {
   "name": "watch-link-not-github",
-  "owner": "MB07",
-  "status": "active",
   "kind": "command",
   "argv": ["watch", "--link", "https://example.com/o/r/pull/3"],
   "commands": {

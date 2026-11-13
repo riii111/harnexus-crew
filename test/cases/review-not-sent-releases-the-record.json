@@ -1,7 +1,5 @@
 {
   "name": "review-not-sent-releases-the-record",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {

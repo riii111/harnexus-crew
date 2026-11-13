@@ -1,7 +1,5 @@
 {
   "name": "launch-empty-model-and-thinking-are-defaults",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": [
     "launch",

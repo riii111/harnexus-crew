@@ -1,7 +1,5 @@
 {
   "name": "resolve-nothing-pending",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["resolve", "--request", "launch.json", "--sent"],
   "env": {

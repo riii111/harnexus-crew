@@ -1,7 +1,5 @@
 {
   "name": "cloud-review-turn-failed-after-an-answer",
-  "owner": "MB10",
-  "status": "active",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {
@@ -32,12 +30,5 @@
     "codex": {
       "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a18d52-e03a-74c1-a50e-4e697b47172b\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"判定: LGTM\"}}\n{\"type\":\"turn.failed\",\"error\":{\"message\":\"late\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}\n"
     }
-  },
-  "normalize": [
-    {
-      "pattern": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z",
-      "with": "<TIME>",
-      "scopes": ["files", "stderr", "stdout"]
-    }
-  ]
+  }
 }

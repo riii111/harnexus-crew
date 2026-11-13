@@ -1,7 +1,5 @@
 {
   "name": "resolve-sent-takes-the-recorded-thread",
-  "owner": "MB09",
-  "status": "active",
   "kind": "command",
   "argv": ["resolve", "--request", "launch.json", "--sent"],
   "env": {

@@ -1,7 +1,5 @@
 {
   "name": "check-refuses-config-not-json",
-  "owner": "MB06",
-  "status": "active",
   "kind": "command",
   "argv": ["check"],
   "files": {
