@@ -124,6 +124,7 @@ test "a verdict opens a line, after whitespace of any kind" {
   assert_eq(verdict("要約\u{2028}判定: LGTM"), Some("LGTM"))
   assert_eq(verdict("要約\u{2029}\u{3000}判定:\u{3000}LGTM"), Some("LGTM"))
   assert_eq(verdict("x\n\u{FEFF}判定: LGTM"), Some("LGTM"))
+  assert_eq(verdict("x\n\u{A0}判定: LGTM"), Some("LGTM"))
   assert_eq(
     verdict("判定: 保留\n判定: 修正必要\n判定: LGTM"),
     Some("修正必要"),
@@ -137,6 +138,7 @@ test "text before the marker on its line, or a different word, is no verdict" {
   assert_eq(verdict_of("指摘はありません"), None)
   assert_eq(verdict_of("対象 判定: LGTM"), None)
   assert_eq(verdict_of("x \u{FEFF}判定: LGTM"), None)
+  assert_eq(verdict_of("x\u{B}判定: LGTM"), None)
   assert_eq(verdict_of("判定：LGTM"), None)
   assert_eq(verdict_of("判定: lgtm"), None)
   assert_eq(verdict_of("判定: 保留"), None)

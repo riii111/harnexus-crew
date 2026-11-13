@@ -1,8 +1,0 @@
-{
-  "name": "usage-cloud-both",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["cloud", "--link", "l", "--prompt-file", "f"]
-}

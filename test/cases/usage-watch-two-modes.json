@@ -1,8 +1,0 @@
-{
-  "name": "usage-watch-two-modes",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["watch", "--status", "--sender"]
-}

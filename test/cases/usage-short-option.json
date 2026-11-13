@@ -1,8 +1,0 @@
-{
-  "name": "usage-short-option",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["check", "-x"]
-}

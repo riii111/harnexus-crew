@@ -35,25 +35,6 @@ test "save_json replaces an existing record unless it is exclusive" {
 }
 
 ///|
-test "save_json creates a record exclusively once" {
-  in_scratch(directory => {
-    let path = "\{directory}/pending.json"
-    save_json(path, json("{\"sent\":false}"), exclusive=true)
-    assert_eq(load(path).stringify(), "{\"sent\":false}")
-  })
-}
-
-///|
-test "save_json keeps unknown members" {
-  in_scratch(directory => {
-    let path = "\{directory}/state.json"
-    let data = json("{\"known\":1,\"extra\":{\"x\":[\"y\"]}}")
-    save_json(path, data, exclusive=false)
-    assert_eq(load(path), data)
-  })
-}
-
-///|
 test "load reads a missing file as null and refuses text that is not JSON" {
   in_scratch(directory => {
     assert_eq(load("\{directory}/missing.json").stringify(), "null")

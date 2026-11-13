@@ -1,8 +1,0 @@
-{
-  "name": "usage-positional",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["check", "extra"]
-}

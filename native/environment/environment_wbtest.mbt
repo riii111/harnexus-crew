@@ -38,6 +38,13 @@ test "an explicit local names the app, an explicit cloud names the Cloud or none
     content="{\"environment\":\"local\",\"source\":\"explicit\",\"app\":\"codex\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
   )
   inspect(
+    detected([
+      ("HARNEXUS_EXECUTION_ENV", "local"),
+      ("CODEX_ENVIRONMENT_ID", "e"),
+    ]),
+    content="{\"environment\":\"local\",\"source\":\"explicit\",\"app\":\"codex\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
+  )
+  inspect(
     detected([("HARNEXUS_EXECUTION_ENV", "local"), ("T3CODE_THREAD_ID", "t")]),
     content="{\"environment\":\"local\",\"source\":\"explicit\",\"app\":\"t3\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
   )
@@ -72,6 +79,10 @@ test "a Cloud variable names the Cloud without printing its value" {
     detected([("CLAUDE_CODE_REMOTE", "true")]),
     content="{\"environment\":\"cloud\",\"source\":\"CLAUDE_CODE_REMOTE\",\"host\":\"claude\",\"note\":\"CLAUDE_CODE_REMOTE is set in Claude Code cloud sessions\"}",
   )
+  inspect(
+    detected([("CODEX_ENVIRONMENT_ID", "e"), ("CLAUDE_CODE_REMOTE", "true")]),
+    content="{\"environment\":\"cloud\",\"source\":\"CODEX_ENVIRONMENT_ID\",\"host\":\"codex\",\"note\":\"CODEX_ENVIRONMENT_ID is an observed variable of Codex Cloud tasks, not a documented guarantee; set HARNEXUS_EXECUTION_ENV=cloud|local to decide explicitly\"}",
+  )
 }
 
 ///|
@@ -93,6 +104,15 @@ test "only a socket that answers makes the command local" {
     content="ask /s/c.sock",
   )
   inspect(detected([("HARNEXUS_CALL_SOCKET", "rel")]), content="nothing to ask")
+  inspect(
+    detected([
+      ("HARNEXUS_EXECUTION_ENV", ""),
+      ("CODEX_ENVIRONMENT_ID", ""),
+      ("T3CODE_THREAD_ID", ""),
+      ("HOME", "/h"),
+    ]),
+    content="ask /h/.local/state/harnexus/call.sock",
+  )
   inspect(
     Detected::socket_accepted().to_json().stringify(),
     content="{\"environment\":\"local\",\"source\":\"harnexus-socket\",\"app\":\"codex\",\"note\":\"the harnexus call socket accepted a connection\"}",

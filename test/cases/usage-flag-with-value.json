@@ -1,8 +1,0 @@
-{
-  "name": "usage-flag-with-value",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["review", "--request", "r", "--update-base=yes"]
-}

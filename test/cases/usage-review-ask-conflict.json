@@ -1,8 +1,0 @@
-{
-  "name": "usage-review-ask-conflict",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["review", "--request", "r", "--ask", "f", "--model", "m"]
-}

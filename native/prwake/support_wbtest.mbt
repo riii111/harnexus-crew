@@ -134,11 +134,6 @@ fn Rig::env(self : Rig, extra : Array[(String, String)]) -> @environment.Env {
 }
 
 ///|
-fn Rig::which(self : Rig) -> (String) -> String? {
-  name => if name == "pr-wake" { Some("\{self.bin}/pr-wake") } else { None }
-}
-
-///|
 /// The message of the failure a body ends with.
 async fn failure_of(
   body : async () -> Unit raise @failure.TaskFailed,

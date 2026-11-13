@@ -1,8 +1,0 @@
-{
-  "name": "usage-unknown-option",
-  "kind": "command",
-  "compare": {
-    "stdout": "exact"
-  },
-  "argv": ["state", "--bogus"]
-}

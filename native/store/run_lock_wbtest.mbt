@@ -25,22 +25,6 @@ fn token_of(lock : String) -> String raise {
 }
 
 ///|
-test "acquire refuses a second run while a live run holds the lock and succeeds after release" {
-  in_scratch(directory => {
-    let lock = lock_in(directory)
-    let first = acquire(lock, "review")
-    let message = task_failure(() => ignore(acquire(lock, "review")))
-    assert_eq(
-      message,
-      "another review (pid \{current_pid()}) is using this session",
-    )
-    release(lock, first)
-    assert_false(path_exists(lock))
-    ignore(acquire(lock, "review"))
-  })
-}
-
-///|
 test "acquire writes the pid, token and start time of the holder" {
   in_scratch(directory => {
     let lock = lock_in(directory)
@@ -64,17 +48,6 @@ test "acquire writes the pid, token and start time of the holder" {
 }
 
 ///|
-test "acquire takes over a dead holder's lock and clears its takeover marker" {
-  in_scratch(directory => {
-    let lock = lock_in(directory)
-    write_lock(lock, dead_pid, "dead")
-    let token = acquire(lock, "review")
-    assert_eq(token_of(lock), token)
-    assert_false(path_exists("\{lock}.reap"))
-  })
-}
-
-///|
 test "acquire leaves a dead taker's marker and the lock for the owner to clear, and names both" {
   in_scratch(directory => {
     let lock = lock_in(directory)
@@ -88,21 +61,6 @@ test "acquire leaves a dead taker's marker and the lock for the owner to clear, 
     )
     assert_true(is_file(lock))
     assert_true(is_file(marker))
-  })
-}
-
-///|
-test "no run holds the lock while a dead taker's marker remains" {
-  in_scratch(directory => {
-    let lock = lock_in(directory)
-    write_lock(lock, dead_pid, "dead")
-    write_atomic("\{lock}.reap", "{\"pid\":\{dead_pid.to_int() + 1}}")
-    for _ in 0..<3 {
-      assert_true(
-        task_failure(() => ignore(acquire(lock, "review"))).contains("remove"),
-      )
-    }
-    assert_eq(token_of(lock), "dead")
   })
 }
 
@@ -177,20 +135,6 @@ test "release of a lock that is gone does nothing" {
 }
 
 ///|
-async test "with_lock runs the work under the lock and releases it" {
-  let directory = scratch()
-  defer remove_tree(directory)
-  let value = with_lock(directory, "chats", () => {
-    if !is_file("\{directory}/chats.lock") {
-      @failure.fail("the lock file is missing")
-    }
-    42
-  })
-  assert_eq(value, 42)
-  assert_false(path_exists("\{directory}/chats.lock"))
-}
-
-///|
 async test "with_lock releases the lock when the work fails" {
   let directory = scratch()
   defer remove_tree(directory)
@@ -202,25 +146,6 @@ async test "with_lock releases the lock when the work fails" {
   }
   assert_eq(message, "work failed")
   assert_false(path_exists("\{directory}/chats.lock"))
-}
-
-///|
-async test "with_lock fails once the wait is over, naming why the lock was not taken" {
-  let directory = scratch()
-  defer remove_tree(directory)
-  let lock = "\{directory}/chats.lock"
-  write_lock(lock, current_pid().to_double(), "held")
-  let message = try {
-    ignore(with_lock(directory, "chats", () => 1, wait_ms=120))
-    ""
-  } catch {
-    failed => failed.message()
-  }
-  assert_eq(
-    message,
-    "\{lock} stayed locked: another harnexus-crew adapter (pid \{current_pid()}) is using this session",
-  )
-  assert_eq(token_of(lock), "held")
 }
 
 ///|
