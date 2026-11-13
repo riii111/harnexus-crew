@@ -27,6 +27,11 @@ test "trim removes the same whitespace" {
   inspect(js_trim(" \u{1F600} "), content="\u{1F600}")
   inspect(js_trim("   "), content="")
   inspect(js_trim("a"), content="a")
+  inspect(js_trim_end(" a b \u{feff}\u{b}"), content=" a b")
+  inspect(
+    js_trim_end("a\u{200b}\u{180e}\u{85}"),
+    content="a\u{200b}\u{180e}\u{85}",
+  )
 }
 
 ///|

@@ -4,8 +4,6 @@ package "riii111/harnexus-crew/os/unix"
 // Values
 pub fn close_fd(Int32) -> Unit
 
-pub fn errno_message(Int32) -> String
-
 pub fn errno_name(Int32) -> String
 
 // Errors

@@ -1,4 +1,5 @@
 import {
+  "riii111/harnexus-crew/shared/jsonio",
   "moonbitlang/core/encoding/utf8",
 }
 

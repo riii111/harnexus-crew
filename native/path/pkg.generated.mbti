@@ -2,11 +2,15 @@
 package "riii111/harnexus-crew/path"
 
 // Values
+pub fn basename(String) -> String
+
 pub fn dirname(String) -> String
 
 pub fn is_absolute(String) -> Bool
 
 pub fn join(Array[String]) -> String
+
+pub fn normalize(String) -> String
 
 pub fn resolve(cwd~ : String, Array[String]) -> String
 

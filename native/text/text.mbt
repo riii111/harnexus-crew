@@ -50,6 +50,16 @@ pub fn js_trim(text : String) -> String {
 }
 
 ///|
+pub fn js_trim_end(text : String) -> String {
+  let units = text.code_units()
+  let mut end = units.length()
+  while end > 0 && is_space(units[end - 1].to_int()) {
+    end -= 1
+  }
+  text[:end].to_owned()
+}
+
+///|
 /// JS `<` on strings: code unit by code unit, which differs from code point order for characters above U+FFFF.
 pub fn compare_utf16(left : String, right : String) -> Int32 {
   let a = left.code_units()

@@ -13,7 +13,7 @@ async fn serial(body : async () -> Unit) -> Unit {
 ///|
 /// The real connect, which also records the descriptor the exchange opened so a test can check it is closed afterwards.
 fn tracked_connect(path : String, opened : Ref[Int32]) -> (Int32) -> Int32 {
-  let target = path_bytes(path)
+  let target = @sys.c_string(path).unwrap()
   fd => {
     opened.val = fd
     connect_once(fd, target)
@@ -275,7 +275,7 @@ async test "C3 injected: a connect that answers EAGAIN 20 times then succeeds is
   serial(() => {
     with_server("c3", answer, path => {
       let attempts = Ref(0)
-      let target = path_bytes(path)
+      let target = @sys.c_string(path).unwrap()
       let reply = exchange_with(path, "{\"x\":1}", 1000, fd => {
         attempts.val += 1
         if attempts.val <= 20 {
@@ -297,7 +297,7 @@ async test "C4 injected: connect, write and read share one deadline" {
       let attempts = Ref(0)
       let connected_at = Ref(-1)
       let started = @async.now()
-      let target = path_bytes(path)
+      let target = @sys.c_string(path).unwrap()
       let (result, elapsed) = timed(() => {
         outcome_of(path, "{\"x\":1}", 1000, connect=fd => {
           attempts.val += 1
@@ -396,12 +396,6 @@ async test "trailing white space is trimmed the way JavaScript trims" {
       },
       path => assert_eq(exchange_line(path, "x", 1000), "{\"a\":1}"),
     )
-    inspect(trim_end("a\u{200b}"), content="a\u{200b}")
-    inspect(trim_end("a\u{180e}"), content="a\u{180e}")
-    inspect(trim_end("a\u{85}"), content="a\u{85}")
-    inspect(trim_end("a\u{feff}\u{b}\u{c}"), content="a")
-    inspect(trim_end("  "), content="")
-    inspect(trim_end(" a b "), content=" a b")
   })
 }
 

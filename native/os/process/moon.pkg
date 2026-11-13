@@ -2,6 +2,7 @@ import {
   "riii111/harnexus-crew/shared/boundary",
   "riii111/harnexus-crew/shared/jsonio",
   "riii111/harnexus-crew/os/unix",
+  "riii111/harnexus-crew/sys",
   "moonbitlang/core/async",
   "moonbitlang/core/async/raw_fd",
   "moonbitlang/core/buffer",

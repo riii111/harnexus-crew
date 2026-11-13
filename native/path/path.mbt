@@ -11,7 +11,7 @@ pub fn join(parts : Array[String]) -> String {
 
 ///|
 /// Same results as Node's `path.posix.normalize`.
-fn normalize(path : String) -> String {
+pub fn normalize(path : String) -> String {
   if path == "" {
     return "."
   }
@@ -63,6 +63,20 @@ pub fn dirname(path : String) -> String {
     return "//"
   }
   path[:end].to_owned()
+}
+
+///|
+/// Same results as Node's `path.posix.basename` without a suffix: the last component, trailing separators ignored.
+pub fn basename(path : String) -> String {
+  let mut end = path.length()
+  while end > 0 && path[end - 1] == '/' {
+    end -= 1
+  }
+  let trimmed = path[:end]
+  match trimmed.rev_find("/") {
+    None => trimmed.to_owned()
+    Some(at) => trimmed[at + 1:].to_owned()
+  }
 }
 
 ///|
