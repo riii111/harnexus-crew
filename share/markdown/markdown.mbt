@@ -100,13 +100,17 @@ fn with_markers(
 }
 
 ///|
-fn destinations(text : String) -> Array[String] raise @failure.TaskFailed {
+fn destinations(
+  text : String,
+) -> @hashset.HashSet[String] raise @failure.TaskFailed {
   let bytes = @utf8.encode(text)
   read_destinations(destinations_raw(bytes, bytes.length()))
 }
 
 ///|
-fn read_destinations(reply : Bytes) -> Array[String] raise @failure.TaskFailed {
+fn read_destinations(
+  reply : Bytes,
+) -> @hashset.HashSet[String] raise @failure.TaskFailed {
   let status = reply[0].to_int()
   // To prevent a parser failure from bypassing link validation, fail instead of reporting no links.
   if status == STATUS_PARSE_FAILED {
@@ -115,7 +119,7 @@ fn read_destinations(reply : Bytes) -> Array[String] raise @failure.TaskFailed {
   if status != STATUS_OK {
     @failure.fail("the Markdown parser (md4c) ran out of memory")
   }
-  let found = []
+  let found = @hashset.HashSet([])
   let mut at = 1
   while at < reply.length() {
     let size = length_at(reply, at + 1)
@@ -123,7 +127,7 @@ fn read_destinations(reply : Bytes) -> Array[String] raise @failure.TaskFailed {
     if start + size > reply.length() {
       @failure.fail("the Markdown parser (md4c) returned a truncated record")
     }
-    found.push(@utf8.decode_lossy(reply[start:start + size]))
+    found.add(@utf8.decode_lossy(reply[start:start + size]))
     at = start + size
   }
   found

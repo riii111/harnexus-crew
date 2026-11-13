@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/hashset",
   "riii111/harnexus-crew/share/failure",
 }
 
