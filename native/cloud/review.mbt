@@ -74,12 +74,7 @@ async fn read_request(
   ctx : Context,
   path : String,
 ) -> @request.ReviewRequest raise @failure.TaskFailed {
-  let text = @store.read_regular_text(path) catch {
-    failed => @failure.fail(failed.user_message())
-  }
-  let json = @jsonio.parse(text) catch {
-    _ => @failure.fail("\{path} is not valid JSON")
-  }
+  let json = @store.read_json(path)
   @request.ReviewRequest::from_json(json, Cloud, ctx.probe, ctx.git)
 }
 
