@@ -110,8 +110,8 @@ test "a value other than cloud or local is refused" {
     content="refused: HARNEXUS_EXECUTION_ENV must be cloud or local, not \"x\"",
   )
   inspect(
-    detected([("CLAUDE_CODE_REMOTE", "1")]),
-    content="ask /login/.local/state/harnexus/call.sock",
+    detected([("CLAUDE_CODE_REMOTE", "1"), ("HOME", "/h")]),
+    content="ask /h/.local/state/harnexus/call.sock",
   )
 }
 
@@ -177,8 +177,7 @@ test "directories ignore a relative setting and fall back below HOME" {
 }
 
 ///|
-test "HOME falls back to the login home only when it is not set" {
-  inspect(env_of([]).home(), content="/login")
+test "an empty HOME is used as it is" {
   inspect(env_of([("HOME", "")]).home(), content="")
   inspect(env_of([("HOME", "")]).config_home(), content=".config/harnexus")
 }

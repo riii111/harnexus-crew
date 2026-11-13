@@ -13,7 +13,7 @@ test "a github.com pull request URL is linkable, with or without what a browser 
 }
 
 ///|
-test "anything else is named but never linked" {
+test "anything else is not linkable" {
   for
     url in [
       "", "#20", "20", "http://github.com/o/r/pull/7", "https://github.com/o/r/pull/0",
@@ -31,12 +31,11 @@ test "anything else is named but never linked" {
 }
 
 ///|
-test "the whitespace after a PR number is JavaScript's, which trim also removes" {
-  for unit in 0..<0x10000 {
-    if unit >= 0xD800 && unit <= 0xDFFF {
-      continue
-    }
-    let text = unit.unsafe_to_char().to_string()
-    assert_eq(is_js_space(unit), @text.js_trim(text) == "", msg="U+\{unit}")
-  }
+test "the number is read from a linkable URL" {
+  assert_eq(github_pr_number("https://github.com/o/r/pull/12"), Some("12"))
+  assert_eq(
+    github_pr_number("https://github.com/o/r/pull/12/files#x"),
+    Some("12"),
+  )
+  assert_eq(github_pr_number("https://github.com/o/r/pull/12x"), None)
 }

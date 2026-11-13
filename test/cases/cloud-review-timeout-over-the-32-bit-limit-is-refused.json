@@ -1,5 +1,5 @@
 {
-  "name": "cloud-review-timeout-over-the-32-bit-limit-stops-the-run",
+  "name": "cloud-review-timeout-over-the-32-bit-limit-is-refused",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {

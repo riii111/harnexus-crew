@@ -1,6 +1,6 @@
 ///|
 fn env_of(vars : Array[(String, String)]) -> () -> @environment.Env raise {
-  let map : Map[String, String] = Map([])
+  let map : Map[String, String] = { "HOME": "/nonexistent-home" }
   for pair in vars {
     map[pair.0] = pair.1
   }
