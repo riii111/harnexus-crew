@@ -9,7 +9,7 @@ Unixソケットでの1行の往復と、子プロセスの実行。
 | `process`  | `run_process(file, args, input, cwd~, env~, timeout_ms~, kill_grace_ms~)` |
 | `process`  | `run_command(file, args, env, timeout_ms?)`                               |
 | `process`  | `run_inherited(file, args, env)`                                          |
-| `unix`     | `errno_name`、`errno_message`、`close_fd`                                 |
+| `unix`     | `errno_name`、`close_fd`                                                  |
 
 `env` は子の環境の全体であり、親の環境を暗黙には引き継がない。
 プロセスの生存確認は `store` の `process_alive` にあり、ここでは公開しない。
@@ -29,7 +29,7 @@ Unixソケットでの1行の往復と、子プロセスの実行。
 - `ended` が `Exit` 以外のとき、子の結果は不明。出力は標準出力と標準エラーの合計で16MiBまで残し、超えた分は捨てる（子が詰まらないよう読み続ける）。
 - 終了後は、群に残ったものをSIGKILLで片づけてから返す。取り消しや失敗で戻るときも、先に終了した長が回収済みであっても群を片づける。シグナルで終わった子の `status` は1。
 - 名前だけのコマンドは、子の環境の `PATH` から探す。相対の要素（空の要素を含む）は、指定した `cwd` の下で探す。
-- 起動の失敗（実行できない、`cwd` がない）は `started` が偽。これだけが「子は走っていない」と確定する。起動後の失敗はすべて真。
+- 起動の失敗（実行できない、`cwd` がない）は `started` が偽で、`cannot run X (ENOENT)` のようにerrno名を括弧で添える。これだけが「子は走っていない」と確定する。起動後の失敗はすべて真。
 - 出力はバイト列のまま集めて最後にUTF-8へ復号する。不正な列はU+FFFDで、Node（`StringDecoder`）と同じ結果になる。
 
 `run_command`（`execFile` の挙動）:

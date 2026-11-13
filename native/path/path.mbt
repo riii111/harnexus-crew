@@ -66,6 +66,20 @@ pub fn dirname(path : String) -> String {
 }
 
 ///|
+/// Same results as Node's `path.posix.basename` without a suffix: the last component, trailing separators ignored.
+pub fn basename(path : String) -> String {
+  let mut end = path.length()
+  while end > 0 && path[end - 1] == '/' {
+    end -= 1
+  }
+  let trimmed = path[:end]
+  match trimmed.rev_find("/") {
+    None => trimmed.to_owned()
+    Some(at) => trimmed[at + 1:].to_owned()
+  }
+}
+
+///|
 /// Same results as Node's `path.posix.resolve`, with the working directory given.
 pub fn resolve(cwd~ : String, parts : Array[String]) -> String {
   let mut resolved = ""

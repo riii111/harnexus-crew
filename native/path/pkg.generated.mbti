@@ -2,6 +2,8 @@
 package "riii111/harnexus-crew/path"
 
 // Values
+pub fn basename(String) -> String
+
 pub fn dirname(String) -> String
 
 pub fn is_absolute(String) -> Bool

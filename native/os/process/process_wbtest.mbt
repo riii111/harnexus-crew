@@ -106,11 +106,11 @@ async test "E1 a missing command never started" {
     let before = @testkit.open_fds()
     assert_eq(
       outcome("/nonexistent/cmd", []),
-      "failed started=false: /nonexistent/cmd did not finish: ENOENT: no such file or directory, posix_spawn '/nonexistent/cmd'",
+      "failed started=false: cannot run /nonexistent/cmd (ENOENT)",
     )
     assert_eq(
       outcome("nonexistent-cmd", []),
-      "failed started=false: nonexistent-cmd did not finish: Executable not found in $PATH: \"nonexistent-cmd\"",
+      "failed started=false: cannot run nonexistent-cmd (ENOENT)",
     )
     assert_eq(@testkit.open_fds(), before)
   })
@@ -121,7 +121,7 @@ async test "E2 a file without execute permission never started" {
   serial(() => {
     let result = outcome(mock("noexec.sh"), [])
     assert_true(result.has_prefix("failed started=false: "))
-    assert_true(result.contains("EACCES: permission denied"))
+    assert_true(result.contains("(EACCES)"))
   })
 }
 
@@ -336,7 +336,7 @@ async test "several commands started at once keep their own results" {
       } else {
         assert_eq(
           results[i],
-          "failed started=false: /nonexistent/cmd\{i} did not finish: ENOENT: no such file or directory, posix_spawn '/nonexistent/cmd\{i}'",
+          "failed started=false: cannot run /nonexistent/cmd\{i} (ENOENT)",
         )
       }
     }

@@ -3,7 +3,7 @@
  "exitCode": 1,
  "signal": null,
  "stdout": "",
- "stderr": "harnexus-crew: codex did not finish: Executable not found in $PATH: \"codex\"\n",
+ "stderr": "harnexus-crew: cannot run codex (ENOENT)\n",
  "requests": [],
  "commands": [],
  "files": {
