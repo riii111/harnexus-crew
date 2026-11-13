@@ -32,23 +32,3 @@ fn Context::of_env(
     pr_wake: args => @prwake.call(env, args),
   }
 }
-
-///|
-/// Reads a request file as JSON.
-fn read_json(path : String) -> Json raise @failure.TaskFailed {
-  let text = @store.read_regular_text(path) catch {
-    failed => @failure.fail(failed.user_message())
-  }
-  @jsonio.parse(text) catch {
-    _ => @failure.fail("\{path} is not valid JSON")
-  }
-}
-
-///|
-/// A model or thinking the user named; an empty one counts as not named.
-fn named(value : String?) -> String? {
-  match value {
-    Some("") | None => None
-    other => other
-  }
-}

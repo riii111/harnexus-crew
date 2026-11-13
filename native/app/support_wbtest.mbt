@@ -95,7 +95,7 @@ fn env_of(pairs : Array[(String, String)]) -> @environment.Env {
 
 ///|
 fn json_text(value : Json) -> String {
-  @jsonio.stringify(value)
+  value.stringify()
 }
 
 ///|

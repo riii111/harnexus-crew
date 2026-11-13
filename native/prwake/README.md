@@ -6,7 +6,7 @@ PRの監視をpr-wakeへ渡す層。
 公開する関数・定数は `watch(args, env, which~)`、`call(env, args)`、`github_pr_number(value)`、`NOT_LINKABLE`。
 
 `call` は `session` の `name` が `["link", pr, "--take-over"]` で使う。
-返す値は、pr-wakeが標準出力に書いたJSONオブジェクトで、メンバーの順序を保つ。
+返す値は、pr-wakeが標準出力に書いたJSONオブジェクト。
 PATH上のコマンド探索 `which` は呼び出し側が注入する（`cli/registry.mbt` が `which.in_env(env)` を渡す）。
 
 ## 契約

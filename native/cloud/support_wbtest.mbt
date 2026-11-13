@@ -232,7 +232,7 @@ fn events(thread : String, answer : String) -> String {
     }),
     Json::object({ "type": Json::string("turn.completed") }),
   ]
-  .map(@jsonio.stringify)
+  .map(value => value.stringify())
   .join("\n")
 }
 
@@ -295,7 +295,7 @@ fn read_state(path : String) -> Json {
 
 ///|
 fn show(json : Json) -> String {
-  @jsonio.stringify(json)
+  json.stringify()
 }
 
 ///|

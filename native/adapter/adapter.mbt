@@ -178,7 +178,7 @@ async fn Adapter::send_line(
   line : Array[(String, Json)],
 ) -> Unit noraise {
   let framed = [("v", Json::number(PROTOCOL_VERSION.to_double())), ..line]
-  (self.deps.send)(@jsonio.stringify(object(framed)))
+  (self.deps.send)(object(framed).stringify())
 }
 
 ///|
@@ -567,7 +567,7 @@ async fn Adapter::first_position(
   }
   let position : SessionPosition = {
     session_id,
-    parent_thread_id: js_string(field(event, "parentThreadId")),
+    parent_thread_id: text_member(event, "parentThreadId").unwrap_or(""),
     baseline: { uuid: base, estimated: !linked, at: @store.now_iso(), },
     cursor: if end > 0 {
       @app.uuid_of(Some(records[end - 1]))
@@ -629,7 +629,7 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
   let fresh = @app.reviews_in(records, from~).filter(review => {
     !seen.contains(review.key)
   })
-  let parent = js_string(field(event, "parentThreadId"))
+  let parent = text_member(event, "parentThreadId").unwrap_or("")
   let entries : Array[PendingReview] = fresh.map(review => {
     parent_thread_id: parent,
     session_id: Some(session_id),
@@ -767,7 +767,7 @@ async fn Adapter::ask_reviewer(
     self.end_turn(turn_id, None, failed=Some(@app.REVIEW_ASK_UNKNOWN))
   } else {
     let reason = match sent.field("reason") {
-      Some(reason) => ": \{js_string(Some(reason))}"
+      Some(reason) => ": \{@jsonio.as_text(reason)}"
       None => ""
     }
     self.end_turn(
@@ -780,8 +780,8 @@ async fn Adapter::ask_reviewer(
 
 ///|
 async fn Adapter::take_turn(self : Adapter, event : Json) -> Unit noraise {
-  let turn_id = js_string(field(event, "turnId"))
-  let conversation = js_string(field(event, "conversationId"))
+  let turn_id = text_member(event, "turnId").unwrap_or("")
+  let conversation = text_member(event, "conversationId").unwrap_or("")
   if !(self.mode is Write) {
     self.end_turn(
       turn_id,
@@ -808,7 +808,7 @@ async fn Adapter::take_turn(self : Adapter, event : Json) -> Unit noraise {
   }
   self.ask_reviewer(
     turn_id,
-    js_string(field(event, "threadId")),
+    text_member(event, "threadId").unwrap_or(""),
     conversation,
     text_member(event, "text").unwrap_or(""),
   )
@@ -827,8 +827,8 @@ fn Adapter::opening_session(
 
 ///|
 async fn Adapter::take_bound(self : Adapter, event : Json) -> Unit noraise {
-  let reviewer = js_string(field(event, "conversationId"))
-  let thread_id = js_string(field(event, "threadId"))
+  let reviewer = text_member(event, "conversationId").unwrap_or("")
+  let thread_id = text_member(event, "threadId").unwrap_or("")
   let chats = self.deps.store.chats() catch { _ => return }
   if chats.get(reviewer) is Some(chat) && chat.thread_id == thread_id {
     return
@@ -973,7 +973,7 @@ async fn Adapter::answer_history(self : Adapter, line : Json) -> Unit noraise {
 /// Hands a response to the request waiting for it, which runs as the line is read so a later end of input cannot overtake it.
 fn Adapter::answer(self : Adapter, line : Json) -> Unit {
   guard line is Object(members) else { return }
-  let id = js_string(members.get("id"))
+  guard members.get("id") is Some(String(id)) else { return }
   guard self.asks.get(id) is Some(asked) else { return }
   self.asks.remove(id)
   let outcome = text_member(line, "outcome").unwrap_or("unknown")

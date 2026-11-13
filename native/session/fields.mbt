@@ -12,15 +12,6 @@ fn truthy(value : Json) -> Bool {
 }
 
 ///|
-/// A member of a record, Null when the record has none or is not an object.
-fn field(record : Json, key : String) -> Json {
-  match record {
-    Object(members) => value_of(members, key)
-    _ => Json::null()
-  }
-}
-
-///|
 fn value_of(members : Map[String, Json], key : String) -> Json {
   members.get(key).unwrap_or(Json::null())
 }
@@ -56,20 +47,11 @@ fn json_equal(a : Json, b : Json) -> Bool {
 }
 
 ///|
-/// A string as it is, any other value as JSON.
-fn as_text(value : Json) -> String {
-  match value {
-    String(text) => text
-    other => @jsonio.stringify(other)
-  }
-}
-
-///|
 /// The model and thinking a record names, null where it names none.
 fn settings_of(record : Json) -> Json {
   Json::object({
-    "model": field(record, "model"),
-    "effort": field(record, "effort"),
+    "model": @jsonio.field(record, "model"),
+    "effort": @jsonio.field(record, "effort"),
   })
 }
 
@@ -77,13 +59,13 @@ fn settings_of(record : Json) -> Json {
 /// What a thread was asked to run on and ran on.
 /// A send that named neither leaves the thread's settings as they were, so it has none.
 fn sent_settings(sent : Json) -> Json {
-  let requested = settings_of(field(sent, "expected"))
-  let asked = !(field(requested, "model") is Null) ||
-    !(field(requested, "effort") is Null)
-  if field(sent, "tool") is String("create_thread") || asked {
+  let requested = settings_of(@jsonio.field(sent, "expected"))
+  let asked = !(@jsonio.field(requested, "model") is Null) ||
+    !(@jsonio.field(requested, "effort") is Null)
+  if @jsonio.field(sent, "tool") is String("create_thread") || asked {
     Json::object({
       "requested": requested,
-      "actual": settings_of(field(sent, "actual")),
+      "actual": settings_of(@jsonio.field(sent, "actual")),
     })
   } else {
     Json::null()
@@ -93,10 +75,10 @@ fn sent_settings(sent : Json) -> Json {
 ///|
 /// The title of a thread: the task's display name when it has one, else its ID.
 fn thread_title(kind : String, request : Json) -> String {
-  let name = field(request, "displayName")
+  let name = @jsonio.field(request, "displayName")
   if truthy(name) {
-    "\{kind}｜\{as_text(name)}"
+    "\{kind}｜\{@jsonio.as_text(name)}"
   } else {
-    "\{kind} \{as_text(field(request, "taskId"))}"
+    "\{kind} \{@jsonio.as_text(@jsonio.field(request, "taskId"))}"
   }
 }

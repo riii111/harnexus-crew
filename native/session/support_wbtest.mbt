@@ -13,7 +13,7 @@ fn temp_base() -> String {
 struct Rig {
   root : String
   /// The app's answers, taken in order; a call past the last gets `not_sent`.
-  answers : Array[@call.CallAnswer]
+  answers : Array[@app.CallAnswer]
   /// Every call made to the app: caller, tool and arguments.
   calls : Array[(String, String, Map[String, Json])]
   /// Runs before a record is written, with its path and whether it must not exist yet; it may write files or fail.
@@ -52,7 +52,7 @@ async fn remove_tree(directory : String) -> Unit {
 /// Runs `body` with a scratch root that is removed afterwards.
 async fn with_rig(
   name : String,
-  answers : Array[@call.CallAnswer],
+  answers : Array[@app.CallAnswer],
   body : async (Rig) -> Unit,
 ) -> Unit {
   let made = "\{temp_base()}/hxs-\{@testkit.pid()}-\{name}-\{@store.new_uuid()[:8]}"
@@ -111,7 +111,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
     call: (caller, tool, args) => {
       self.calls.push((caller, tool, args))
       if self.answers.is_empty() {
-        @call.CallAnswer::failed(NotSent, error="no answer planned")
+        @app.CallAnswer::failed(NotSent, error="no answer planned")
       } else {
         self.answers.remove(0)
       }
@@ -208,8 +208,8 @@ async fn failure_of(
 }
 
 ///|
-fn done(thread : String, model? : String, effort? : String) -> @call.CallAnswer {
-  @call.CallAnswer::new(Done, [
+fn done(thread : String, model? : String, effort? : String) -> @app.CallAnswer {
+  @app.CallAnswer::new(Done, [
     ("threadId", Json::string(thread)),
     ("model", Json::string(model.unwrap_or("claude-sonnet-5-5"))),
     ("effort", Json::string(effort.unwrap_or("high"))),
@@ -218,7 +218,7 @@ fn done(thread : String, model? : String, effort? : String) -> @call.CallAnswer 
 
 ///|
 fn show(json : Json) -> String {
-  @jsonio.stringify(json)
+  json.stringify()
 }
 
 ///|
@@ -320,4 +320,9 @@ fn Rig::review_cloud(
   _ : Rig,
 ) -> async (@args.ReviewArgs) -> Json raise @failure.TaskFailed {
   _ => @failure.fail("the cloud review was asked for")
+}
+
+///|
+fn bridge_answer(value : Json) -> @app.CallAnswer {
+  @app.CallAnswer::of_json(value).unwrap()
 }

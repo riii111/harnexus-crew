@@ -1,5 +1,5 @@
 {
-  "name": "cloud-review-worker-chat-id-is-array",
+  "name": "cloud-review-worker-chat-id-null-is-absent",
   "kind": "command",
   "argv": ["review", "--request", "review.json"],
   "env": {
@@ -11,7 +11,7 @@
   },
   "files": {
     "config/harnexus/task.json": "{\"templates\":{\"reviewer\":\"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}",
-    "work/review.json": "{\"taskId\":\"example\",\"workerAI\":\"Claude\",\"checkout\":\"{{home}}/repo\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null,\"workerChatId\":[1,null,\"a\"]}"
+    "work/review.json": "{\"taskId\":\"example\",\"workerAI\":\"Claude\",\"checkout\":\"{{home}}/repo\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null,\"workerChatId\":null}"
   },
   "git": [
     ["init", "-q", "{{home}}/repo"],

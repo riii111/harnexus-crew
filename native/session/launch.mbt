@@ -15,7 +15,7 @@ async fn launch_in(
 ) -> Json raise @failure.TaskFailed {
   @environment.refuse_in_cloud(ctx.env, "launch")
   let request = @request.LaunchRequest::from_json(
-    read_json(args.request),
+    @store.read_json(args.request),
     ctx.probe,
   )
   let data = request.to_json()
@@ -23,7 +23,7 @@ async fn launch_in(
   if session.state is Some(state) {
     if !same_task(value_of(state, "request"), data) {
       @failure.fail(
-        "\{request.task_id} already has worker \{as_text(value_of(state, "threadId"))} launched with a different request",
+        "\{request.task_id} already has worker \{@jsonio.as_text(value_of(state, "threadId"))} launched with a different request",
       )
     }
     return Json::object({
@@ -45,7 +45,7 @@ async fn launch_in(
   }
   let fields = request.worker_fields(ctx.probe)
   let prompt = (ctx.prompt)(Worker, fields)
-  let thinking = match named(args.thinking) {
+  let thinking = match @text.nonempty(args.thinking) {
     Some(thinking) => Some(thinking)
     None => ctx.host.thinking.map(thinking => thinking.worker)
   }
@@ -53,7 +53,9 @@ async fn launch_in(
     "prompt": Json::string(prompt),
     "target": Json::object(target),
     "title": Json::string(thread_title("Impl", data)),
-    "model": Json::string(named(args.model).unwrap_or("claude-sonnet-5-5")),
+    "model": Json::string(
+      @text.nonempty(args.model).unwrap_or("claude-sonnet-5-5"),
+    ),
   }
   if thinking is Some(thinking) {
     sent["thinking"] = Json::string(thinking)
@@ -89,7 +91,7 @@ fn launch_session(
       "kind": Json::string("launch"),
       // The session is kept per task, so its request names the task before anything was sent.
       "taskId": Json::string(request.task_id),
-      "workerThreadId": field(state_json(state), "threadId"),
+      "workerThreadId": @jsonio.field(state_json(state), "threadId"),
     },
   )
 }

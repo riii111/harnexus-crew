@@ -90,3 +90,12 @@ pub fn excerpt(text : String) -> String {
     trimmed[:EXCERPT_UNITS].to_owned()
   }
 }
+
+///|
+/// An empty text reads as none given.
+pub fn nonempty(value : String?) -> String? {
+  match value {
+    Some("") | None => None
+    other => other
+  }
+}

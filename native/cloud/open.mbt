@@ -48,7 +48,7 @@ pub async fn open_chat(
     "never resend; check the app"
   }
   @failure.fail(
-    "cloud_open \{answer.outcome} (\{again}): \{as_text(shown(answer))}",
+    "cloud_open \{answer.outcome} (\{again}): \{@jsonio.as_text(shown(answer))}",
   )
 }
 
@@ -61,7 +61,7 @@ fn add(sent : Map[String, Json], key : String, value : String?) -> Unit {
 
 ///|
 /// What an answer says is wrong: its message, else its error, else the answer itself.
-fn shown(answer : @call.CallAnswer) -> Json {
+fn shown(answer : @app.CallAnswer) -> Json {
   for key in ["message", "error"] {
     match answer.fields.get(key) {
       Some(Null) | None => ()

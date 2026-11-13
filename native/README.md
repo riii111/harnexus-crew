@@ -50,8 +50,7 @@ TS版は撤去済みで、期待値は固定したまま使う。契約を変え
 | パッケージ        | 内容                                                             |
 | ----------------- | ---------------------------------------------------------------- |
 | `shared/failure`  | 利用者へメッセージを返す失敗 `TaskFailed`                        |
-| `shared/jsonio`   | JSONの読み書き、未知フィールドを残す `Fields`                    |
-| `shared/call`     | 呼び出し結果 `CallOutcome`、応答 `CallAnswer`                    |
+| `shared/jsonio`   | JSONの読み込み（対のないサロゲートをU+FFFDにする）と小さな補助   |
 | `shared/boundary` | ソケット・子プロセスの結果型と失敗型                             |
 | `shared/run`      | コマンド実行結果 `CommandRun` と、出力して終了する `finish`      |
 | `sys`             | 最小のC連携（OS種別、fdへの全量書き込み）                        |
@@ -82,16 +81,15 @@ Cのソースは、それを使うパッケージの `native-stub` に置く。
 
 - 呼び出し側が失敗として処理するものは `raise` する。利用者へそのまま見せる失敗は `TaskFailed`、JSONの形の誤りは `JsonError`。
 - 失敗の種類を呼び出し側が分岐する境界は、専用のエラー型を持つ。`LineExchangeFailed.connected` が偽なら未送信、真なら結果不明。`ProcessRunFailed.started` が偽のときだけ、プロセスが実行されていないと確定する。
-- 呼び出しの結果（`CallOutcome`）や子プロセスの終わり方（`ProcessEnd`）は失敗ではなく値で返す。結果の種類を増やすと、書き漏らした `match` がコンパイルエラーになる。
+- 呼び出しの結果（`app` の `CallAnswer`）や子プロセスの終わり方（`ProcessEnd`）は失敗ではなく値で返す。
 
 JSONの境界:
 
-- 内部は型で持つ。外部のJSONは `Fields` で、既知のメンバーを `take_*` で取り出して型へ変換する。
-- 取り出した後に残るもの（`rest`）が未知の部分。要求・設定のように現行が拒否する境界は `reject_unknown` で拒否する。ブリッジの応答や保存状態のように自由な境界は、`rest` を保持し `object_with_extra` で書き戻して、未知のフィールドを落とさない。
-- 欠けているメンバーとnullは区別する。nullの意味は境界ごとに決めるため、型付きの取り出しはnullを誤った型として拒否し、`take` は `Some(Null)` を返す。
-- JSONの読み込みと文字列化は `jsonio` の自前の実装で、標準の `@json.parse` / `stringify` は使わない（数値の原表記の再出力と、対のないサロゲートの拒否が、JSと異なるため）。読み込んだ値の文字列化は、JSの `JSON.parse` の後に `JSON.stringify` を通した結果と同じにする。数値はdoubleを通し（9007199254740993は9007199254740992、1e400はnull、-0は0）、配列の添字にあたるキーは昇順で先に、他のキーは追加順に並べる。重複キーは最後の値を採る。`jsonio` の試験が、Bun 1.4.4の結果との対応表で固定している。
-- 対のないサロゲートのエスケープ（`\ud800`）は、JSと同じく受理し、書き戻すときも同じエスケープで出す。MoonBitの `String` はUTF-16であり、対のないサロゲートも保持できるが、構築できるのは `jsonio` のC連携（`string_from_units`）だけである。保持した文字列の長さ・比較・ハッシュ・連結は通常の文字列と同じ。JSON以外へ出す文字列（標準出力、ハッシュの入力など）は `lossy_text` を通す。UTF-8へ符号化したときにJSが対のないサロゲートをU+FFFDにするのと同じ結果になる。
-- `CallAnswer` は結果名を書かれたままの文字列で持つ。`CallOutcome` が知らない名前は未送信として扱わない。
+- 内部は型で持つ。外部のJSONは `Map` を直接読み、既知のメンバーを型へ変換する。要求・設定のように現行が拒否する境界は、未知のメンバーを拒否する。ブリッジの応答や保存状態のように自由な境界は、未知のメンバーを残して書き戻す。
+- 欠けているメンバーとnullは区別する。nullの意味は境界ごとに決める。
+- JSONの読み込みは `@jsonio.parse` で、標準の `@json.parse` の前に、対のないサロゲートのエスケープ（`\ud800`）を `\ufffd` に置き換える。標準の読み込みは、そのエスケープ1つで文書全体を拒否するが、JSの `JSON.stringify` はそれを書くため。読み込んだ文字列はすべてUTF-8へ符号化できる。
+- 文字列化は標準の `stringify` を使う。数値の表記とメンバーの順序は契約にしない。保存する状態は1段1空白で字下げする。
+- `CallAnswer` は結果名を書かれたままの文字列で持つ。未送信と扱うのは `not_sent`・`rejected`・`invalid`・`unsupported` だけで、知らない名前は未送信として扱わない。
 
 `shared/run` の `finish` は、標準出力、標準エラーの順に書いてから終了コードで終わる。
 書き込めなかった結果は成功として返さず、終了コード1にする。
@@ -125,7 +123,7 @@ JSONや文字列から型への変換は副作用を持たない。
 - `request` の注入は `FileProbe`（存在・ディレクトリ判定・実パス）と `GitRunner`（`shared/boundary` の `CommandOutput` を返す）。非同期の関数型なので、同期の関数も渡せる。実機の分は `FileProbe::of_machine` と `Git::of_env` が作る。Gitは安全フラグ付きの `git -C <checkout>` で、`GIT_NO_LAZY_FETCH=1` を渡す。
 - `Env::state_root` が `store::state_directory` の `root` になる。
 - 保存する要求は、受け取ったメンバーを保つ。`startingBranch` や `displayName` のnullと欠落は区別し、`prUrl` は欠落でもnullで保存する。メンバーの順序は保存しない。
-- セッションの保存先は、`LaunchRequest::session_key` と `ReviewRequest::session_key` が返す文字列のSHA256で決まる。JSのUTF-8符号化に合わせて `lossy_text` を通してある。
+- セッションの保存先は、`LaunchRequest::session_key` と `ReviewRequest::session_key` が返す文字列のSHA256で決まる。
 - 実行環境の判定は2段階。`detect` が環境変数だけで決まる結果か、ソケットへの接続を試す相手を返し、接続できたかどうかで `Detected::socket_accepted` か `Detected::undetermined` を選ぶ。
 - `String` の `<` と `compare` は辞書順ではない。JSの並び替えと同じ順序が要るときは `@text.compare_utf16` を使う。
 
@@ -152,7 +150,7 @@ md4cのフラグは、tables・strikethrough・tasklistsに、NOHTMLBLOCKSとNOI
 
 ## 所有権の境界
 
-- JSONの木: `Json` を受け取った側は変更しない。`Fields::from_json` が複製してから取り出す。
+- JSONの木: `Json` を受け取った側は変更しない。
 - fd: 作った関数が呼び出し側へ渡すか、同じ関数の中で閉じる。失敗・キャンセル・正常終了のどれでも、渡さなかったfdは作った側が閉じる。
 - 子プロセス: 起動した境界が、結果を返すまでプロセス群の終了を保証する。結果を返した後に残るプロセスはない。
 - Cへ渡す領域: `#borrow` で借りるだけで、Cは保持しない。Cが返す値は整数（fd、errno）にとどめ、確保した領域を返さない。

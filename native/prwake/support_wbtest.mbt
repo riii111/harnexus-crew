@@ -150,8 +150,3 @@ async fn failure_of(
     @failure.TaskFailed(message) => message
   }
 }
-
-///|
-fn text_of(printed : Map[String, Json]) -> String {
-  @jsonio.stringify(Json::object(printed))
-}

@@ -68,7 +68,7 @@ async fn execute(
       require_home(env)
     }
     let result = run_command(command, env)
-    { code: 0, stdout: @jsonio.stringify(result) + "\n", stderr: "", }
+    { code: 0, stdout: result.stringify() + "\n", stderr: "", }
   } catch {
     @failure.TaskFailed(message) => failure_run(message)
     other => raise other

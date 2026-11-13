@@ -3,9 +3,9 @@ package "riii111/harnexus-crew/session"
 
 import {
   "moonbitlang/core/json",
+  "riii111/harnexus-crew/app",
   "riii111/harnexus-crew/args",
   "riii111/harnexus-crew/environment",
-  "riii111/harnexus-crew/shared/call",
   "riii111/harnexus-crew/shared/failure",
 }
 
@@ -26,7 +26,7 @@ pub async fn state_request(String, @environment.Env, which~ : (String) -> String
 
 // Types and methods
 pub(all) struct Ports {
-  call : async (String, String, Map[String, @json.Json]) -> @call.CallAnswer noraise
+  call : async (String, String, Map[String, @json.Json]) -> @app.CallAnswer noraise
   save : (String, @json.Json, Bool) -> Unit raise @failure.TaskFailed
 }
 

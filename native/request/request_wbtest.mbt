@@ -42,7 +42,7 @@ fn parsed(text : String) -> Json raise {
 async fn launch(text : String) -> String {
   try {
     let request = LaunchRequest::from_json(parsed(text), probe())
-    "ok " + @jsonio.stringify(request.to_json())
+    "ok " + request.to_json().stringify()
   } catch {
     @failure.TaskFailed(message) => "refused: " + message
     _ => "not JSON"
@@ -85,7 +85,7 @@ async fn review(text : String, scope : ReviewScope, script : Script) -> String {
   try {
     let git = Git::new(script.runner(), env_of([("HOME", "/h")]))
     let request = ReviewRequest::from_json(parsed(text), scope, probe(), git)
-    "ok " + @jsonio.stringify(request.to_json())
+    "ok " + request.to_json().stringify()
   } catch {
     @failure.TaskFailed(message) => "refused: " + message
     _ => "not JSON"
@@ -277,10 +277,32 @@ async test "a pull request URL is any host's pull request or null" {
 }
 
 ///|
-async test "the worker's chat ID is kept as given for the command to compare" {
-  let text = REVIEW.replace_all(old="}", new=",\"workerChatId\":7}")
-  let result = review(text, Worktrees("/fx/wt"), toplevel("/fx/wt/ab12/repo"))
-  inspect(result.contains("\"workerChatId\":7"), content="true")
+async test "the worker's chat ID is a string, and null reads as none" {
+  let with_chat = fn(value : String) {
+    REVIEW.replace_all(old="}", new=",\"workerChatId\":\{value}}")
+  }
+  let kept = review(
+    with_chat("\"w-1\""),
+    Worktrees("/fx/wt"),
+    toplevel("/fx/wt/ab12/repo"),
+  )
+  inspect(kept.contains("\"workerChatId\":\"w-1\""), content="true")
+  let null = review(
+    with_chat("null"),
+    Worktrees("/fx/wt"),
+    toplevel("/fx/wt/ab12/repo"),
+  )
+  inspect(null.contains("workerChatId"), content="false")
+  for value in ["7", "true", "[\"w\"]", "{}"] {
+    assert_eq(
+      review(
+        with_chat(value),
+        Worktrees("/fx/wt"),
+        toplevel("/fx/wt/ab12/repo"),
+      ),
+      "refused: workerChatId must be a string or null",
+    )
+  }
 }
 
 ///|
@@ -435,7 +457,7 @@ async test "the saved candidate holds the request and its commits" {
   )
   let found = request.with_worker_chat_id("w-1").candidate(None, false, git)
   inspect(
-    @jsonio.stringify(found.to_json()),
+    found.to_json().stringify(),
     content="{\"taskId\":\"T-1\",\"workerAI\":\"Codex\",\"checkout\":\"/fx/wt/ab12/repo\",\"baseBranch\":\"main\",\"documentRefs\":[\"https://example.com/t\"],\"prUrl\":null,\"projectId\":\"p\",\"workerChatId\":\"w-1\",\"head\":\"h1\",\"base\":\"b1\"}",
   )
 }

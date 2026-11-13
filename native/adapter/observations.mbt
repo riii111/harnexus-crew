@@ -357,7 +357,5 @@ fn Observations::note(
   entry : Array[(String, Json)],
 ) -> Unit raise @failure.TaskFailed {
   let line = [("at", Json::string(@store.now_iso())), ..entry]
-  io(() => {
-    @store.append_line(self.journal_path(), @jsonio.stringify(object(line)))
-  })
+  io(() => @store.append_line(self.journal_path(), object(line).stringify()))
 }

@@ -16,7 +16,7 @@ fn failure_run(message : String) -> @run.CommandRun {
 
 ///|
 fn printed(value : Json) -> @run.CommandRun {
-  { code: 0, stdout: @jsonio.stringify(value) + "\n", stderr: "", }
+  { code: 0, stdout: value.stringify() + "\n", stderr: "", }
 }
 
 ///|
@@ -37,14 +37,6 @@ fn is_adapter_id(text : String) -> Bool {
     code == 46 ||
     code == 45
   })
-}
-
-///|
-fn read_json(path : String) -> Json raise @failure.TaskFailed {
-  let text = io(() => @store.read_regular_text(path))
-  @jsonio.parse(text) catch {
-    _ => @failure.fail("\{path} is not valid JSON")
-  }
 }
 
 ///|
@@ -109,7 +101,7 @@ fn import_file(
   file : String,
   read_env : () -> @environment.Env raise,
 ) -> @run.CommandRun raise {
-  let value = read_json(file) catch {
+  let value = @store.read_json(file) catch {
     @failure.TaskFailed(message) => return failure_run(message)
   }
   let env = read_env()

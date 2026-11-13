@@ -68,7 +68,7 @@ async fn name_in(
   // A rename the app did not apply leaves the PR watched, which the result says rather than failing.
   if !renamed {
     let applied = match answer {
-      Some(answer) => @jsonio.stringify(answer.to_json())
+      Some(answer) => answer.to_json().stringify()
       None => "null"
     }
     shown["renameError"] = Json::string(

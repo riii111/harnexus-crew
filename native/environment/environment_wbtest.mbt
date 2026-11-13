@@ -12,7 +12,7 @@ fn env_of(pairs : Array[(String, String)]) -> Env {
 fn detected(pairs : Array[(String, String)]) -> String {
   try {
     match detect(env_of(pairs)) {
-      Settled(found) => @jsonio.stringify(found.to_json())
+      Settled(found) => found.to_json().stringify()
       AskSocket(path) => "ask \{path}"
       NothingToAsk => "nothing to ask"
     }
@@ -94,11 +94,11 @@ test "only a socket that answers makes the command local" {
   )
   inspect(detected([("HARNEXUS_CALL_SOCKET", "rel")]), content="nothing to ask")
   inspect(
-    @jsonio.stringify(Detected::socket_accepted().to_json()),
+    Detected::socket_accepted().to_json().stringify(),
     content="{\"environment\":\"local\",\"source\":\"harnexus-socket\",\"app\":\"codex\",\"note\":\"the harnexus call socket accepted a connection\"}",
   )
   inspect(
-    @jsonio.stringify(Detected::undetermined().to_json()),
+    Detected::undetermined().to_json().stringify(),
     content="{\"environment\":\"unknown\",\"source\":\"none\",\"note\":\"no HARNEXUS_EXECUTION_ENV, no CODEX_ENVIRONMENT_ID, no CLAUDE_CODE_REMOTE=true and no harnexus call socket; set HARNEXUS_EXECUTION_ENV=cloud|local\"}",
   )
 }

@@ -34,7 +34,7 @@ async fn review_in(
   let worker = @request.caller_id(ctx.env)
   let request = match request.worker_chat_id {
     None => request.with_worker_chat_id(worker)
-    Some(String(id)) if id == worker => request
+    Some(id) if id == worker => request
     Some(_) =>
       @failure.fail(
         "workerChatId in the request must equal \{ctx.host.thread_variable}",
@@ -43,7 +43,7 @@ async fn review_in(
   let session = review_session(ctx.env, ctx.ports, request, worker)
   session.check_idle()
   let state = state_json(session.state)
-  let recorded = field(state, "candidate")
+  let recorded = @jsonio.field(state, "candidate")
   if truthy(recorded) && !(recorded is Object(_)) {
     @failure.fail("\{session.state_path} holds an invalid candidate")
   }
@@ -55,9 +55,9 @@ async fn review_in(
   let data = candidate.to_json()
   if previous is Some(previous) {
     check_kept(Json::object(previous), data, app_session_keys)
-    if json_equal(value_of(previous, "head"), field(data, "head")) {
+    if json_equal(value_of(previous, "head"), @jsonio.field(data, "head")) {
       @failure.fail(
-        "head \{as_text(field(data, "head"))} was already sent to reviewer \{as_text(field(state, "reviewer"))}; wait for its result",
+        "head \{@jsonio.as_text(@jsonio.field(data, "head"))} was already sent to reviewer \{@jsonio.as_text(@jsonio.field(state, "reviewer"))}; wait for its result",
       )
     }
   }
@@ -78,7 +78,7 @@ async fn review_in(
     "send_message_to_thread"
   } else {
     let project = (ctx.review_project)(worker)
-    let thinking = match named(args.thinking) {
+    let thinking = match @text.nonempty(args.thinking) {
       Some(thinking) => Some(thinking)
       None => ctx.host.thinking.map(thinking => thinking.reviewer)
     }
@@ -88,7 +88,9 @@ async fn review_in(
       "environment": Json::object({ "type": Json::string("local") }),
     })
     sent["title"] = Json::string(thread_title("Review", data))
-    sent["model"] = Json::string(named(args.model).unwrap_or("gpt-6.1-sol"))
+    sent["model"] = Json::string(
+      @text.nonempty(args.model).unwrap_or("gpt-6.1-sol"),
+    )
     if thinking is Some(thinking) {
       sent["thinking"] = Json::string(thinking)
     }
@@ -96,7 +98,7 @@ async fn review_in(
   }
   session.send(worker, tool, sent, [
     ("candidate", data),
-    ("workspace", field(data, "checkout")),
+    ("workspace", @jsonio.field(data, "checkout")),
   ])
 }
 
@@ -107,7 +109,7 @@ async fn review_request_of(
   path : String,
 ) -> @request.ReviewRequest raise @failure.TaskFailed {
   @request.ReviewRequest::from_json(
-    read_json(path),
+    @store.read_json(path),
     Worktrees(ctx.host.worktrees),
     ctx.probe,
     ctx.git,
@@ -136,14 +138,14 @@ fn review_session(
         @failure.fail("review session must keep the same reviewer")
       }
       let candidate = value_of(pending, "candidate")
-      if field(candidate, "workerChatId") is String(id) && id == thread {
+      if @jsonio.field(candidate, "workerChatId") is String(id) && id == thread {
         @failure.fail("a worker cannot review itself")
       }
       let state_json = state_json(state)
       let settings = [
         sent_settings(sent),
-        field(state_json, "settings"),
-        sent_settings(field(state_json, "sent")),
+        @jsonio.field(state_json, "settings"),
+        sent_settings(@jsonio.field(state_json, "sent")),
       ]
       {
         "reviewer": Json::string(thread),
@@ -153,19 +155,22 @@ fn review_session(
       }
     },
     summarize=(state, pending) => {
-      let candidate = field(state_json(state), "candidate")
+      let candidate = @jsonio.field(state_json(state), "candidate")
       {
         "kind": Json::string("review"),
-        "reviewerThreadId": field(state_json(state), "reviewer"),
+        "reviewerThreadId": @jsonio.field(state_json(state), "reviewer"),
         "workerThreadId": first_set([
-          field(candidate, "workerChatId"),
+          @jsonio.field(candidate, "workerChatId"),
           Json::string(worker),
         ]),
-        "base": field(candidate, "base"),
-        "head": field(candidate, "head"),
-        "baseBranch": field(candidate, "baseBranch"),
-        "prUrl": field(candidate, "prUrl"),
-        "pendingHead": field(field(state_json(pending), "candidate"), "head"),
+        "base": @jsonio.field(candidate, "base"),
+        "head": @jsonio.field(candidate, "head"),
+        "baseBranch": @jsonio.field(candidate, "baseBranch"),
+        "prUrl": @jsonio.field(candidate, "prUrl"),
+        "pendingHead": @jsonio.field(
+          @jsonio.field(state_json(pending), "candidate"),
+          "head",
+        ),
       }
     },
   )
@@ -206,9 +211,9 @@ pub fn check_kept(
 ///|
 /// A member of a request as the session compares it: the checkout by its real path.
 fn session_value(request : Json, key : String) -> Json {
-  let value = field(request, key)
+  let value = @jsonio.field(request, key)
   if key == "checkout" && truthy(value) {
-    Json::string(@store.real_path_or_self(as_text(value)))
+    Json::string(@store.real_path_or_self(@jsonio.as_text(value)))
   } else {
     value
   }

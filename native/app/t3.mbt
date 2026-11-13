@@ -11,7 +11,7 @@ async fn call_t3(
   deps : T3Deps,
   tool : String,
   args : Map[String, Json],
-) -> @call.CallAnswer noraise {
+) -> CallAnswer noraise {
   match tool {
     "create_thread" => start_thread(deps, args)
     "send_message_to_thread" => send_message(deps, args)
@@ -42,7 +42,7 @@ const NO_THINKING : String = "T3 Code's t3 CLI cannot set a thinking level; leav
 async fn start_thread(
   deps : T3Deps,
   args : Map[String, Json],
-) -> @call.CallAnswer noraise {
+) -> CallAnswer noraise {
   if args.get("thinking") is Some(_) {
     return unsupported(NO_THINKING)
   }
@@ -80,7 +80,7 @@ async fn start_thread(
       "t3 thread start answered without a thread: \{@text.excerpt(stdout)}",
     )
   }
-  @call.CallAnswer::new(Done, [
+  CallAnswer::new(Done, [
     ("threadId", Json::string(thread_id)),
     ("model", model_of(deps, thread_id)),
     ("effort", Json::null()),
@@ -91,7 +91,7 @@ async fn start_thread(
 async fn send_message(
   deps : T3Deps,
   args : Map[String, Json],
-) -> @call.CallAnswer noraise {
+) -> CallAnswer noraise {
   // A send cannot change the thread's settings, so a model or thinking for it is refused rather than dropped.
   if args.get("thinking") is Some(_) {
     return unsupported(NO_THINKING)
@@ -112,8 +112,7 @@ async fn send_message(
       prompt,
       SEND_TIMEOUT_MS,
     ) {
-    Ran(_) =>
-      @call.CallAnswer::new(Done, [("threadId", Json::string(thread_id))])
+    Ran(_) => CallAnswer::new(Done, [("threadId", Json::string(thread_id))])
     Refused(answer) => answer
   }
 }
@@ -158,7 +157,7 @@ async fn model_of(deps : T3Deps, thread_id : String) -> Json noraise {
 ///|
 priv enum Ran {
   Ran(String)
-  Refused(@call.CallAnswer)
+  Refused(CallAnswer)
 }
 
 ///|

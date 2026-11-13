@@ -31,7 +31,7 @@ pub fn save_json(
   exclusive~ : Bool,
 ) -> Unit raise @failure.TaskFailed {
   io(() => prepare_directory(@path.dirname(path)))
-  let content = stringify_indented(data)
+  let content = data.stringify(indent=1)
   if !exclusive {
     io(() => write_atomic(path, content))
     return
@@ -55,6 +55,15 @@ pub fn load(path : String) -> Json raise @failure.TaskFailed {
 }
 
 ///|
+/// Reads a regular JSON file, such as a request the user wrote.
+pub fn read_json(path : String) -> Json raise @failure.TaskFailed {
+  let text = io(() => read_regular_text(path))
+  @jsonio.parse(text) catch {
+    _ => @failure.fail("\{path} is not valid JSON")
+  }
+}
+
+///|
 /// Removes a record; one that is already missing counts as removed.
 pub fn remove_record(path : String) -> Unit raise @failure.TaskFailed {
   io(() => remove_file(path))
@@ -69,24 +78,12 @@ fn[T] io(work : () -> T raise FileFailed) -> T raise @failure.TaskFailed {
 }
 
 ///|
-/// A record is a non-empty JSON object; an absent or empty value reads as none.
+/// A record is a non-empty JSON object; null or an empty object reads as none.
 fn as_record(value : Json, path : String) -> Json? raise @failure.TaskFailed {
   match value {
+    Null => None
     Object(members) if members.is_empty() => None
     Object(_) => Some(value)
-    _ if not_truthy(value) => None
     _ => @failure.fail("\{path} does not hold a JSON object")
-  }
-}
-
-///|
-/// The values Python and JS count as false, which decide whether state recorded by either version is present.
-fn not_truthy(value : Json) -> Bool {
-  match value {
-    Null | False => true
-    Number(number, ..) => number == 0.0
-    String(text) => text.length() == 0
-    Array(items) => items.is_empty()
-    _ => false
   }
 }

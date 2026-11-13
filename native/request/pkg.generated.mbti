@@ -84,7 +84,7 @@ pub struct ReviewRequest {
   document_refs : Array[String]
   display_name : OptionalText
   pr_url : String?
-  worker_chat_id : @json.Json?
+  worker_chat_id : String?
 }
 pub async fn ReviewRequest::candidate(Self, Map[String, @json.Json]?, Bool, Git) -> ReviewCandidate raise @failure.TaskFailed
 pub async fn ReviewRequest::from_json(@json.Json, ReviewScope, FileProbe, Git) -> Self raise @failure.TaskFailed

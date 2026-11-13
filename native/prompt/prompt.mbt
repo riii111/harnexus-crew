@@ -105,7 +105,7 @@ fn name_or_null(path : String?) -> Json {
 
 ///|
 fn object(members : Array[(String, Json)]) -> Json {
-  @jsonio.object_with_extra(members, {})
+  Json::object(Map::from_array(members))
 }
 
 ///|

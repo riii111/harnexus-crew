@@ -64,7 +64,7 @@ Cloud・T3 Codeでは何も送らずに拒否する。
 
 ## 入力の扱い
 
-- 非文字列の `workerChatId`（null・数値・配列など）は、プロンプトにはJSの `String(値)` の形で入れ、保存する候補には入力のまま残す。
+- `workerChatId` は文字列か欠落のどちらか。nullは欠落と同じに扱い、数値・配列などは拒否する。
 - カレントディレクトリを読めないとき、`cloud` は `cannot read the current directory` で失敗する。
 
 ## 試験

@@ -14,10 +14,7 @@ test "save_json writes one space of indent and load reads it back" {
       read_text(path),
       "{\n \"a\": [\n  1,\n  {\n   \"b\": null\n  }\n ],\n \"c\": {}\n}",
     )
-    assert_eq(
-      @jsonio.stringify(load(path)),
-      "{\"a\":[1,{\"b\":null}],\"c\":{}}",
-    )
+    assert_eq(load(path).stringify(), "{\"a\":[1,{\"b\":null}],\"c\":{}}")
     assert_eq(names_in("\{directory}/session"), ["state.json"])
   })
 }
@@ -28,12 +25,12 @@ test "save_json replaces an existing record unless it is exclusive" {
     let path = "\{directory}/state.json"
     save_json(path, json("{\"v\":1}"), exclusive=false)
     save_json(path, json("{\"v\":2}"), exclusive=false)
-    assert_eq(@jsonio.stringify(load(path)), "{\"v\":2}")
+    assert_eq(load(path).stringify(), "{\"v\":2}")
     assert_eq(
       task_failure(() => save_json(path, json("{\"v\":3}"), exclusive=true)),
       "another harnexus-crew run is sending; inspect \{path}",
     )
-    assert_eq(@jsonio.stringify(load(path)), "{\"v\":2}")
+    assert_eq(load(path).stringify(), "{\"v\":2}")
   })
 }
 
@@ -42,25 +39,24 @@ test "save_json creates a record exclusively once" {
   in_scratch(directory => {
     let path = "\{directory}/pending.json"
     save_json(path, json("{\"sent\":false}"), exclusive=true)
-    assert_eq(@jsonio.stringify(load(path)), "{\"sent\":false}")
+    assert_eq(load(path).stringify(), "{\"sent\":false}")
   })
 }
 
 ///|
-test "save_json keeps unknown members and an unpaired surrogate escape" {
+test "save_json keeps unknown members" {
   in_scratch(directory => {
     let path = "\{directory}/state.json"
-    let data = json("{\"known\":1,\"extra\":{\"x\":[\"\\ud800\"]}}")
+    let data = json("{\"known\":1,\"extra\":{\"x\":[\"y\"]}}")
     save_json(path, data, exclusive=false)
-    assert_eq(read_text(path).contains("\\ud800"), true)
-    assert_eq(@jsonio.stringify(load(path)), @jsonio.stringify(data))
+    assert_eq(load(path), data)
   })
 }
 
 ///|
 test "load reads a missing file as null and refuses text that is not JSON" {
   in_scratch(directory => {
-    assert_eq(@jsonio.stringify(load("\{directory}/missing.json")), "null")
+    assert_eq(load("\{directory}/missing.json").stringify(), "null")
     write_atomic("\{directory}/broken.json", "{\"a\":")
     assert_eq(
       task_failure(() => ignore(load("\{directory}/broken.json"))),
@@ -85,18 +81,18 @@ test "read_records separates what was confirmed from a pending send" {
     assert_eq(records.state_path, "\{directory}/state.json")
     assert_eq(records.pending_path, "\{directory}/pending.json")
     assert_eq(
-      records.state.map(@jsonio.stringify),
+      records.state.map(value => value.stringify()),
       Some("{\"threadId\":\"t\"}"),
     )
     assert_eq(records.pending, None)
-    assert_eq(@jsonio.stringify(records.loaded), "{\"threadId\":\"t\"}")
+    assert_eq(records.loaded.stringify(), "{\"threadId\":\"t\"}")
   })
 }
 
 ///|
-test "read_records treats empty and falsy content as no record" {
+test "read_records treats null and an empty object as no record" {
   in_scratch(directory => {
-    for text in ["{}", "null", "false", "0", "\"\"", "[]"] {
+    for text in ["{}", "null"] {
       write_atomic("\{directory}/state.json", text)
       write_atomic("\{directory}/pending.json", text)
       let records = read_records(directory)
@@ -109,7 +105,7 @@ test "read_records treats empty and falsy content as no record" {
 ///|
 test "read_records refuses a record that is not an object" {
   in_scratch(directory => {
-    for text in ["[1]", "5", "\"x\"", "true"] {
+    for text in ["[1]", "[]", "5", "0", "\"x\"", "\"\"", "true", "false"] {
       write_atomic("\{directory}/pending.json", text)
       assert_eq(
         task_failure(() => ignore(read_records(directory))),

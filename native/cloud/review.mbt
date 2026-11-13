@@ -25,7 +25,7 @@ async fn review_in(
   let directory = @store.state_directory(
     ctx.env.state_root(),
     "cloud-review",
-    @jsonio.lossy_text("\{request.checkout}\u{0}\{request.task_id}"),
+    "\{request.checkout}\u{0}\{request.task_id}",
   )
   @store.prepare_directory(directory) catch {
     failed => @failure.fail(failed.user_message())
@@ -67,12 +67,7 @@ async fn read_request(
   ctx : Context,
   path : String,
 ) -> @request.ReviewRequest raise @failure.TaskFailed {
-  let text = @store.read_regular_text(path) catch {
-    failed => @failure.fail(failed.user_message())
-  }
-  let json = @jsonio.parse(text) catch {
-    _ => @failure.fail("\{path} is not valid JSON")
-  }
+  let json = @store.read_json(path)
   @request.ReviewRequest::from_json(json, Cloud, ctx.probe, ctx.git)
 }
 
@@ -92,7 +87,7 @@ async fn reviewed(
     // Only the user, having checked what the lost send did, releases it.
     (Some(pending), false) =>
       @failure.fail(
-        "the review of head \{as_text(field(pending, "head"))} did not report back: \{recovery_hint}",
+        "the review of head \{@jsonio.as_text(@jsonio.field(pending, "head"))} did not report back: \{recovery_hint}",
       )
     (Some(_), true) => @store.remove_record(records.pending_path)
   }
@@ -101,13 +96,8 @@ async fn reviewed(
     Object(members) => Some(members)
     _ => None
   }
-  // The prompt shows a worker chat ID of any type as JS writes it, while the saved candidate keeps the value as it came.
-  let named_chat = match request.worker_chat_id {
-    None | Some(String(_)) => request
-    Some(other) => request.with_worker_chat_id(js_text(other))
-  }
-  let candidate = named_chat.candidate(previous, args.update_base, ctx.git)
-  let data = with_chat_id(candidate.to_json(), request.worker_chat_id)
+  let candidate = request.candidate(previous, args.update_base, ctx.git)
+  let data = candidate.to_json()
   if previous is Some(previous) {
     check_continuation(state, previous, data)
   }
@@ -201,30 +191,6 @@ async fn reviewed(
 }
 
 ///|
-fn with_chat_id(data : Json, id : Json?) -> Json {
-  match (data, id) {
-    (Object(members), Some(id)) => {
-      members["workerChatId"] = id
-      data
-    }
-    _ => data
-  }
-}
-
-///|
-/// What `String(value)` gives in JS.
-fn js_text(value : Json) -> String {
-  match value {
-    Null => "null"
-    String(text) => text
-    Array(items) =>
-      items.map(item => if item is Null { "" } else { js_text(item) }).join(",")
-    Object(_) => "[object Object]"
-    other => @jsonio.stringify(other)
-  }
-}
-
-///|
 /// A review session keeps its task, worker AI and checkout.
 /// A head the reviewer could not judge is sent again once what it lacked is given, such as a document it could not read.
 /// A state saved before verdicts were kept has none, and counts as judged.
@@ -244,14 +210,14 @@ fn check_continuation(
       }
     _ => true
   }
-  let head = field(data, "head")
+  let head = @jsonio.field(data, "head")
   let reviewed = match (previous.get("head"), head) {
     (Some(String(before)), String(now)) => before == now
     _ => false
   }
   if judged && reviewed {
     @failure.fail(
-      "head \{as_text(head)} was already reviewed by \{as_text(field_of(state, "reviewer"))}; commit a fix before asking again",
+      "head \{@jsonio.as_text(head)} was already reviewed by \{@jsonio.as_text(field_of(state, "reviewer"))}; commit a fix before asking again",
     )
   }
 }
@@ -392,25 +358,16 @@ async fn asked(
       None => Json::null()
     },
     "taskId": Json::string(request.task_id),
-    "head": field(reviewed, "head"),
+    "head": @jsonio.field(reviewed, "head"),
     "reviewer": Json::string(reviewer),
     "answer": Json::string(answer),
   })
 }
 
 ///|
-/// A member of a record, Null when the record has none or is not an object.
-fn field(record : Json, key : String) -> Json {
-  match record {
-    Object(members) => members.get(key).unwrap_or(Json::null())
-    _ => Json::null()
-  }
-}
-
-///|
 fn field_of(record : Json?, key : String) -> Json {
   match record {
-    Some(record) => field(record, key)
+    Some(record) => @jsonio.field(record, key)
     None => Json::null()
   }
 }
