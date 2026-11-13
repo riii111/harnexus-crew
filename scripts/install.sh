@@ -74,7 +74,7 @@ fi
 
 (
   cd "$work/src"
-  "${build[@]}" build --target native --release >"$work/build.log" 2>&1
+  "${build[@]}" build cmd/main --target native --release >"$work/build.log" 2>&1
 ) || fail "the build failed; nothing was replaced: $(tail -n 20 "$work/build.log")"
 built="$work/src/_build/native/release/build/cmd/main/main.exe"
 [[ -x $built ]] || fail "the build made no harnexus-crew; nothing was replaced"
