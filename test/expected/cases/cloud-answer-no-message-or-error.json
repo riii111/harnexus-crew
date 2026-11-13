@@ -5,7 +5,6 @@
  "stdout": "",
  "stderr": "harnexus-crew: cloud_open rejected (nothing was sent): {\"outcome\":\"rejected\",\"detail\":\"x\"}\n",
  "requests": [
-  "{\"version\":1,\"query\":\"capabilities\"}",
   "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"cloud_open\",\"arguments\":{\"cwd\":\"<ROOT>/work\",\"link\":\"session_01NfjPqrDm5ZNRA1m484J4Kt\"}}"
  ],
  "commands": [],

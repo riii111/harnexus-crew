@@ -24,14 +24,6 @@ CONFIG = {
     )
 }
 ENV = {"HARNEXUS_CALL_SOCKET": "{{bridge}}", "CODEX_THREAD_ID": "w1"}
-CAPS = {
-    "match": {"query": "capabilities"},
-    "answer": {
-        "version": 1,
-        "outcome": "done",
-        "operations": ["list_projects", "create_thread", "send_message_to_thread", "name_thread"],
-    },
-}
 
 
 def answer(tool, reply):
@@ -115,12 +107,10 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             {
                 **launch_fields(
                     [
-                        CAPS,
                         answer(
                             "create_thread",
                             {"outcome": "done", "threadId": "w1", "model": "claude-sonnet-5-5", "effort": "high"},
                         ),
-                        CAPS,
                         answer("name_thread", {"outcome": "done"}),
                     ]
                 ),
@@ -146,7 +136,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         native = self.scenario(
             "session-launch-lost",
             launch_fields(
-                [CAPS, answer("create_thread", {"outcome": "unknown", "error": "timed out"})]
+                [answer("create_thread", {"outcome": "unknown", "error": "timed out"})]
             ),
             lambda rig: [
                 rig.run(LAUNCH),
@@ -167,9 +157,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             "session-launch-not-sent",
             launch_fields(
                 [
-                    CAPS,
                     answer("create_thread", {"outcome": "unknown", "error": "lost"}),
-                    CAPS,
                     answer(
                         "create_thread",
                         {"outcome": "done", "threadId": "w2", "model": "claude-sonnet-5-5", "effort": "high"},
@@ -200,14 +188,11 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             "session-review-flow",
             review_fields(
                 [
-                    CAPS,
                     LIST,
-                    CAPS,
                     answer(
                         "create_thread",
                         {"outcome": "done", "threadId": "r1", "model": "gpt-6.1-sol", "effort": "medium"},
                     ),
-                    CAPS,
                     answer("send_message_to_thread", {"outcome": "done", "threadId": "r1"}),
                 ]
             ),
@@ -236,11 +221,8 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             "session-review-base",
             review_fields(
                 [
-                    CAPS,
                     LIST,
-                    CAPS,
                     answer("create_thread", {"outcome": "done", "threadId": "r1"}),
-                    CAPS,
                     answer("send_message_to_thread", {"outcome": "done", "threadId": "r1"}),
                 ]
             ),
@@ -264,13 +246,10 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             "session-review-lost",
             review_fields(
                 [
-                    CAPS,
                     LIST,
-                    CAPS,
                     answer(
                         "create_thread", {"outcome": "unknown", "threadId": "r1", "error": "timed out"}
                     ),
-                    CAPS,
                     answer("send_message_to_thread", {"outcome": "done", "threadId": "r1"}),
                 ]
             ),
@@ -295,9 +274,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             "session-review-refused",
             review_fields(
                 [
-                    CAPS,
                     LIST,
-                    CAPS,
                     answer(
                         "create_thread",
                         {
@@ -307,9 +284,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                             "actual": {"model": "other", "effort": "medium"},
                         },
                     ),
-                    CAPS,
                     LIST,
-                    CAPS,
                     answer(
                         "create_thread",
                         {"outcome": "done", "threadId": "r2", "model": "gpt-6.1-sol", "effort": "medium"},
@@ -347,9 +322,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         # The bridge holds the first create, so that run is still sending.
         fields = launch_fields(
             [
-                CAPS,
                 {"match": {"tool": "create_thread"}, "answer": "silent"},
-                CAPS,
                 answer("create_thread", {"outcome": "done", "threadId": "w2"}),
             ]
         )
@@ -366,13 +339,8 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
     def test_send_once_when_runs_for_the_same_task_start_together(self):
         fields = {
             "name": "session-launch-race",
-            # Each of the four runs may ask for the capabilities first, so each has an answer; the create is planned once.
             **launch_fields(
                 [
-                    CAPS,
-                    CAPS,
-                    CAPS,
-                    CAPS,
                     answer(
                         "create_thread",
                         {"outcome": "done", "threadId": "w1", "model": "claude-sonnet-5-5", "effort": "high"},
@@ -447,7 +415,7 @@ def legacy_fields():
             ["-C", checkout, "commit", "--allow-empty", "-qm", "test: candidate 1"],
             ["-C", checkout, "commit", "--allow-empty", "-qm", "test: candidate 2"],
         ],
-        "bridge": [CAPS, answer("send_message_to_thread", {"outcome": "done", "threadId": "r1"})],
+        "bridge": [answer("send_message_to_thread", {"outcome": "done", "threadId": "r1"})],
         "files": {
             **CONFIG,
             "work/launch.json": jsonvalue.dumps(LAUNCH_REQUEST),

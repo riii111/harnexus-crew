@@ -5,7 +5,6 @@
  "stdout": "",
  "stderr": "harnexus-crew: add <ROOT>/home/review-home to the Codex app as a project, so reviewers run there instead of in a worktree of their own\n",
  "requests": [
-  "{\"version\":1,\"query\":\"capabilities\"}",
   "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"list_projects\",\"arguments\":{}}"
  ],
  "commands": [],

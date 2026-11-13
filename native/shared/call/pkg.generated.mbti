@@ -24,7 +24,6 @@ pub fn CallAnswer::to_json(Self) -> @json.Json
 
 pub(all) enum CallOutcome {
   Done
-  ToolError
   NotSent
   Rejected
   Invalid

@@ -34,7 +34,7 @@
       "send": "{\"v\":1,\"type\":\"request\",\"op\":\"other\",\"id\":\"x\"}"
     },
     {
-      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"adapterId\":\"taskctl\",\"mode\":\"observe\",\"versions\":[1]}"
+      "send": "{\"v\":1,\"type\":\"hello\",\"bridgeId\":\"b1\",\"adapterId\":\"taskctl\",\"mode\":\"write\",\"versions\":[1]}"
     },
     {
       "wait": 1

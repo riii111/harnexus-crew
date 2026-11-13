@@ -1,22 +1,12 @@
 ///|
 fn usage(name : String) -> String {
-  "usage:\n  \{name} adapter serve --id ADAPTER_ID\n  \{name} adapter handover\n  \{name} adapter export-links\n  \{name} adapter import-links FILE\n"
+  "usage:\n  \{name} adapter serve --id ADAPTER_ID\n"
 }
 
 ///|
 fn usage_error(message : String) -> @run.CommandRun {
   let name = @environment.NAME
   { code: 2, stdout: "", stderr: "\{usage(name)}\{name}: \{message}\n", }
-}
-
-///|
-fn failure_run(message : String) -> @run.CommandRun {
-  { code: 1, stdout: "", stderr: "\{@environment.NAME}: \{message}\n", }
-}
-
-///|
-fn printed(value : Json) -> @run.CommandRun {
-  { code: 0, stdout: @jsonio.stringify(value) + "\n", stderr: "", }
 }
 
 ///|
@@ -40,14 +30,6 @@ fn is_adapter_id(text : String) -> Bool {
 }
 
 ///|
-fn read_json(path : String) -> Json raise @failure.TaskFailed {
-  let text = io(() => @store.read_regular_text(path))
-  @jsonio.parse(text) catch {
-    _ => @failure.fail("\{path} is not valid JSON")
-  }
-}
-
-///|
 /// `argv` is the arguments after `adapter`.
 /// `read_env` is called only once the arguments are accepted and the command needs the environment.
 pub async fn run(
@@ -55,10 +37,7 @@ pub async fn run(
   read_env : () -> @environment.Env raise,
 ) -> @run.CommandRun {
   let (command, rest) = match argv {
-    [] =>
-      return usage_error(
-        "expected serve, handover, export-links or import-links",
-      )
+    [] => return usage_error("expected serve")
     [command, .. rest] => (command, rest)
   }
   if command == "-h" || command == "--help" {
@@ -73,47 +52,5 @@ pub async fn run(
     }
     return serve(read_env(), id)
   }
-  if rest.length() > (if command == "import-links" { 1 } else { 0 }) {
-    return usage_error("\{command} takes no more arguments")
-  }
-  match command {
-    "handover" => handover(read_env())
-    "export-links" => {
-      let env = read_env()
-      printed(export_links(env)) catch {
-        @failure.TaskFailed(message) => failure_run(message)
-      }
-    }
-    "import-links" =>
-      match rest {
-        [file] => import_file(file, read_env)
-        _ => usage_error("import-links needs the links file")
-      }
-    _ => usage_error("unknown adapter command \{command}")
-  }
-}
-
-///|
-async fn handover(env : @environment.Env) -> @run.CommandRun {
-  try {
-    let parts = build_parts(env)
-    let journal = journal_of(parts.observations.journal_path())
-    printed(hand_over(parts.observations, parts.store, journal))
-  } catch {
-    @failure.TaskFailed(message) => failure_run(message)
-  }
-}
-
-///|
-fn import_file(
-  file : String,
-  read_env : () -> @environment.Env raise,
-) -> @run.CommandRun raise {
-  let value = read_json(file) catch {
-    @failure.TaskFailed(message) => return failure_run(message)
-  }
-  let env = read_env()
-  printed(import_links(env, value)) catch {
-    @failure.TaskFailed(message) => failure_run(message)
-  }
+  usage_error("unknown adapter command \{command}")
 }

@@ -39,10 +39,7 @@ async test "a request still waiting when the bridge closes ends as unknown, and 
       handling.wait()
       let kept = read_json_file("\{at.reviews}/\{review.key}.json")
       assert_eq(field(kept, "sent"), Some(Json::boolean(true)))
-      let delivered = journal_of_kind(at, "delivered")
-      assert_eq(delivered.map(line => text_member(line, "outcome")), [
-        Some("unknown"),
-      ])
+      assert_eq(pending_keys(link), [])
       let later = link.adapter.request("post", [("text", str("late"))])
       assert_eq(later.outcome, "not_sent")
       assert_eq(later.reason(), Some("closed"))
@@ -68,12 +65,6 @@ async test "a review whose chat could not be listed when the bridge closes waits
       handling.wait()
       assert_eq(pending_keys(link), [review.key])
       assert_eq(names_in(at.reviews).contains("\{review.key}.reserved"), false)
-      assert_eq(
-        journal_of_kind(at, "delivered").map(line => {
-          text_member(line, "outcome")
-        }),
-        [Some("not_sent")],
-      )
     })
   })
 }
@@ -162,18 +153,23 @@ async test "a response nobody asked for is dropped without disturbing a request 
 }
 
 ///|
-async test "an observing adapter sends no request that changes a conversation" {
-  with_place("serve-observe-only", at => {
+async test "a bridge in observe mode is refused: nothing is greeted, taken or sent, and turns fail" {
+  with_place("serve-observe-refused", at => {
     @async.with_task_group(group => {
       let link = connect(at, group)
       link.start("observe")
-      for
-        op in ["create_conversation", "bind_conversation", "post", "cloud_send"] {
-        let answer = link.adapter.request(op, [])
-        assert_eq(answer.outcome, "not_sent")
-        assert_eq(answer.reason(), Some("observe_only"))
-      }
+      link.records("linked", [])
+      link.records("continued", judged("aaa1111"))
+      link.say(turn_line("t1", "x", "R1", "opened"))
+      assert_eq(link.lines_of_type("hello").length(), 0)
+      assert_eq(link.lines_of_type("observed").length(), 0)
       assert_eq(link.requests().length(), 0)
+      let ended = link.lines_of_type("turn_end")
+      assert_eq(ended.map(line => text_member(line, "status")), [Some("failed")])
+      assert_eq(link.logs.map(entry => text_member(entry, "step")), [
+        Some("mode_refused"),
+      ])
+      assert_eq(names_in(at.observe), [])
     })
   })
 }

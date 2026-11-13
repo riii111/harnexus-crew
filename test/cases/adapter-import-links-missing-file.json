@@ -1,5 +1,0 @@
-{
-  "name": "adapter-import-links-missing-file",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/none.json"]
-}

@@ -221,28 +221,6 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
         self.assertEqual(1, len(set(last)))
         self.assertEqual(["state.json"], [path.name for path in directory.iterdir() if not path.name.endswith(".tmp")])
 
-    def test_lines_appended_by_several_processes_arrive_whole(self):
-        directory = self.sandbox()
-        journal = directory / "logs" / "journal.jsonl"
-        at = soon()
-        names = ["p0", "p1", "p2", "p3", "p4"]
-
-        replies = run_together(
-            5,
-            lambda index: ("append", str(journal), '{"from":"%s","pad":"%s"}' % (names[index], "x" * 5000), "40", at),
-        )
-
-        for answer in replies:
-            self.assertIs(True, answer["ok"])
-        lines = journal.read_text(encoding="utf-8").split("\n")
-        self.assertEqual("", lines.pop())
-        self.assertEqual(200, len(lines))
-        counts = {}
-        for line in lines:
-            sender = jsonvalue.loads(line)["from"]
-            counts[sender] = counts.get(sender, 0) + 1
-        self.assertEqual([40, 40, 40, 40, 40], list(counts.values()))
-
 
 class ReadingAndWritingFiles(StoreBetweenProcesses):
     def test_text_is_read_as_node_reads_it_including_a_byte_order_mark_and_invalid_bytes(self):

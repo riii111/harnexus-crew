@@ -5,7 +5,6 @@
  "stdout": "",
  "stderr": "harnexus-crew: 3 is not watched (the thread is named Impl TR1 PR#3): the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>\n",
  "requests": [
-  "{\"version\":1,\"query\":\"capabilities\"}",
   "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"name_thread\",\"arguments\":{\"name\":\"Impl TR1 PR#3\"}}"
  ],
  "commands": [],

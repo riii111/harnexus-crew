@@ -2,8 +2,6 @@
 /// What harnexus call protocol 1 answers, plus `Unsupported` for a bridge that does not offer the protocol or the tool, to which nothing was sent.
 pub(all) enum CallOutcome {
   Done
-  // Protocol 1 never answers this; it is kept for a bridge that still does.
-  ToolError
   NotSent
   Rejected
   Invalid
@@ -18,7 +16,6 @@ pub(all) enum CallOutcome {
 pub fn CallOutcome::name(self : CallOutcome) -> String {
   match self {
     Done => "done"
-    ToolError => "tool_error"
     NotSent => "not_sent"
     Rejected => "rejected"
     Invalid => "invalid"
@@ -35,7 +32,6 @@ pub fn CallOutcome::name(self : CallOutcome) -> String {
 pub fn CallOutcome::from_name(name : String) -> CallOutcome? {
   match name {
     "done" => Some(Done)
-    "tool_error" => Some(ToolError)
     "not_sent" => Some(NotSent)
     "rejected" => Some(Rejected)
     "invalid" => Some(Invalid)
@@ -53,12 +49,7 @@ pub fn CallOutcome::from_name(name : String) -> CallOutcome? {
 pub fn CallOutcome::is_unsent(self : CallOutcome) -> Bool {
   match self {
     NotSent | Rejected | Invalid | Unsupported => true
-    Done
-    | ToolError
-    | Unknown
-    | ModelMismatch
-    | FirstTurnRefused
-    | ChatNotOpened => false
+    Done | Unknown | ModelMismatch | FirstTurnRefused | ChatNotOpened => false
   }
 }
 

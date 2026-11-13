@@ -3,7 +3,7 @@
  "exitCode": 2,
  "signal": null,
  "stdout": "",
- "stderr": "usage:\n  harnexus-crew adapter serve --id ADAPTER_ID\n  harnexus-crew adapter handover\n  harnexus-crew adapter export-links\n  harnexus-crew adapter import-links FILE\nharnexus-crew: Option '--id' argument is ambiguous.\nDid you forget to specify the option argument for '--id'?\nTo specify an option argument starting with a dash use '--id=-XYZ'.\n",
+ "stderr": "usage:\n  harnexus-crew adapter serve --id ADAPTER_ID\nharnexus-crew: Option '--id' argument is ambiguous.\nDid you forget to specify the option argument for '--id'?\nTo specify an option argument starting with a dash use '--id=-XYZ'.\n",
  "requests": [],
  "commands": [],
  "files": {}

@@ -1,8 +1,0 @@
-{
-  "name": "adapter-import-links-refuses-bad-session",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/links.json"],
-  "files": {
-    "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"a/b\",\"threadId\":null,\"reservedAt\":\"x\"}]}"
-  }
-}

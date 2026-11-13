@@ -19,7 +19,6 @@
 enum {
   OPEN_READ = 0,
   OPEN_CREATE_EXCLUSIVE = 1,
-  OPEN_APPEND = 2,
   OPEN_DIRECTORY = 3,
 };
 
@@ -48,9 +47,6 @@ int32_t harnexus_store_open(moonbit_bytes_t path, int32_t how) {
     break;
   case OPEN_CREATE_EXCLUSIVE:
     flags = O_WRONLY | O_CREAT | O_EXCL;
-    break;
-  case OPEN_APPEND:
-    flags = O_WRONLY | O_CREAT | O_APPEND;
     break;
   case OPEN_DIRECTORY:
     flags = O_RDONLY;

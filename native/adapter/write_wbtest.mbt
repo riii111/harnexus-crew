@@ -181,7 +181,6 @@ async test "a review is shown once when two adapters take it at the same time" {
         parent_thread_id: parent,
         session_id: Some(session),
         review: review_of_head("aaa1111"),
-        raw: None,
       }
       one.adapter.deps.observations.keep_pending([entry]) catch {
         failed => abort(failed.message())
@@ -530,7 +529,9 @@ async test "a chat's first review is never posted again when an earlier adapter 
       let link = connect(at, group)
       reconnect(link)
       assert_eq(link.requests(op="post").length(), 0)
-      let noted = journal_of_kind(at, "opening_maybe_shown")
+      let noted = link.logs.filter(entry => {
+        text_member(entry, "step") == Some("opening_maybe_shown")
+      })
       assert_eq(noted.length(), 1)
       assert_eq(text_member(noted[0], "reviewer"), Some("R1"))
       assert_eq(text_member(noted[0], "key"), Some("k1"))
@@ -551,51 +552,6 @@ async test "a chat's first review stays for the next connection when the bridge 
       assert_eq(link.requests(op="post").length(), 1)
       let kept = read_json_file(opening_file(at, "R1"))
       assert_eq(field(kept, "showing"), Some(Json::boolean(false)))
-    })
-  })
-}
-
-///|
-async test "the journaled reviews nobody sent are handed over, and a writing adapter then shows them" {
-  with_place("handover", at => {
-    @async.with_task_group(group => {
-      let sent_by_harnexus = review_of_head("aaa1111")
-      let observed = review_of_head("bbb2222")
-      let unsent = review_of_head("ccc3333")
-      let watcher = connect(at, group)
-      watcher.start("observe")
-      watcher.records("linked", [])
-      watcher.records("continued", two_reviews())
-      watcher.say([
-        ("type", str("event")),
-        ("event", str("migration_unsent_reviews")),
-        (
-          "entries",
-          Json::array([
-            object([
-              ("parentThreadId", str(parent)),
-              ("review", review_json(unsent)),
-            ]),
-          ]),
-        ),
-      ])
-      sent_file(at, sent_by_harnexus, "chat-r1")
-      chats_file(at, object([("R1", bound_chat("chat-r1"))]))
-      let deps = watcher.adapter.deps
-      let handed = hand_over(deps.observations, deps.store, journal_lines(at)) catch {
-        failed => abort(failed.message())
-      }
-      let again = hand_over(deps.observations, deps.store, journal_lines(at)) catch {
-        failed => abort(failed.message())
-      }
-      let writer = connect(at, group)
-      writer.start("write")
-      assert_eq(text_of(handed), "{\"handedOver\":2,\"skipped\":1}")
-      assert_eq(text_of(again), "{\"handedOver\":0,\"skipped\":1}")
-      assert_eq(writer.texts("post"), [
-        @app.review_text(observed),
-        @app.review_text(unsent),
-      ])
     })
   })
 }

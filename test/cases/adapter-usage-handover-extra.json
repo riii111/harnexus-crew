@@ -1,5 +1,0 @@
-{
-  "name": "adapter-usage-handover-extra",
-  "kind": "command",
-  "argv": ["adapter", "handover", "extra"]
-}

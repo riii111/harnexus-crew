@@ -1,5 +1,0 @@
-{
-  "name": "adapter-import-links-directory",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}"]
-}

@@ -217,40 +217,6 @@ async test "outcomes after which the app surely did nothing release the record, 
 }
 
 ///|
-async test "a lost create_thread answer without a thread is unsent, and a lost send_message answer is not" {
-  with_rig(
-    "s-9",
-    [@call.CallAnswer::of_json(@jsonio.parse("{\"outcome\":\"tool_error\"}"))],
-    rig => {
-      let message = failure_of(() => {
-        ignore(launch_in(rig.context([]), launch_args(rig.launch_file())))
-      })
-      assert_true(message.contains("create_thread was not sent"))
-      assert_false(exists("\{rig.launch_dir()}/pending.json"))
-    },
-  )
-  with_rig(
-    "s-10",
-    [
-      done("r1"),
-      @call.CallAnswer::of_json(@jsonio.parse("{\"outcome\":\"tool_error\"}")),
-    ],
-    rig => {
-      let path = rig.review_file()
-      ignore(review_in(rig.context([]), review_args(path), rig.review_cloud()))
-      rig.head.val = HEAD_2
-      let message = failure_of(() => {
-        ignore(
-          review_in(rig.context([]), review_args(path), rig.review_cloud()),
-        )
-      })
-      assert_true(message.contains("send_message_to_thread result is unknown"))
-      assert_true(exists("\{rig.review_dir()}/pending.json"))
-    },
-  )
-}
-
-///|
 async test "a confirmed answer that cannot be recorded keeps the record with the thread, for resolve" {
   with_rig("s-11", [done("w1")], rig => {
     let path = rig.launch_file()

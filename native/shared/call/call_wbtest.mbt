@@ -1,8 +1,8 @@
 ///|
 test "only outcomes after which the bridge did not act are unsent" {
   let names = [
-    "done", "tool_error", "not_sent", "rejected", "invalid", "unknown", "model_mismatch",
-    "first_turn_refused", "chat_not_opened", "unsupported",
+    "done", "not_sent", "rejected", "invalid", "unknown", "model_mismatch", "first_turn_refused",
+    "chat_not_opened", "unsupported",
   ]
   let unsent = []
   for name in names {

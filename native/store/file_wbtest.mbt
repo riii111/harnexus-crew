@@ -166,26 +166,6 @@ test "prepare_directory creates nested directories, accepts an existing one and 
 }
 
 ///|
-test "append_line creates the directory and appends one line at a time" {
-  in_scratch(directory => {
-    let log = "\{directory}/logs/journal.jsonl"
-    append_line(log, "{\"a\":1}")
-    append_line(log, "{\"b\":2}")
-    assert_eq(read_text(log), "{\"a\":1}\n{\"b\":2}\n")
-  })
-}
-
-///|
-test "append_line fails when the log is a directory" {
-  in_scratch(directory => {
-    assert_eq(
-      file_failure(() => append_line(directory, "x")),
-      "cannot append to \{directory} (EISDIR)",
-    )
-  })
-}
-
-///|
 test "list_directory_if_exists lists names, and None for a missing path or a file" {
   in_scratch(directory => {
     write_atomic("\{directory}/b.json", "x")

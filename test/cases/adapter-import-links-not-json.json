@@ -1,8 +1,0 @@
-{
-  "name": "adapter-import-links-not-json",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/links.json"],
-  "files": {
-    "work/links.json": "{"
-  }
-}

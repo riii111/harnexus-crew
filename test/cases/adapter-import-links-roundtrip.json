@@ -1,8 +1,0 @@
-{
-  "name": "adapter-import-links-roundtrip",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/links.json"],
-  "files": {
-    "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"session_A\",\"threadId\":\"chat-a\",\"reservedAt\":\"2026-11-01T00:00:00Z\"},{\"sessionId\":\"session_B\",\"threadId\":null,\"reservedAt\":\"2026-11-02T00:00:00Z\"}]}"
-  }
-}

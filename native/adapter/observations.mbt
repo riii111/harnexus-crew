@@ -34,8 +34,6 @@ priv struct PendingReview {
   parent_thread_id : String
   session_id : String?
   review : @app.CloudReview
-  /// The review exactly as the journal holds it, which a handover keeps in the waiting list without reshaping.
-  raw : Json?
 }
 
 ///|
@@ -49,7 +47,7 @@ priv struct Opening {
 }
 
 ///|
-/// Where the adapter keeps what it has seen of each Cloud session, apart from what the app shows, and the journal of the switch from harnexus's own review writer.
+/// Where the adapter keeps what it has seen of each Cloud session, apart from what the app shows.
 priv struct Observations {
   root : String
 }
@@ -72,11 +70,6 @@ fn Observations::locks(self : Observations) -> String {
 ///|
 fn Observations::pending_path(self : Observations) -> String {
   @path.join([self.root, "pending.json"])
-}
-
-///|
-fn Observations::journal_path(self : Observations) -> String {
-  @path.join([self.root, "journal.jsonl"])
 }
 
 ///|
@@ -160,7 +153,7 @@ fn PendingReview::to_json(self : PendingReview) -> Json {
   object([
     ("parentThreadId", Json::string(self.parent_thread_id)),
     ("sessionId", optional_text(self.session_id)),
-    ("review", self.raw.unwrap_or(review_json(self.review))),
+    ("review", review_json(self.review)),
   ])
 }
 
@@ -190,7 +183,6 @@ fn pending_in(value : Json) -> Array[PendingReview] {
         head: text_or_none(review.get("head")),
         answer,
       },
-      raw: None,
     })
   }
   entries
@@ -347,17 +339,5 @@ async fn Observations::remove_pending(
 ) -> Unit raise @failure.TaskFailed {
   self.change_pending(entries => {
     entries.filter(entry => !keys.contains(entry.review.key))
-  })
-}
-
-///|
-/// Every line names when and what, so the switch can be checked and replayed from the journal alone.
-fn Observations::note(
-  self : Observations,
-  entry : Array[(String, Json)],
-) -> Unit raise @failure.TaskFailed {
-  let line = [("at", Json::string(@store.now_iso())), ..entry]
-  io(() => {
-    @store.append_line(self.journal_path(), @jsonio.stringify(object(line)))
   })
 }

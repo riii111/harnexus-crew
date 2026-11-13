@@ -7,7 +7,6 @@ pub(all) enum FileAction {
   Sync
   Remove
   Prepare
-  Append
 }
 
 ///|
@@ -121,29 +120,6 @@ pub fn prepare_directory(path : String) -> Unit raise FileFailed {
 }
 
 ///|
-/// Appends one line to a log kept by one writer at a time, and syncs it so a record of what was seen survives a crash.
-pub fn append_line(path : String, line : String) -> Unit raise FileFailed {
-  let message = "cannot append to \{path}"
-  let made = make_directories(dirname(path))
-  if made < 0 {
-    raise failure(Append, path, -made, message)
-  }
-  let fd = check(open_at(path, open_append), Append, path, message)
-  let written = write_all_text(fd, line + "\n")
-  let synced = if written < 0 { written } else { fsync_raw(fd) }
-  let closed = close_raw(fd)
-  if written < 0 {
-    raise failure(Append, path, -written, message)
-  }
-  if synced < 0 {
-    raise failure(Append, path, -synced, message)
-  }
-  if closed < 0 {
-    raise failure(Append, path, -closed, message)
-  }
-}
-
-///|
 /// The entry names of a directory in the order the OS lists them; None when the path is missing or not a directory.
 pub fn list_directory_if_exists(
   path : String,
@@ -186,9 +162,6 @@ let open_read : Int32 = 0
 
 ///|
 let open_exclusive : Int32 = 1
-
-///|
-let open_append : Int32 = 2
 
 ///|
 let open_directory : Int32 = 3

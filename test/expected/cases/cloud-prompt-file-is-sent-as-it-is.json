@@ -5,7 +5,6 @@
  "stdout": "{\"threadId\":\"cloud-chat\",\"cloudSessionId\":\"session_01NfjPqrDm5ZNRA1m484J4Kt\",\"url\":\"https://claude.ai/code/session_01NfjPqrDm5ZNRA1m484J4Kt\"}\n",
  "stderr": "",
  "requests": [
-  "{\"version\":1,\"query\":\"capabilities\"}",
   "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"cloud_open\",\"arguments\":{\"cwd\":\"<ROOT>/work\",\"prompt\":\"\\n  先頭と末尾の空白\\r\\n \\n\"}}"
  ],
  "commands": [],

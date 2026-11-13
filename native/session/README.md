@@ -34,7 +34,7 @@ Cloudでのレビュー（Codex CLI）と `cloud` コマンドは含まず、`re
 | `done`                                                                                             | `state.json` を更新し、`pending.json` を消す             | 成功                                      |
 | `done` でもスレッドIDが使えない・`state.json` を書けない                                           | `pending.json` を `unknown` にしてスレッドIDと答えを残す | 失敗。`resolve --sent` で確定する         |
 | `model_mismatch`・`first_turn_refused`                                                             | `pending.json` を `refused` にする                       | 失敗。`resolve --not-sent` でだけ解く     |
-| `not_sent`・`rejected`・`invalid`・`unsupported`、スレッドIDのない `create_thread` の `tool_error` | `pending.json` を消す                                    | 失敗（未送信）。もう一度送れる            |
+| `not_sent`・`rejected`・`invalid`・`unsupported`                                                   | `pending.json` を消す                                    | 失敗（未送信）。もう一度送れる            |
 | それ以外（`unknown`、未知の結果名など）                                                            | `pending.json` を `unknown` にして答えを残す             | 失敗。再送せず、Appで確かめるよう案内する |
 
 2つの実行が同時に始まっても、`create_thread` を送るのは1つだけである。

@@ -1,9 +1,0 @@
-{
-  "name": "adapter-import-links-conflict",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "{{work}}/links.json"],
-  "files": {
-    "work/links.json": "{\"version\":1,\"links\":[{\"sessionId\":\"session_A\",\"threadId\":\"chat-x\",\"reservedAt\":\"2026-11-05T00:00:00Z\"},{\"sessionId\":\"session_N\",\"threadId\":\"chat-n\",\"reservedAt\":\"2026-11-05T00:00:00Z\"}]}",
-    "state/harnexus-crew/cloud-chats/session_A.json": "{\"threadId\":\"chat-a\",\"openedAt\":\"2026-11-01T00:00:00Z\"}"
-  }
-}

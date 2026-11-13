@@ -1,5 +1,0 @@
-{
-  "name": "adapter-usage-export-extra",
-  "kind": "command",
-  "argv": ["adapter", "export-links", "extra"]
-}

@@ -77,17 +77,9 @@
  "requests": [
   {
    "version": 1,
-   "query": "capabilities"
-  },
-  {
-   "version": 1,
    "threadId": "w1",
    "tool": "list_projects",
    "arguments": {}
-  },
-  {
-   "version": 1,
-   "query": "capabilities"
   },
   {
    "version": 1,
@@ -109,17 +101,9 @@
   },
   {
    "version": 1,
-   "query": "capabilities"
-  },
-  {
-   "version": 1,
    "threadId": "w1",
    "tool": "list_projects",
    "arguments": {}
-  },
-  {
-   "version": 1,
-   "query": "capabilities"
   },
   {
    "version": 1,
