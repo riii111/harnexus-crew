@@ -90,7 +90,7 @@ def with_rig(fields, body, timeout=RUN_TIMEOUT_SECONDS):
         return Done(
             result=result,
             root=sandbox.root,
-            requests=rig.requests(),
+            requests=bridge.finished_requests() if bridge else [],
             commands=read_commands(sandbox.root),
             files=snapshot_files(sandbox.root, case.snapshot),
         )
