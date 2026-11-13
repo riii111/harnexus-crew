@@ -88,7 +88,7 @@ fn Env::codex_home(self : Env) -> String {
 fn absolute_or(value : String?, fallback : String) -> String {
   match value {
     Some(set) if is_absolute(set) => set
-    // 相対パスは作業ディレクトリによって保存先が変わるため、XDGの規約に従って無視する。
+    // Relative paths would let the working directory choose the storage location, so ignore them as XDG specifies.
     _ => fallback
   }
 }

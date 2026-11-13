@@ -53,11 +53,11 @@ pub fn sha256_hex(text : String) -> String {
 
 ///|
 fn process_alive(pid : Double) -> Bool {
-  // Nodeと同じPIDの範囲だけを受け付けるため、32ビット整数以外は生存していないと扱う。
+  // To accept the same PID range as Node, treat values outside signed 32-bit integers as dead.
   if pid != pid.floor() || pid < -2147483648.0 || pid > 2147483647.0 {
     return false
   }
-  // 別ユーザーのプロセスと、プロセス群を指す0・-1も使用中と扱うため、OS側の生存判定を使う。
+  // A process owned by another user, or a process group ID of 0 or -1, counts as alive.
   process_alive_raw(pid.to_int()) == 1
 }
 

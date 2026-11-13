@@ -71,7 +71,7 @@ fn ReviewStore::chats(
   let path = self.chats_path()
   let found : Map[String, Chat] = Map([])
   match read_object(path) {
-    // 保存済みのチャットがある可能性を残すため、読めない記録を空とみなして新しいチャットを開かない。
+    // An unreadable record may name an existing chat, so fail instead of treating it as empty and opening another.
     Unreadable => @failure.fail("\{path} is unreadable")
     Absent => ()
     Found(members) =>
@@ -269,7 +269,7 @@ fn Chat::to_json(self : Chat) -> Json {
 fn reviews_directory(
   env : @environment.Env,
 ) -> String raise @failure.TaskFailed {
-  // harnexusと同じ記録を読み書きするため、その状態ファイルと同じ場所を使う。
+  // To share records with harnexus, keep them beside its state file.
   @path.join([
     @path.dirname(@environment.harnexus_state_path(env)),
     "cloud-reviews",

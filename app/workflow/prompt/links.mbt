@@ -1,5 +1,5 @@
 ///|
-/// テンプレートの相対リンクを実ファイルへ解決する。
+/// Resolve relative template links to existing files.
 fn resolve_links(
   template : String,
   path : String,

@@ -65,7 +65,7 @@ fn sent_settings(sent : Json) -> Json {
       "actual": settings_of(@jsonio.field(sent, "actual")),
     })
   } else {
-    // 設定を指定しない送信では実際の設定を確認できないため、推測せずnullにする。
+    // A send without settings cannot confirm the actual settings, so report null instead of guessing.
     Json::null()
   }
 }

@@ -33,11 +33,11 @@ async fn emit(
   gate : @async.Mutex,
   text : String,
 ) -> Unit noraise {
-  // 並行するタスクの行が混ざらないよう、書き込み全体を排他する。
+  // To prevent concurrent tasks from mixing lines, hold the lock for the entire write.
   gate.acquire()
   defer gate.release()
   stream.write(@utf8.encode(text)) catch {
-    // 相手が閉じたストリームには失敗を報告できないため、以後の出力を破棄する。
+    // A closed output has no reporting channel, so discard the failed write.
     _ => ()
   }
 }
@@ -49,7 +49,7 @@ fn log_text(entry : Array[(String, Json)]) -> String {
 }
 
 ///|
-/// CRLF・LF・単独のCRを、Nodeのreadlineと同じ行境界として扱う。
+/// Split CRLF, LF and lone CR the same way as Node's readline.
 fn split_lines(chunk : String) -> Array[String] {
   let text = if chunk.has_suffix("\r") {
     chunk[:chunk.length() - 1].to_owned()

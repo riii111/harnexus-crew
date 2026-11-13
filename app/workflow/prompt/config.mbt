@@ -31,7 +31,7 @@ fn TemplateConfig::from_json(
 
 ///|
 fn template_config_path(env : @environment.Env) -> String {
-  // 作業リポジトリから送信するプロンプトの設定を差し替えられないよう、ユーザーの設定ディレクトリを使う。
+  // To keep the working repository from overriding prompt settings, use the user configuration directory.
   @path.join([env.config_home(), "task.json"])
 }
 

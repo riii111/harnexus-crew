@@ -74,7 +74,7 @@ fn unknown(error : String) -> CallAnswer {
 fn answer_of(line : String) -> CallAnswer {
   let parsed = @jsonio.parse(line) catch { _ => Json::null() }
   if parsed is Object(members) {
-    // versionは通信の枠だけに使うため、保存する応答から取り除く。
+    // The version only frames the message, so remove it from the recorded answer.
     members.remove("version")
   }
   CallAnswer::of_json(parsed).unwrap_or(

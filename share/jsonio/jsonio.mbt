@@ -45,7 +45,7 @@ fn replace_unpaired_escapes(text : String) -> String {
       match surrogate_escape(units, at) {
         Some(0xD800..<=0xDBFF) if surrogate_escape(units, at + 6)
           is Some(0xDC00..<=0xDFFF) => at += 12
-        // JSが出力する孤立サロゲートで文書全体を拒否しないよう、標準パーサへ渡す前に置換する。
+        // JS can emit unpaired surrogates, so replace them before the standard parser rejects the whole document.
         Some(_) => {
           out.write_view(text.exact_view(start=copied, end=at))
           out.write_string("\\ufffd")

@@ -81,7 +81,7 @@ async fn connect_until_done(
     if connect_pending_raw(errno) == 0 {
       raise ConnectFailed(errno)
     }
-    // 待ち行列が満杯のUnixソケットでは準備完了の通知が来ないため、短く待って接続を再試行する。
+    // A Unix socket with a full listen queue gives no readiness notification, so retry after a short sleep.
     @async.sleep(10)
   }
 }

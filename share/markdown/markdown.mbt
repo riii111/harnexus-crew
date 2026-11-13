@@ -108,7 +108,7 @@ fn destinations(text : String) -> Array[String] raise @failure.TaskFailed {
 ///|
 fn read_destinations(reply : Bytes) -> Array[String] raise @failure.TaskFailed {
   let status = reply[0].to_int()
-  // パーサの失敗でリンク検証をすり抜けないよう、リンクなしとして扱わず失敗させる。
+  // To prevent a parser failure from bypassing link validation, fail instead of reporting no links.
   if status == STATUS_PARSE_FAILED {
     @failure.fail("the Markdown parser (md4c) failed")
   }

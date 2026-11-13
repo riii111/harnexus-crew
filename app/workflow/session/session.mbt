@@ -75,7 +75,7 @@ async fn Session::send(
   for pair in extra {
     record[pair.0] = pair.1
   }
-  // 応答を失った操作を再送しないよう、送信前に未確定の記録を排他的に作る。
+  // To prevent resending an operation whose answer was lost, create its pending record exclusively before sending.
   (self.ports.save)(self.pending_path, Json::object(record), true)
   if !json_equal(@store.load(self.state_path), self.loaded) {
     @store.remove_record(self.pending_path)

@@ -75,7 +75,7 @@ pub async fn run_process(
     err => raise failed(true, err.to_string())
   }
   child.sweep_group()
-  // チャンクの境界でUTF-8文字を壊さないよう、全出力を集めてから復号する。
+  // To preserve UTF-8 characters split across chunks, decode only after collecting all output.
   {
     status: match exit.val {
       Code(code) => code

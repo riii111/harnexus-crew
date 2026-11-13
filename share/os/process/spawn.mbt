@@ -105,7 +105,7 @@ async fn Child::wait_exit(
   let started = @async.now()
   let mut exit = self.poll()
   while exit is None {
-    // 短いコマンドの待ち時間を抑えるため、開始直後だけ短い間隔で確認する。
+    // To avoid delaying short commands, poll more frequently just after starting.
     @async.sleep(if @async.now() - started < 50L { 1 } else { patience_ms })
     exit = self.poll()
   }
@@ -122,7 +122,7 @@ fn Child::signal(self : Child, sig : Int32, group~ : Bool) -> Bool {
 
 ///|
 fn Child::sweep_group(self : Child) -> Unit {
-  // 子を回収した後もプロセス群には子孫が残りうるため、群のIDで終了させる。
+  // Descendants may remain after the child is collected, so kill them by the process group ID.
   if self.new_session && !self.swept {
     self.swept = true
     ignore(self.signal(SIGKILL, group=true))
@@ -136,7 +136,7 @@ fn Child::stop_and_reap(self : Child) -> Unit {
     return
   }
   ignore(self.signal(SIGKILL, group=false))
-  // 回収待ちが終了を妨げないよう、失敗として報告する際の待機時間を制限する。
+  // To keep collection from blocking failure reporting, bound the wait for the child.
   ignore(self.collect(2000))
 }
 
@@ -180,7 +180,7 @@ fn Fd::new(fd : Int32) -> Fd {
 
 ///|
 async fn Fd::stream(self : Fd) -> @raw_fd.RawFdStream {
-  // ストリームの生成が失敗しても所有権は移るため、呼び出す前に元の所有者から切り離す。
+  // Creating the stream takes ownership even on failure, so release the descriptor from its old owner before the call.
   self.taken = true
   @raw_fd.RawFdStream(self.fd)
 }
@@ -195,7 +195,7 @@ fn Fd::close_unless_taken(self : Fd) -> Unit {
 
 ///|
 fn c_string(text : String) -> Bytes raise SpawnFailed {
-  // NULで文字列が途中終了すると別のコマンドを実行しうるため、Cへ渡す前に拒否する。
+  // A NUL could truncate the string and run a different command, so reject it before passing the string to C.
   guard @sys.c_string(text) is Some(bytes) else { raise InvalidArgument }
   bytes
 }

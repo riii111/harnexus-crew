@@ -131,7 +131,7 @@ fn Adapter::accept(self : Adapter, raw : String) -> Handling {
       self.ready = true
       Later(() => self.take_ready(line))
     }
-    // 入力終了が応答処理を追い越さないよう、応答は別タスクに渡さずその場で処理する。
+    // To keep the end of input from overtaking a response, handle responses immediately instead of spawning a task.
     Some(String("response")) => {
       self.answer(line)
       Handled
@@ -340,7 +340,7 @@ fn Adapter::answer(self : Adapter, line : Json) -> Unit {
 
 ///|
 fn Adapter::close_input(self : Adapter) -> Unit {
-  // 送信済みの要求は未送信と断定できないため、応答待ちをunknownで終え、その後の送信を止める。
+  // An unanswered request may have acted, so block later sends and settle pending answers as unknown.
   self.closed = true
   for _, asked in self.asks {
     ignore(Ok(asked.try_put(answer_of("unknown"))) catch { e => Err(e) })
@@ -432,7 +432,7 @@ async fn Adapter::post_missed_openings(
   bindings : Json?,
 ) -> Unit noraise {
   guard self.writing && bindings is Some(Array(items)) else { return }
-  // 停止中に作られたチャットの初回ターンではレビューを表示できていないため、保存済みの初回レビューを投稿する。
+  // A chat created while disconnected missed its opening review, so post the saved review.
   for binding in items {
     guard text_member(binding, "conversationId") is Some(reviewer) else {
       continue
@@ -450,7 +450,7 @@ async fn Adapter::post_missed_openings(
 }
 
 ///|
-/// レビューの初回表示を排他し、表示された可能性があるか返す。
+/// Serialize a chat's first review and report whether it may have been shown.
 async fn Adapter::show_opening(
   self : Adapter,
   reviewer : String,
@@ -463,7 +463,7 @@ async fn Adapter::show_opening(
       Ok(Some(asked)) => asked
       _ => return false
     }
-    // 前回の接続が表示後に終了した可能性があるため、表示中の記録があれば再表示しない。
+    // The previous connection may have ended after showing the review, so never show one already marked as showing again.
     if asked.showing {
       (self.deps.log)([
         ("step", Json::string("opening_maybe_shown")),
@@ -613,7 +613,7 @@ async fn Adapter::drain(self : Adapter) -> Unit noraise {
 }
 
 ///|
-/// 共有する保存先のロックを取り、レビューを配信する。
+/// Deliver a review under the lock for its shared records.
 async fn Adapter::deliver(
   self : Adapter,
   entry : PendingReview,
@@ -729,7 +729,7 @@ async fn Adapter::open_chat(
   guard self.review_project(listed.field("result")) is Some(project_id) else {
     return { outcome: "no_project", thread_id: None, }
   }
-  // 作成要求の結果が不明でも再作成しないよう、最初に表示するレビューを送信前に記録する。
+  // To avoid creating another chat after an unknown result, record its opening review before sending the create request.
   let recorded = Ok(
     self.deps.observations.keep_opening(review.reviewer, {
       key: review.key,
@@ -941,7 +941,7 @@ fn answer_of(outcome : String, reason~ : String? = None) -> Answer {
 
 ///|
 fn is_retried(outcome : String) -> Bool {
-  // 表示されていないと断定できる結果だけを再試行し、結果不明による二重表示を避ける。
+  // To avoid showing a review twice after an unknown result, retry only outcomes that prove it was not shown.
   match outcome {
     "not_sent"
     | "awaiting_chat"

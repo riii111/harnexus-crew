@@ -88,6 +88,6 @@ async fn codex_review_project(
 
 ///|
 fn review_home(env : @environment.Env) -> String {
-  // レビューの開始で専用worktreeを増やさないよう、既存の空プロジェクトを使う。
+  // To avoid creating a worktree for each review, use the existing empty project.
   @store.real_path_or_self(@path.join([env.home(), "review-home"]))
 }

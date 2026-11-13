@@ -83,7 +83,7 @@ pub async fn[T] with_lock(
 }
 
 ///|
-/// 死亡した保持者のロックを回収し、観測したロックを削除できたか返す。
+/// Reclaim a dead holder's lock and report whether this run removed the observed lock.
 fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
   // A second exclusive file marks the takeover, so of several runs only one removes the lock, and only the one it saw.
   let takeover = "\{lock}.reap"
@@ -125,7 +125,7 @@ fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
 }
 
 ///|
-/// ロック保持者の記録を読み、読み取れない記録は不明として返す。
+/// Read the lock holder, returning None when its record cannot be read.
 fn held_by(path : String) -> Map[String, Json]? {
   try {
     match load(path) {

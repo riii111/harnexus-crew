@@ -97,7 +97,7 @@ fn launch_session(
 
 ///|
 fn same_task(recorded : Json, data : Json) -> Bool {
-  // 表示名の変更で別のワーカーを起動しないよう、同一性の比較から名前を除く。
+  // To avoid starting another worker after a rename, exclude the display name from identity checks.
   recorded is Object(_) &&
   json_equal(without_name(recorded), without_name(data))
 }

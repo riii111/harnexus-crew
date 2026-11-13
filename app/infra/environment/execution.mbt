@@ -196,7 +196,7 @@ pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
 ///|
 fn cloud_host_of(env : Env) -> CloudHost? {
   match env.get_nonempty(CODEX_CLOUD_VARIABLE) {
-    // 両方の変数がある場合はCodex Cloudを優先する。
+    // When both variables are set, Codex Cloud takes precedence.
     Some(_) => Some(CodexCloud)
     None =>
       match env.get(CLAUDE_CLOUD_VARIABLE) {

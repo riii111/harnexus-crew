@@ -79,7 +79,7 @@ fn render(
   fields : Map[String, String],
 ) -> String raise @failure.TaskFailed {
   let template = read_text(path)
-  // 埋め込む値から新しいリンクを作らせないよう、値の展開前にリンクを解決する。
+  // To keep inserted values from adding links, resolve links before expanding the values.
   @template.format(resolve_links(template, path, fields), fields)
 }
 

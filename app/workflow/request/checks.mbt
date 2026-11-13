@@ -37,7 +37,7 @@ pub fn caller_id(env : @environment.Env) -> String raise @failure.TaskFailed {
 
 ///|
 fn task_id_of(value : Json?) -> String raise @failure.TaskFailed {
-  // プロンプト中の識別子として使うため、空白や文章を含むタスクIDを拒否する。
+  // The task ID is an identifier in prompts, so reject whitespace and prose.
   let id = json_single_line(value, "taskId")
   let points = units_of(id)
   let first_ok = @text.is_ascii_alphanumeric(points[0]) ||
@@ -58,7 +58,7 @@ fn task_id_of(value : Json?) -> String raise @failure.TaskFailed {
 
 ///|
 fn display_name_of(value : Json?) -> OptionalText raise @failure.TaskFailed {
-  // 表示名はスレッドのタイトルだけに使うため、IDの文字制約は適用しない。
+  // The display name is used only in the thread title, so do not apply the ID character restrictions.
   match value {
     None => Absent
     Some(Null) => Null
