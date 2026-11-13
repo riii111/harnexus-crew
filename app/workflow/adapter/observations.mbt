@@ -9,8 +9,6 @@ priv struct SessionPosition {
   /// The reviews before the baseline, and every review taken since, so a session read again from its start is never opened twice.
   excluded : Array[String]
   taken : Array[String]
-  /// Cursors that were not found again, whose records may be lost; kept until someone checks them, never cleared on their own.
-  gaps : Array[Gap]
 }
 
 ///|
@@ -19,12 +17,6 @@ priv struct SessionPosition {
 priv struct Baseline {
   uuid : String?
   estimated : Bool
-  at : String
-}
-
-///|
-priv struct Gap {
-  cursor : String
   at : String
 }
 
@@ -245,17 +237,6 @@ fn SessionPosition::to_json(self : SessionPosition) -> Json {
     ("cursor", optional_text(self.cursor)),
     ("excluded", Json::array(self.excluded.map(Json::string))),
     ("taken", Json::array(self.taken.map(Json::string))),
-    (
-      "gaps",
-      Json::array(
-        self.gaps.map(gap => {
-          object([
-            ("cursor", Json::string(gap.cursor)),
-            ("at", Json::string(gap.at)),
-          ])
-        }),
-      ),
-    ),
   ])
 }
 
@@ -269,14 +250,6 @@ fn position_in(value : Json) -> SessionPosition? {
     members.get("parentThreadId") is Some(String(parent_thread_id)) else {
     return None
   }
-  let gaps = []
-  if members.get("gaps") is Some(Array(items)) {
-    for item in items {
-      if item is Object(gap) && gap.get("cursor") is Some(String(cursor)) {
-        gaps.push({ cursor, at: text_or_none(gap.get("at")).unwrap_or(""), })
-      }
-    }
-  }
   Some({
     session_id,
     parent_thread_id,
@@ -288,7 +261,6 @@ fn position_in(value : Json) -> SessionPosition? {
     cursor: text_or_none(members.get("cursor")),
     excluded: strings_in(members.get("excluded")),
     taken: strings_in(members.get("taken")),
-    gaps,
   })
 }
 

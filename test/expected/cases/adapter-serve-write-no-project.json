@@ -12,7 +12,7 @@
  "requests": [],
  "commands": [],
  "files": {
-  "state/harnexus-crew/cloud-observe/sessions/session_01AbC.json": "{\n \"sessionId\": \"session_01AbC\",\n \"parentThreadId\": \"parent-chat\",\n \"baseline\": {\n  \"uuid\": null,\n  \"estimated\": false,\n  \"at\": \"<TIME>\"\n },\n \"cursor\": \"u-t-aaa1111-R9\",\n \"excluded\": [],\n \"taken\": [\n  \"{{key:0}}\"\n ],\n \"gaps\": []\n}",
+  "state/harnexus-crew/cloud-observe/sessions/session_01AbC.json": "{\n \"sessionId\": \"session_01AbC\",\n \"parentThreadId\": \"parent-chat\",\n \"baseline\": {\n  \"uuid\": null,\n  \"estimated\": false,\n  \"at\": \"<TIME>\"\n },\n \"cursor\": \"u-t-aaa1111-R9\",\n \"excluded\": [],\n \"taken\": [\n  \"{{key:0}}\"\n ]\n}",
   "state/harnexus-crew/cloud-observe/pending.json": "[\n {\n  \"parentThreadId\": \"parent-chat\",\n  \"sessionId\": \"session_01AbC\",\n  \"review\": {\n   \"key\": \"{{key:0}}\",\n   \"reviewer\": \"R9\",\n   \"verdict\": \"LGTM\",\n   \"taskId\": \"harnexus-1\",\n   \"head\": \"aaa1111\",\n   \"answer\": \"判定: LGTM aaa1111\"\n  }\n }\n]",
   "home/.local/state/harnexus/cloud-reviews/{{key:0}}.json": "{\"key\":\"{{key:0}}\",\"reviewer\":\"R9\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\"}"
  }
