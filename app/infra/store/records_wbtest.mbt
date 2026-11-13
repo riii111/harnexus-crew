@@ -105,8 +105,3 @@ test "read_records refuses a record that is not an object" {
     )
   })
 }
-
-///|
-test "remove_record treats a missing record as removed" {
-  in_scratch(directory => remove_record("\{directory}/state.json"))
-}

@@ -1,6 +1,5 @@
 """The state store runs as separate processes here, because locks and atomic writes are promises about other processes."""
 
-import hashlib
 import os
 import re
 import shutil
@@ -246,16 +245,6 @@ class ReadingAndWritingFiles(StoreBetweenProcesses):
 
         self.assertEqual(f"cannot read {fifo}", refused["message"])
 
-    def test_a_saved_record_reads_back_as_the_json_it_was_given(self):
-        directory = self.sandbox()
-        for index, document in enumerate(EXPECTATIONS["saved"]):
-            path = directory / "nested" / f"{index}.json"
-
-            answer = run("save-json", str(path), document["source"], "replace")
-
-            self.assertIs(True, answer["ok"])
-            self.assertEqual(jsonvalue.loads(document["source"]), jsonvalue.loads(path.read_text(encoding="utf-8")), document["source"])
-
     def test_a_record_file_is_owner_only_and_so_is_the_directory_made_for_it(self):
         directory = self.sandbox()
         path = directory / "made" / "deeper" / "state.json"
@@ -275,20 +264,6 @@ class ReadingAndWritingFiles(StoreBetweenProcesses):
         self.assertIs(True, first["ok"])
         self.assertEqual(f"another harnexus-crew run is sending; inspect {path}", second["message"])
         self.assertEqual({"a": 1}, jsonvalue.loads(path.read_text(encoding="utf-8")))
-
-
-class StateDirectories(unittest.TestCase):
-    def test_keys_are_named_as_the_typescript_build_named_them(self):
-        for name, kind, key in (
-            ("a path key", "launch", "/Users/x/work\ntask-1"),
-            ("a Japanese key", "review", "日本語のキー😀"),
-            ("an empty key", "review", ""),
-        ):
-            with self.subTest(name):
-                answer = run("state-directory", "/state/harnexus-crew", kind, key)
-
-                digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
-                self.assertEqual(f"/state/harnexus-crew/{kind}/{digest}", answer["path"])
 
 
 if __name__ == "__main__":

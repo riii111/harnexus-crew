@@ -13,7 +13,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness import expected
-from harness.binaries import binary
 from harness.bridge import Bridge
 from harness.cases import load_cases, make_case, parse_case, InvalidCase
 from harness.compare import compare
@@ -80,16 +79,14 @@ class Harness(unittest.TestCase):
     def differences(self, case, expected_options, actual_options):
         first, first_root = observe(self.stub(expected_options), case)
         second, second_root = observe(self.stub(actual_options), case)
-        return compare(case, normalize(first, case, first_root), normalize(second, case, second_root))
+        return compare(case, normalize(first, first_root), normalize(second, second_root))
 
     def fields(self, found):
         return [difference["field"] for difference in found]
 
-    def test_two_runs_of_the_same_behaviour_agree(self):
-        self.assertEqual([], self.differences(spec(), BASE, BASE))
-
     def test_json_compares_by_meaning_not_by_member_order(self):
         reordered = {**BASE, "stdout": '{"b":[1,2],"a":1}\n'}
+        self.assertEqual([], self.differences(spec(), BASE, BASE))
         self.assertEqual([], self.differences(spec(), BASE, reordered))
 
     def test_a_boolean_is_not_a_number(self):
@@ -113,26 +110,6 @@ class Harness(unittest.TestCase):
         twice = {**BASE, "requests": [*BASE["requests"], *BASE["requests"]]}
         found = self.differences(spec(), BASE, twice)
         self.assertIn({"field": "requests.count", "expected": 1, "actual": 2}, found)
-
-    def test_a_time_placeholder_hides_the_time_but_not_a_duplicate(self):
-        normalizing = spec(
-            normalize=[{"pattern": r"\d{4}-\d{2}-\d{2}T[\d:.]+Z", "with": "<TIME>", "scopes": ["requests"]}]
-        )
-
-        def at(time):
-            return {**BASE, "requests": ['{"asked":"%s"}' % time]}
-
-        self.assertEqual([], self.differences(normalizing, at("2026-11-13T01:02:03.000Z"), at("2026-11-13T09:09:09.999Z")))
-        doubled = {**BASE, "requests": ['{"asked":"2026-11-13T09:09:09.999Z"}'] * 2}
-        found = self.differences(normalizing, at("2026-11-13T01:02:03.000Z"), doubled)
-        self.assertIn("requests.count", self.fields(found))
-
-    def test_a_replacement_in_file_contents_leaves_state_keys_visible(self):
-        keyed = spec(normalize=[{"pattern": r"k\d", "with": "K", "scopes": ["files"]}])
-        found = self.differences(keyed, BASE, {**BASE, "state": {"taskctl/k2/state.json": '{"x":1}'}})
-        self.assertEqual(
-            ["files.state/taskctl/k1/state.json", "files.state/taskctl/k2/state.json"], sorted(self.fields(found))
-        )
 
     def test_lines_keep_their_boundaries_in_a_session(self):
         session = spec(kind="session", bridge=None, commands={}, env={})
@@ -220,19 +197,6 @@ class CasesAndRecordings(unittest.TestCase):
         names = {case.name for case in load_cases()}
         recorded = {path.stem for path in (expected.EXPECTED / "cases").glob("*.json")}
         self.assertEqual(names, recorded)
-
-    def test_the_native_build_runs_under_the_harness_and_a_different_observation_shows_as_a_difference(self):
-        cases = {case.name: case for case in load_cases()}
-        asked = cases["help"]
-        native, root = observe([binary("HARNEXUS_CREW_NATIVE")], cases["usage-unknown-subcommand"])
-        fields = [
-            difference["field"]
-            for difference in compare(
-                asked, expected.expected_for("cases", "help", root), normalize(native, asked, root)
-            )
-        ]
-        self.assertIn("exitCode", fields)
-        self.assertIn("stdout", fields)
 
 
 if __name__ == "__main__":

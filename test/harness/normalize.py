@@ -9,20 +9,19 @@ DEFAULT_RULES = [
 ]
 
 
-def _replace_in(case, scope, text):
-    # A case's rule may match text around a time, so it runs before the default rules replace the time.
-    for rule in [*case.normalize, *DEFAULT_RULES]:
+def _replace_in(scope, text):
+    for rule in DEFAULT_RULES:
         if scope in rule["scopes"]:
             replacement = rule["with"]
             text = re.sub(rule["pattern"], lambda _match: replacement, text, flags=re.ASCII)
     return text
 
 
-def normalize(observation, case, root):
+def normalize(observation, root):
     """Replaces text inside values only: nothing is dropped, merged or reordered, and file paths keep their state keys."""
 
     def text(scope, value):
-        return _replace_in(case, scope, value.replace(root, ROOT_MARK))
+        return _replace_in(scope, value.replace(root, ROOT_MARK))
 
     return {
         "exitCode": observation["exitCode"],
