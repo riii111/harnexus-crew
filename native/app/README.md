@@ -18,9 +18,7 @@ Codex AppのブリッジとT3 Codeの `t3` CLIへ、タスクの操作を送る�
 
 `call_app`:
 
-- 変更を伴う呼び出しの前に、能力照会 `{version:1, query:"capabilities"}` を送る。照会の失敗は、どれも未送信（`not_sent`）になる。
-- 照会の答えがプロトコル1の `done` で `operations` を持たなければ、旧ブリッジとして `unsupported` にする。プロトコル1以外へ送り直さない。
-- 呼び出す操作が `operations` にない場合は、何も送らず `unsupported` にする。
+- 呼び出しはプロトコル1の行 `{version:1, threadId, tool, arguments}` を1回だけ送る。プロトコル1を話すブリッジだけを相手にし、事前の照会はしない。
 - 呼び出しの接続前の失敗は `not_sent`、接続後の失敗と締切は `unknown`。
 - 答えは枠のための `version` だけを除き、他のメンバーをそのまま保つ。結果名が未知でも落とさない。
 
@@ -44,7 +42,7 @@ Codex AppのブリッジとT3 Codeの `t3` CLIへ、タスクの操作を送る�
 
 `moon test` の `app` が、次を実際のプロセスとソケットで確かめる。
 
-- `call_wbtest.mbt`: 模擬ブリッジ（Unixソケット）で、能力照会、旧ブリッジ、未提供の操作、無応答、切断、ソケットなし・off・相対パス。
+- `call_wbtest.mbt`: 模擬ブリッジ（Unixソケット）で、送る行、答えの保持、無応答、切断、ソケットなし・off・相対パス。
 - `t3_wbtest.mbt`: 模擬CLI `test/native/mocks/fake-cli.sh` で、起動・送信の引数と標準入力、未送信と結果不明の分類、締切後の結果不明、`HARNEXUS_T3_BIN` と `which` の探索、T3固有のモデル・思考量の拒否。
 - `reviews_wbtest.mbt`: 固定した `key` と抽出結果との一致。
 

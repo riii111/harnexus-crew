@@ -37,22 +37,10 @@
       "wait": 7
     },
     {
-      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t3\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"/cloud-review 7419687f80b7267449159b3d2b775812\"}"
-    },
-    {
-      "wait": 9
-    },
-    {
-      "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t4\",\"threadId\":\"chat-r1\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"/cloud-review nothere\"}"
-    },
-    {
-      "wait": 11
-    },
-    {
       "send": "{\"v\":1,\"type\":\"request\",\"id\":\"h1\",\"op\":\"history\",\"conversationId\":\"R1\",\"threadId\":\"chat-r1\"}"
     },
     {
-      "wait": 12
+      "wait": 8
     }
   ],
   "snapshot": ["state"],

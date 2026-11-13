@@ -98,12 +98,11 @@ async test "a Codex App reviewer runs in the project whose folder is the review 
     let projects = "[{\"projectId\":\"p0\",\"path\":\"/elsewhere\"},{\"projectId\":3,\"path\":\"\{home}/review-home\"},{\"projectId\":\"p1\",\"path\":\"\{home}/review-home\"},{\"projectId\":\"p2\",\"path\":\"\{home}/review-home\"}]"
     with_bridge(
       "host-2",
-      offering(
-        ["list_projects"],
+      _ => {
         Some(
           "{\"version\":1,\"outcome\":\"done\",\"result\":{\"projects\":\{projects}}}",
-        ),
-      ),
+        )
+      },
       (path, lines) => {
         let host = host_of(
           env_of([("HOME", home), ("HARNEXUS_CALL_SOCKET", path)]),
@@ -111,7 +110,7 @@ async test "a Codex App reviewer runs in the project whose folder is the review 
         )
         assert_eq(review_project_of(host), "p1")
         assert_eq(
-          lines[1],
+          lines[0],
           "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"list_projects\",\"arguments\":{}}",
         )
         ignore(real)
@@ -125,12 +124,11 @@ async test "a Codex App reviewer needs the review home added as a project" {
   with_home("host-3", (home, real) => {
     with_bridge(
       "host-3",
-      offering(
-        ["list_projects"],
+      _ => {
         Some(
           "{\"version\":1,\"outcome\":\"done\",\"result\":{\"projects\":[]}}",
-        ),
-      ),
+        )
+      },
       (path, _) => {
         let host = host_of(
           env_of([("HOME", home), ("HARNEXUS_CALL_SOCKET", path)]),

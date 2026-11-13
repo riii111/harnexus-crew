@@ -2,7 +2,7 @@
  "keys": [],
  "exitCode": 0,
  "signal": null,
- "stdout": "usage:\n  harnexus-crew adapter serve --id ADAPTER_ID\n  harnexus-crew adapter handover\n  harnexus-crew adapter export-links\n  harnexus-crew adapter import-links FILE\n",
+ "stdout": "usage:\n  harnexus-crew adapter serve --id ADAPTER_ID\n",
  "stderr": "",
  "requests": [],
  "commands": [],

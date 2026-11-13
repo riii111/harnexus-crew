@@ -64,10 +64,6 @@
  "requests": [
   {
    "version": 1,
-   "query": "capabilities"
-  },
-  {
-   "version": 1,
    "threadId": "w1",
    "tool": "create_thread",
    "arguments": {
@@ -83,10 +79,6 @@
     "model": "claude-sonnet-5-5",
     "thinking": "high"
    }
-  },
-  {
-   "version": 1,
-   "query": "capabilities"
   },
   {
    "version": 1,

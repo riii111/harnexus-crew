@@ -6,14 +6,9 @@ const PROTOCOL_VERSION : Int32 = 1
 const ANSWER_TIMEOUT_MS : Int32 = 900000
 
 ///|
-const QUERY_TIMEOUT_MS : Int32 = 10000
-
-///|
 const SOCKET_HINT : String = "open the app with HARNEXUS_CALL_SOCKET=on (for example `HARNEXUS_CALL_SOCKET=on bun run open-app` in the harnexus checkout) and run outside the sandbox"
 
 ///|
-/// Asks the bridge for protocol 1 and sends the call only once the bridge offers the tool, so an older bridge never receives a write.
-/// An older bridge answers the query as invalid, which is taken as unsupported; the first protocol is never tried instead.
 pub async fn call_app(
   env : @environment.Env,
   caller : String,
@@ -27,30 +22,6 @@ pub async fn call_app(
   let path = match socket {
     Some(path) => path
     None => return not_sent("the call socket is off (HARNEXUS_CALL_SOCKET=off)")
-  }
-  let query = @socket.exchange_line(
-    path,
-    Json::object({
-      "version": Json::number(PROTOCOL_VERSION.to_double()),
-      "query": Json::string("capabilities"),
-    }).stringify(),
-    QUERY_TIMEOUT_MS,
-  ) catch {
-    // The query changes nothing, so any failure of it leaves the call unsent.
-    @boundary.LineExchangeFailed(code~, message~, ..) =>
-      return not_sent(
-        "\{path}: \{code.unwrap_or(message)}; \{socket_hint(code)}",
-      )
-  }
-  let operations = match offered_operations(query) {
-    Some(operations) => operations
-    None =>
-      return unsupported(
-        "the bridge does not offer call protocol \{PROTOCOL_VERSION}; update harnexus and restart the app",
-      )
-  }
-  if !operations.contains(Json::string(tool)) {
-    return unsupported("the bridge does not offer \{tool}")
   }
   let line = Json::object({
     "version": Json::number(PROTOCOL_VERSION.to_double()),
@@ -97,22 +68,6 @@ fn unsupported(error : String) -> CallAnswer {
 ///|
 fn unknown(error : String) -> CallAnswer {
   CallAnswer::failed(Unknown, error~)
-}
-
-///|
-/// None unless the line is a bridge's `done` answer for protocol 1 that lists its operations.
-fn offered_operations(line : String) -> Array[Json]? {
-  let offered = @jsonio.parse(line) catch { _ => return None }
-  guard offered is Object(members) else { return None }
-  guard members.get("outcome") is Some(String("done")) else { return None }
-  guard members.get("version") is Some(Number(version, ..)) &&
-    version == PROTOCOL_VERSION.to_double() else {
-    return None
-  }
-  match members.get("operations") {
-    Some(Array(operations)) => Some(operations)
-    _ => None
-  }
 }
 
 ///|

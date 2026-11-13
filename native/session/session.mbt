@@ -204,13 +204,7 @@ async fn Session::send(
     self.check_idle()
   }
   let text = answer.to_json().stringify()
-  // A lost send_message answer reaches Claude callers as tool_error.
-  if answer.is_unsent() ||
-    (
-      outcome == "tool_error" &&
-      tool == "create_thread" &&
-      !truthy(value_of(answer.fields, "threadId"))
-    ) {
+  if answer.is_unsent() {
     @store.remove_record(self.pending_path)
     @failure.fail("\{tool} was not sent: \{text}")
   }

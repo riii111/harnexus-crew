@@ -17,7 +17,6 @@
  "commands": [],
  "files": {
   "state/harnexus-crew/cloud-observe/sessions/session_01AbC.json": "{\n \"sessionId\": \"session_01AbC\",\n \"parentThreadId\": \"parent-chat\",\n \"baseline\": {\n  \"uuid\": null,\n  \"estimated\": false,\n  \"at\": \"<TIME>\"\n },\n \"cursor\": \"u-t-bbb2222-R1\",\n \"excluded\": [],\n \"taken\": [\n  \"{{key:0}}\",\n  \"{{key:1}}\"\n ],\n \"gaps\": []\n}",
-  "state/harnexus-crew/cloud-observe/journal.jsonl": "{\"at\":\"<TIME>\",\"kind\":\"review_taken\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"{{key:0}}\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\"}}\n{\"at\":\"<TIME>\",\"kind\":\"review_taken\",\"sessionId\":\"session_01AbC\",\"parentThreadId\":\"parent-chat\",\"review\":{\"key\":\"{{key:1}}\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"bbb2222\",\"answer\":\"判定: LGTM bbb2222\"}}\n{\"at\":\"<TIME>\",\"kind\":\"delivered\",\"key\":\"{{key:0}}\",\"outcome\":\"done\"}\n{\"at\":\"<TIME>\",\"kind\":\"delivered\",\"key\":\"{{key:1}}\",\"outcome\":\"reserved\"}\n",
   "state/harnexus-crew/cloud-observe/pending.json": "[]",
   "home/.local/state/harnexus/cloud-reviews/chats.json": "{\"R1\":\"chat-r1\"}",
   "home/.local/state/harnexus/cloud-reviews/{{key:0}}.json": "{\"key\":\"{{key:0}}\",\"reviewer\":\"R1\",\"verdict\":\"LGTM\",\"taskId\":\"harnexus-1\",\"head\":\"aaa1111\",\"answer\":\"判定: LGTM aaa1111\",\"sent\":true,\"threadId\":\"chat-r1\",\"shownAt\":\"<TIME>\"}",

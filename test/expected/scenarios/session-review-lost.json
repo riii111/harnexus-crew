@@ -44,17 +44,9 @@
  "requests": [
   {
    "version": 1,
-   "query": "capabilities"
-  },
-  {
-   "version": 1,
    "threadId": "w1",
    "tool": "list_projects",
    "arguments": {}
-  },
-  {
-   "version": 1,
-   "query": "capabilities"
   },
   {
    "version": 1,
@@ -73,10 +65,6 @@
     "model": "gpt-6.1-sol",
     "thinking": "medium"
    }
-  },
-  {
-   "version": 1,
-   "query": "capabilities"
   },
   {
    "version": 1,

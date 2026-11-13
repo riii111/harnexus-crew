@@ -5,7 +5,6 @@
  "stdout": "",
  "stderr": "harnexus-crew: list_projects failed: {\"outcome\":\"rejected\",\"error\":\"no\"}\n",
  "requests": [
-  "{\"version\":1,\"query\":\"capabilities\"}",
   "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"list_projects\",\"arguments\":{}}"
  ],
  "commands": [],

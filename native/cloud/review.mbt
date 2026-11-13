@@ -193,7 +193,6 @@ async fn reviewed(
 ///|
 /// A review session keeps its task, worker AI and checkout.
 /// A head the reviewer could not judge is sent again once what it lacked is given, such as a document it could not read.
-/// A state saved before verdicts were kept has none, and counts as judged.
 fn check_continuation(
   state : Json?,
   previous : Map[String, Json],
@@ -202,13 +201,9 @@ fn check_continuation(
   @session.check_kept(Json::object(previous), data, [
     "taskId", "workerAI", "checkout",
   ])
-  let judged = match state {
-    Some(Object(members)) =>
-      match members.get("verdict") {
-        Some(Null) | Some(String("判定保留")) => false
-        _ => true
-      }
-    _ => true
+  let judged = match field_of(state, "verdict") {
+    String(verdict) => verdict != "判定保留"
+    _ => false
   }
   let head = @jsonio.field(data, "head")
   let reviewed = match (previous.get("head"), head) {

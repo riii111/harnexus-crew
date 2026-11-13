@@ -24,8 +24,6 @@ pub fn project_at(@json.Json?, String) -> String?
 
 pub fn refusal_of(TurnSettings, TurnSettings) -> String
 
-pub fn review_command_of(String) -> String?
-
 pub fn review_text(CloudReview) -> String
 
 pub fn reviewer_ask(String, String) -> String

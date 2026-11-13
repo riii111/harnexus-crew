@@ -1,5 +1,0 @@
-{
-  "name": "adapter-usage-import-two-files",
-  "kind": "command",
-  "argv": ["adapter", "import-links", "a", "b"]
-}

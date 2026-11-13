@@ -11,7 +11,6 @@ async fn main {
     "exclusive" => create_exclusive(args)
     "atomic-loop" => write_in_loop(args)
     "with-lock" => count_under_lock(args)
-    "append" => append_lines(args)
     "read" => read_text(args)
     "read-regular" => read_regular(args)
     "save-json" => save_record(args)
@@ -142,20 +141,6 @@ async fn count_under_lock(args : Array[String]) -> Json {
     object([("ok", Json::boolean(true))])
   } catch {
     failed => refused(failed.message())
-  }
-}
-
-///|
-/// Arguments: path, line, count, start time.
-async fn append_lines(args : Array[String]) -> Json {
-  wait_until(number_arg(args, 5))
-  try {
-    for _ in 0..<number_arg(args, 4).to_int() {
-      @store.append_line(arg(args, 2), arg(args, 3))
-    }
-    object([("ok", Json::boolean(true))])
-  } catch {
-    failed => refused(failed.user_message())
   }
 }
 

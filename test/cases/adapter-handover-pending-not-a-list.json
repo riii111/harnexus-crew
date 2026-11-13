@@ -1,8 +1,0 @@
-{
-  "name": "adapter-handover-pending-not-a-list",
-  "kind": "command",
-  "argv": ["adapter", "handover"],
-  "files": {
-    "state/harnexus-crew/cloud-observe/pending.json": "{}"
-  }
-}

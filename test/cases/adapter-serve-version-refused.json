@@ -16,7 +16,7 @@
       "send": "{\"v\":1,\"type\":\"event\",\"event\":\"turn\",\"turnId\":\"t1\",\"threadId\":\"x\",\"conversationId\":\"R1\",\"kind\":\"input\",\"text\":\"hi\"}"
     },
     {
-      "wait": 2
+      "wait": 1
     }
   ]
 }

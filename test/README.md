@@ -18,16 +18,16 @@ python3 -m unittest discover -s test
 | 場所                    | 内容                                                                                                                    |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `test_cases.py`         | `cases/` の事例を1件ずつ動かし、`expected/cases/` の期待値と照らす                                                      |
-| `test_session.py`       | `launch`・`review`・`state`・`resolve`・`name` の複数回の実行。結果不明からの再開、同時起動、旧状態の継続               |
-| `test_cloud.py`         | Cloudレビューの複数回の実行。再レビュー、停止からの復旧、`ask`、ロックの取り上げ、旧状態の継続                          |
+| `test_session.py`       | `launch`・`review`・`state`・`resolve`・`name` の複数回の実行。結果不明からの再開、同時起動                             |
+| `test_cloud.py`         | Cloudレビューの複数回の実行。再レビュー、停止からの復旧、`ask`、ロックの取り上げ                                        |
 | `test_adapter.py`       | `adapter serve` を実プロセスで動かし、応答の行、入力の終了、往復後のfd数を確かめる                                      |
-| `test_store.py`         | `store/probe` を複数起動し、ロック・原子的な書き込み・追記の競合と途中終了を確かめる                                    |
+| `test_store.py`         | `store/probe` を複数起動し、ロック・原子的な書き込みの競合と途中終了を確かめる                                          |
 | `test_prompt.py`        | `prompt/probe` でテンプレートの展開とリンクの拒否を確かめる                                                             |
 | `test_markdown.py`      | `markdown/probe` でMarkdownのリンク判定を確かめる                                                                       |
 | `test_install.py`       | `scripts/install.sh` の新規ビルド、一時prefixへの設置、失敗時の既存バイナリの保持                                       |
 | `test_harness.py`       | 実行器自身。意図した差を見つけること、重複した要求や結果不明を隠さないこと                                              |
 | `harness/`              | 実行器。一時領域、模擬のブリッジ、模擬コマンド、観測、置換、比較                                                        |
-| `fixtures/`             | 旧版が残した状態と、テンプレートの試験用skill                                                                           |
+| `fixtures/`             | テンプレートの試験用skill                                                                                               |
 | `native/`               | リンク判定と保存内容の事例、`moon test` が使う模擬コマンド                                                              |
 
 ## 事例
@@ -70,11 +70,10 @@ python3 -m unittest discover -s test
 期待値は、キーの代わりに `{{key:N}}` を置き、`keys[N]` に元の文字列（一時領域は `<ROOT>`）と桁数を持つ。
 照合のたびに、実際の一時領域でそのSHA-256を計算して戻すため、キーの作り方を変えれば差になる。
 
-期待値に手を入れたのは次の3点だけである。
+期待値に手を入れたのは次の2点だけである。
 
 - Bunが標準エラーへ書く `TimeoutOverflowWarning` は、期待値から除いた。Native版は書かない。
 - `cloud-review-takeover-died` の死んだプロセスのIDは、実行ごとに違うため `<DEAD_PID>` と書いた。
-- `state-legacy-cloud` が事前に置いた状態の時刻は、時刻の既定の置換が実際の出力にも効くため `<TIME>` と書いた。
 
 契約を変えるときは、期待値と事例を同じ変更で更新する。
 

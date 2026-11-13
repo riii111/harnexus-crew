@@ -68,7 +68,7 @@ TS版は撤去済みで、期待値は固定したまま使う。契約を変え
 | `which`           | PATH上のコマンド探索（`Bun.which` と同じ結果）                   |
 | `prwake`          | pr-wakeの呼び出しと `watch` コマンド、GitHubのPRのURL判定        |
 | `cmd/main`        | 入口。引数と環境変数を `cli` へ渡す                              |
-| `adapter`         | `adapter` コマンド（serve・handover・リンクの出入力）            |
+| `adapter`         | `adapter` コマンド（serve）                                      |
 | `session`         | 起動・ローカルレビュー・`resolve`・`name` の状態遷移             |
 | `cloud`           | Cloudレビュー（Codex CLI）と `cloud` コマンド                    |
 

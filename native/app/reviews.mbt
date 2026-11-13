@@ -78,34 +78,6 @@ pub fn reviewer_ask(reviewer : String, text : String) -> String {
 }
 
 ///|
-/// A /cloud-review message names one review kept in the folder, which old chats were opened with.
-pub fn review_command_of(text : String) -> String? {
-  let trimmed = @text.js_trim(text)
-  guard trimmed.has_prefix("/cloud-review") else { return None }
-  let rest = trimmed[13:].to_owned()
-  let name = @text.js_trim(rest)
-  // The name follows at least one whitespace character.
-  guard name.length() < rest.length() else { return None }
-  if name.length() >= 1 &&
-    name.length() <= 128 &&
-    name.code_units().iter().all(is_name_unit) {
-    Some(name)
-  } else {
-    None
-  }
-}
-
-///|
-fn is_name_unit(unit : UInt16) -> Bool {
-  let code = unit.to_int()
-  (code >= 48 && code <= 57) ||
-  (code >= 65 && code <= 90) ||
-  (code >= 97 && code <= 122) ||
-  code == 95 ||
-  code == 45
-}
-
-///|
 fn content_of(record : Json) -> Array[Map[String, Json]] {
   guard record is Object(members) else { return [] }
   guard members.get("message") is Some(Object(message)) else { return [] }

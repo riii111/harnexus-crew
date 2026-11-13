@@ -19,8 +19,7 @@ def frame(line):
     return jsonvalue.dumps({"v": 1, **line}) + "\n"
 
 
-def hello(mode):
-    return frame({"type": "hello", "mode": mode, "versions": [1]})
+HELLO = frame({"type": "hello", "mode": "write", "versions": [1]})
 
 
 READY = frame({"type": "ready", "bindings": [], "conflicts": []})
@@ -197,7 +196,7 @@ class NativeAdapterProcess(unittest.TestCase):
     def test_writes_each_of_many_answers_given_at_once_as_one_whole_line_and_ends_after_the_last_when_the_bridge_closes_its_end(self):
         adapter = self.spawn()
         requests = [frame({"type": "request", "id": f"h{index}", "op": "history", "threadId": "x"}) for index in range(400)]
-        adapter.send(hello("observe") + "".join(requests))
+        adapter.send(HELLO + "".join(requests))
         adapter.close_input()
         code, errors, rest, bad = adapter.finish()
 
@@ -208,7 +207,7 @@ class NativeAdapterProcess(unittest.TestCase):
 
     def test_ends_with_exit_code_0_when_the_bridge_closes_its_end_with_a_request_unanswered_and_keeps_the_review_for_the_next_connection(self):
         adapter = self.spawn()
-        adapter.send(hello("write") + READY + records("e1", "linked", []) + records("e2", "continued", review("aaa1111")))
+        adapter.send(HELLO + READY + records("e1", "linked", []) + records("e2", "continued", review("aaa1111")))
         adapter.wait_for(4)
         self.assertEqual("list_projects", adapter.snapshot()[-1].get("op"))
         adapter.close_input()
@@ -228,7 +227,7 @@ class NativeAdapterProcess(unittest.TestCase):
         reviews.mkdir(parents=True)
         (reviews / "chats.json").write_text('{"R1":"chat-r1"}', encoding="utf-8")
         adapter = self.spawn()
-        adapter.send(hello("write") + READY + records("e0", "linked", []))
+        adapter.send(HELLO + READY + records("e0", "linked", []))
         adapter.wait_for(2)
         handled = [2]
 

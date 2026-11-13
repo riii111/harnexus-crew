@@ -5,7 +5,6 @@
  "stdout": "{\"threadId\":\"w1\",\"title\":\"Impl｜Named task PR#3\",\"watched\":\"https://github.com/o/r/pull/3\"}\n",
  "stderr": "",
  "requests": [
-  "{\"version\":1,\"query\":\"capabilities\"}",
   "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"name_thread\",\"arguments\":{\"name\":\"Impl｜Named task PR#3\"}}"
  ],
  "commands": [

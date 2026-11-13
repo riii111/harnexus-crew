@@ -5,14 +5,7 @@ const PROTOCOL_VERSION : Int32 = 1
 const REVIEW_CHAT_MODEL : String = "claude-sonnet-5-5"
 
 ///|
-const REVIEW_MISSING : String = "This review is no longer kept on this Mac, so it cannot be shown here."
-
-///|
-priv enum Mode {
-  Unset
-  Observe
-  Write
-}
+const MODE_REFUSED : String = "harnexus-crew serves only a bridge in write mode; set \"mode\": \"write\" in harnexus's connection.json."
 
 ///|
 /// What the bridge answered a request, as harnexus's adapter protocol 1 names it.
@@ -38,15 +31,6 @@ fn answer_of(outcome : String, reason~ : String? = None) -> Answer {
     members["reason"] = Json::string(reason)
   }
   { outcome, members, }
-}
-
-///|
-/// The requests that open, answer or send for a conversation, which an observing adapter never sends.
-fn is_write_op(op : String) -> Bool {
-  op == "create_conversation" ||
-  op == "bind_conversation" ||
-  op == "post" ||
-  op == "cloud_send"
 }
 
 ///|
@@ -93,10 +77,11 @@ priv enum Handling {
 }
 
 ///|
-/// One connection to a harnexus bridge: it takes the reviews Cloud sessions print, keeps what it has seen of each session, and in write mode shows each review once in its reviewer's chat.
+/// One connection to a harnexus bridge: it takes the reviews Cloud sessions print, keeps what it has seen of each session, and shows each review once in its reviewer's chat.
 priv struct Adapter {
   deps : Deps
-  mut mode : Mode
+  /// Set once the bridge's hello is accepted; until then nothing is taken or sent for it.
+  mut writing : Bool
   mut ready : Bool
   mut next_id : Int32
   /// Set once the bridge has closed its end, after which nothing is sent to it.
@@ -110,7 +95,7 @@ priv struct Adapter {
 fn Adapter::new(deps : Deps) -> Adapter {
   {
     deps,
-    mode: Unset,
+    writing: false,
     ready: false,
     next_id: 0,
     closed: false,
@@ -182,34 +167,11 @@ async fn Adapter::send_line(
 }
 
 ///|
-async fn Adapter::noted(
-  self : Adapter,
-  entry : Array[(String, Json)],
-) -> Bool noraise {
-  try {
-    self.deps.observations.note(entry)
-    true
-  } catch {
-    failed => {
-      (self.deps.log)([
-        ("step", Json::string("journal_unwritable")),
-        ("message", Json::string(failed.message())),
-      ])
-      false
-    }
-  }
-}
-
-///|
 async fn Adapter::request(
   self : Adapter,
   op : String,
   fields : Array[(String, Json)],
 ) -> Answer noraise {
-  // Checked here as well as by the bridge, so an observing adapter writes nothing even to a bridge that would take it.
-  if !(self.mode is Write) && is_write_op(op) {
-    return answer_of("not_sent", reason=Some("observe_only"))
-  }
   if self.closed {
     return answer_of("not_sent", reason=Some("closed"))
   }
@@ -262,11 +224,10 @@ async fn Adapter::declared_bindings(self : Adapter) -> Array[Json] noraise {
 ///|
 async fn Adapter::greet(self : Adapter) -> Unit noraise {
   // Old reviewer chats are declared from the chats file, the record of which chat shows which reviewer, so the bridge binds them again.
-  let bindings = if self.mode is Write { self.declared_bindings() } else { [] }
   self.send_line([
     ("type", Json::string("hello")),
     ("adapterId", Json::string(self.deps.adapter_id)),
-    ("bindings", Json::array(bindings)),
+    ("bindings", Json::array(self.declared_bindings())),
   ])
 }
 
@@ -472,7 +433,7 @@ async fn Adapter::deliver_locked(
 ///|
 /// Tries every waiting review once, keeping those surely not shown for the next try.
 async fn Adapter::drain(self : Adapter) -> Unit noraise {
-  if !(self.mode is Write) || !self.ready {
+  if !self.writing || !self.ready {
     return
   }
   let waiting = self.deps.observations.pending() catch {
@@ -486,19 +447,7 @@ async fn Adapter::drain(self : Adapter) -> Unit noraise {
   }
   let settled : Map[String, Bool] = Map([])
   for entry in waiting {
-    let outcome = self.deliver(entry)
-    ignore(
-      Ok(
-        self.deps.observations.note([
-          ("kind", Json::string("delivered")),
-          ("key", Json::string(entry.review.key)),
-          ("outcome", Json::string(outcome)),
-        ]),
-      ) catch {
-        e => Err(e)
-      },
-    )
-    if !is_retried(outcome) {
+    if !is_retried(self.deliver(entry)) {
       settled[entry.review.key] = true
     }
   }
@@ -523,12 +472,11 @@ fn index_of_uuid(records : Array[Json], uuid : String) -> Int32 {
 }
 
 ///|
-async fn Adapter::first_position(
-  self : Adapter,
+fn first_position(
   event : Json,
   session_id : String,
   records : Array[Json],
-) -> (SessionPosition, Int32)? noraise {
+) -> (SessionPosition, Int32) {
   let linked = field(event, "phase") is Some(String("linked"))
   // A linked session is measured from the record the chat was linked at; a session first seen continuing is measured from what the app was last shown, which a restarted bridge may only estimate.
   let base = if linked {
@@ -548,23 +496,6 @@ async fn Adapter::first_position(
     None => 0
     Some(_) => if found == -1 { records.length() } else { found + 1 }
   }
-  if !linked &&
-    !self.noted([
-      ("kind", Json::string("baseline_estimated")),
-      ("sessionId", Json::string(session_id)),
-      ("shownBefore", optional_text(base)),
-    ]) {
-    return None
-  }
-  if base is Some(uuid) &&
-    found == -1 &&
-    !self.noted([
-      ("kind", Json::string("baseline_missing")),
-      ("sessionId", Json::string(session_id)),
-      ("base", Json::string(uuid)),
-    ]) {
-    return None
-  }
   let position : SessionPosition = {
     session_id,
     parent_thread_id: text_member(event, "parentThreadId").unwrap_or(""),
@@ -578,11 +509,14 @@ async fn Adapter::first_position(
     taken: [],
     gaps: [],
   }
-  Some((position, end))
+  (position, end)
 }
 
 ///|
 async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
+  if !self.writing {
+    return
+  }
   let session_id = text_member(event, "sessionId").unwrap_or("")
   let records = objects_in(field(event, "records"))
   let known = self.deps.observations.position(session_id) catch {
@@ -595,11 +529,7 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
     }
   }
   let (position, from) = match known {
-    None =>
-      match self.first_position(event, session_id, records) {
-        Some(first) => first
-        None => return
-      }
+    None => first_position(event, session_id, records)
     Some(position) => {
       let at = match position.cursor {
         None => -1
@@ -608,13 +538,6 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
       // A cursor not found again may mean lost records; every record is read again, the kept keys keep out what was taken, and the gap stays recorded.
       if position.cursor is Some(cursor) && at == -1 {
         position.gaps.push({ cursor, at: @store.now_iso(), })
-        if !self.noted([
-            ("kind", Json::string("cursor_missing")),
-            ("sessionId", Json::string(session_id)),
-            ("cursor", Json::string(cursor)),
-          ]) {
-          return
-        }
       }
       (position, at + 1)
     }
@@ -634,21 +557,9 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
     parent_thread_id: parent,
     session_id: Some(session_id),
     review,
-    raw: None,
   })
-  // Every review is journaled, and in write mode queued, before the position moves past it; a failure leaves the position, so the records are read again.
-  let kind = if self.mode is Write { "review_taken" } else { "observed_review" }
-  for entry in entries {
-    if !self.noted([
-        ("kind", Json::string(kind)),
-        ("sessionId", Json::string(session_id)),
-        ("parentThreadId", Json::string(parent)),
-        ("review", review_json(entry.review)),
-      ]) {
-      return
-    }
-  }
-  if self.mode is Write && entries.length() > 0 {
+  // Every review is queued before the position moves past it; a failure leaves the position, so the records are read again.
+  if entries.length() > 0 {
     self.deps.observations.add_pending(entries) catch {
       failed => {
         (self.deps.log)([
@@ -673,27 +584,6 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
       ("type", Json::string("observed")),
       ("eventId", Json::string(event_id)),
     ])
-  }
-}
-
-///|
-async fn Adapter::take_legacy_unsent(
-  self : Adapter,
-  event : Json,
-) -> Unit noraise {
-  if !(self.mode is Observe) {
-    return
-  }
-  // The bridge names them again at each connection, so one that could not be journaled is taken at the next.
-  for entry in objects_in(field(event, "entries")) {
-    let line = [("kind", Json::string("legacy_unsent"))]
-    if field(entry, "parentThreadId") is Some(parent) {
-      line.push(("parentThreadId", parent))
-    }
-    if field(entry, "review") is Some(review) {
-      line.push(("review", review))
-    }
-    ignore(self.noted(line))
   }
 }
 
@@ -735,13 +625,6 @@ async fn Adapter::ask_reviewer(
   reviewer : String,
   text : String,
 ) -> Unit noraise {
-  if @app.review_command_of(text) is Some(typed) {
-    match self.deps.store.review_of(typed) {
-      Some(review) => self.end_turn(turn_id, Some(@app.review_text(review)))
-      None => self.end_turn(turn_id, Some(REVIEW_MISSING))
-    }
-    return
-  }
   let session = match (Ok(self.deps.store.chats()) catch { e => Err(e) }) {
     Ok(chats) =>
       match chats.get(reviewer) {
@@ -782,11 +665,11 @@ async fn Adapter::ask_reviewer(
 async fn Adapter::take_turn(self : Adapter, event : Json) -> Unit noraise {
   let turn_id = text_member(event, "turnId").unwrap_or("")
   let conversation = text_member(event, "conversationId").unwrap_or("")
-  if !(self.mode is Write) {
+  if !self.writing {
     self.end_turn(
       turn_id,
       None,
-      failed=Some("harnexus-crew only observes for this bridge."),
+      failed=Some("harnexus-crew does not serve this bridge."),
     )
     return
   }
@@ -847,7 +730,7 @@ async fn Adapter::post_missed_openings(
   self : Adapter,
   bindings : Json?,
 ) -> Unit noraise {
-  guard self.mode is Write && bindings is Some(Array(items)) else { return }
+  guard self.writing && bindings is Some(Array(items)) else { return }
   for binding in items {
     guard text_member(binding, "conversationId") is Some(reviewer) else {
       continue
@@ -880,13 +763,11 @@ async fn Adapter::show_opening(
       _ => return false
     }
     if asked.showing {
-      ignore(
-        self.noted([
-          ("kind", Json::string("opening_maybe_shown")),
-          ("reviewer", Json::string(reviewer)),
-          ("key", Json::string(asked.key)),
-        ]),
-      )
+      (self.deps.log)([
+        ("step", Json::string("opening_maybe_shown")),
+        ("reviewer", Json::string(reviewer)),
+        ("key", Json::string(asked.key)),
+      ])
       ignore(Ok(observations.drop_opening(reviewer)) catch { e => Err(e) })
       return false
     }
@@ -919,7 +800,7 @@ async fn Adapter::adopt_bridge_bindings(
   self : Adapter,
   bindings : Json?,
 ) -> Unit noraise {
-  guard self.mode is Write && bindings is Some(Array(items)) else { return }
+  guard self.writing && bindings is Some(Array(items)) else { return }
   let chats = self.deps.store.chats() catch { _ => return }
   for binding in items {
     guard text_member(binding, "conversationId") is Some(reviewer) &&
@@ -1012,11 +893,16 @@ fn Adapter::accept(self : Adapter, raw : String) -> Handling {
           (self.deps.log)([("step", Json::string("version_refused"))])
         })
       }
-      self.mode = if field(line, "mode") is Some(String("write")) {
-        Write
-      } else {
-        Observe
+      // An observing bridge refuses every request that shows a review, so only a writing one is served.
+      if !(field(line, "mode") is Some(String("write"))) {
+        return Later(() => {
+          (self.deps.log)([
+            ("step", Json::string("mode_refused")),
+            ("message", Json::string(MODE_REFUSED)),
+          ])
+        })
       }
+      self.writing = true
       Later(() => self.greet())
     }
     Some(String("ready")) => {
@@ -1042,8 +928,6 @@ fn Adapter::accept(self : Adapter, raw : String) -> Handling {
               self.drain()
             })
           })
-        Some(String("migration_unsent_reviews")) =>
-          Later(() => self.in_order(() => self.take_legacy_unsent(line)))
         Some(String("turn")) => Later(() => self.take_turn(line))
         Some(String("conversation_bound")) => Later(() => self.take_bound(line))
         _ => Handled

@@ -43,10 +43,6 @@
  "requests": [
   {
    "version": 1,
-   "query": "capabilities"
-  },
-  {
-   "version": 1,
    "threadId": "w1",
    "tool": "create_thread",
    "arguments": {
