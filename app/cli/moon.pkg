@@ -1,0 +1,24 @@
+import {
+  "riii111/harnexus-crew/app/cli/adapter",
+  "riii111/harnexus-crew/app/cli/args",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/infra/which",
+  "riii111/harnexus-crew/app/workflow",
+  "riii111/harnexus-crew/app/workflow/cloud",
+  "riii111/harnexus-crew/app/workflow/prompt",
+  "riii111/harnexus-crew/app/workflow/session",
+  "riii111/harnexus-crew/app/workflow/status",
+  "riii111/harnexus-crew/app/workflow/watch",
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/run",
+}
+
+import {
+  "moonbitlang/core/async",
+} for "wbtest"
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"

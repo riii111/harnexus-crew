@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/infra/prwake"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/share/failure",
+}
+
+// Values
+pub async fn call(@environment.Env, Array[String]) -> Map[String, @json.Json] raise @failure.TaskFailed
+
+pub async fn hand_over(@environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

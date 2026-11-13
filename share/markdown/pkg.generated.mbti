@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/share/markdown"
+
+import {
+  "riii111/harnexus-crew/share/failure",
+}
+
+// Values
+pub fn links(String, nonce~ : String) -> Array[Candidate] raise @failure.TaskFailed
+
+// Errors
+
+// Types and methods
+pub struct Candidate {
+  index : Int32
+  raw : String
+  start : Int32
+  end : Int32
+}
+
+// Type aliases
+
+// Traits

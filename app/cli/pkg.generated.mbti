@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/cli"
+
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/share/run",
+}
+
+// Values
+pub async fn run(ArrayView[String], () -> @environment.Env raise) -> @run.CommandRun
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

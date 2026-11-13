@@ -8,9 +8,9 @@ BUILD = REPO / "_build" / "native" / "release" / "build"
 
 _DEFAULTS = {
     "HARNEXUS_CREW_NATIVE": BUILD / "cmd" / "main" / "main.exe",
-    "HARNEXUS_STORE_PROBE": BUILD / "store" / "probe" / "probe.exe",
-    "HARNEXUS_MARKDOWN_PROBE": BUILD / "markdown" / "probe" / "probe.exe",
-    "HARNEXUS_PROMPT_PROBE": BUILD / "prompt" / "probe" / "probe.exe",
+    "HARNEXUS_STORE_PROBE": BUILD / "test" / "probes" / "store" / "store.exe",
+    "HARNEXUS_MARKDOWN_PROBE": BUILD / "test" / "probes" / "markdown" / "markdown.exe",
+    "HARNEXUS_PROMPT_PROBE": BUILD / "test" / "probes" / "prompt" / "prompt.exe",
 }
 
 

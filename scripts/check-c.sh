@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Checks the formatting, warnings and static analysis of the hand-written C under native/.
+# Checks the formatting, warnings and static analysis of the hand-written C under app/, share/ and cmd/.
 # Run it inside `nix develop` so clang-format and clang-tidy are the versions flake.nix pins.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 # md4c is vendored and kept as upstream ships it.
-mapfile -t files < <(git ls-files 'native/*.c' ':!native/markdown/md4c.c')
+mapfile -t files < <(git ls-files 'app/*.c' 'share/*.c' 'cmd/*.c' ':!share/markdown/md4c.c')
 
 clang-format --dry-run --Werror "${files[@]}"
 

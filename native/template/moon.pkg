@@ -1,6 +1,0 @@
-import {
-  "riii111/harnexus-crew/shared/failure",
-  "riii111/harnexus-crew/text",
-}
-
-supported_targets = "+native"

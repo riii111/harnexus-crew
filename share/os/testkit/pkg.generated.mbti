@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/share/os/testkit"
+
+// Values
+pub fn accept(Int32) -> Int32? raise Errno
+
+pub fn alive(Int32) -> Bool
+
+pub fn close_fd(Int32) -> Unit
+
+pub fn connect_and_hold(String) -> Int32 raise Errno
+
+pub fn eagain() -> Int32
+
+pub fn fd_open(Int32) -> Bool
+
+pub fn listen(String, backlog? : Int32) -> Int32 raise Errno
+
+pub fn open_fds() -> Int32
+
+pub fn pid() -> Int32
+
+pub fn remove_file(String) -> Unit
+
+// Errors
+pub suberror Errno {
+  Errno(Int32)
+}
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -21,9 +21,9 @@ python3 -m unittest discover -s test
 | `test_session.py`       | `launch`・`review`・`state`・`resolve`・`name` の複数回の実行。結果不明からの再開、同時起動                             |
 | `test_cloud.py`         | Cloudレビューの複数回の実行。再レビュー、停止からの復旧、`ask`、ロックの取り上げ                                        |
 | `test_adapter.py`       | `adapter serve` を実プロセスで動かし、応答の行、入力の終了、往復後のfd数を確かめる                                      |
-| `test_store.py`         | `store/probe` を複数起動し、ロック・原子的な書き込みの競合と途中終了を確かめる                                          |
-| `test_prompt.py`        | `prompt/probe` でテンプレートの展開とリンクの拒否を確かめる                                                             |
-| `test_markdown.py`      | `markdown/probe` でMarkdownのリンク判定を確かめる                                                                       |
+| `test_store.py`         | `test/probes/store` を複数起動し、ロック・原子的な書き込みの競合と途中終了を確かめる                                          |
+| `test_prompt.py`        | `test/probes/prompt` でテンプレートの展開とリンクの拒否を確かめる                                                             |
+| `test_markdown.py`      | `test/probes/markdown` でMarkdownのリンク判定を確かめる                                                                       |
 | `test_install.py`       | `scripts/install.sh` の新規ビルド、一時prefixへの設置、失敗時の既存バイナリの保持                                       |
 | `test_harness.py`       | 実行器自身。意図した差を見つけること、重複した要求や結果不明を隠さないこと                                              |
 | `harness/`              | 実行器。一時領域、模擬のブリッジ、模擬コマンド、観測、置換、比較                                                        |
@@ -80,4 +80,4 @@ python3 -m unittest discover -s test
 ## 既知の差
 
 - 起動時にカレントディレクトリを読めないとき、TS版は例外で終わり、Native版は `cannot read the current directory` で失敗する。この診断は期待値に含めていない。
-- 応答待ちの要求が残ったまま `adapter serve` の入力が閉じると、TS版は40秒以上止まってロックを残す。Native版は、要求が終わるのを待って終了する。この条件は、TSと一致した事例に数えていない。`test_adapter.py` と `native/adapter` の試験が、Native版の挙動を確かめる。
+- 応答待ちの要求が残ったまま `adapter serve` の入力が閉じると、TS版は40秒以上止まってロックを残す。Native版は、要求が終わるのを待って終了する。この条件は、TSと一致した事例に数えていない。`test_adapter.py` と `app/workflow/adapter` の試験が、Native版の挙動を確かめる。

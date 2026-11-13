@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/infra/git"
+
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/share/boundary",
+  "riii111/harnexus-crew/share/failure",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct Git {
+  // private fields
+}
+pub fn Git::new(GitRunner, @environment.Env) -> Self
+pub fn Git::of_env(@environment.Env) -> Self
+pub async fn Git::run(Self, String, Array[String]) -> String raise @failure.TaskFailed
+
+pub(all) struct GitRunner {
+  run : async (Array[String], Map[String, String]) -> @boundary.CommandOutput raise @boundary.CommandFailed
+}
+
+// Type aliases
+
+// Traits

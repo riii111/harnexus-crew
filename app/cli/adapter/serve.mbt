@@ -1,0 +1,60 @@
+///|
+/// Writes whole texts one at a time, so lines from concurrent tasks never mix.
+/// A stream the reader has closed loses its text; the adapter has nowhere else to report it.
+async fn emit(
+  stream : @stdio.Output,
+  gate : @async.Mutex,
+  text : String,
+) -> Unit noraise {
+  gate.acquire()
+  defer gate.release()
+  stream.write(@utf8.encode(text)) catch {
+    _ => ()
+  }
+}
+
+///|
+fn log_text(entry : Array[(String, Json)]) -> String {
+  let line = [("time", Json::string(@store.now_iso())), ..entry]
+  Json::object(Map::from_array(line)).stringify() + "\n"
+}
+
+///|
+/// The lines one chunk read up to a `\n` holds, split where Node's readline splits: `\r\n`, `\n` and a lone `\r`.
+fn split_lines(chunk : String) -> Array[String] {
+  let text = if chunk.has_suffix("\r") {
+    chunk[:chunk.length() - 1].to_owned()
+  } else {
+    chunk
+  }
+  text.split("\r").map(line => line.to_owned()).collect()
+}
+
+///|
+async fn serve(env : @environment.Env, adapter_id : String) -> @run.CommandRun {
+  let out_gate = @async.Mutex()
+  let err_gate = @async.Mutex()
+  let lines : Array[String] = []
+  @delivery.serve(
+    env,
+    adapter_id,
+    read_line=() => {
+      if lines.is_empty() {
+        let chunk = match
+          (Ok(@stdio.stdin.read_until(b"\n")) catch { e => Err(e) }) {
+          Ok(Some(bytes)) => @utf8.decode_lossy(bytes)
+          _ => return None
+        }
+        lines.append(split_lines(chunk))
+      }
+      Some(lines.remove(0))
+    },
+    send=line => emit(@stdio.stdout, out_gate, line + "\n"),
+    log=entry => emit(@stdio.stderr, err_gate, log_text(entry)),
+  ) catch {
+    @failure.TaskFailed(message) =>
+      return { code: 1, stdout: "", stderr: "\{message}\n", }
+    other => raise other
+  }
+  { code: 0, stdout: "", stderr: "", }
+}

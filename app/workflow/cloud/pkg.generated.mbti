@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/workflow/cloud"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/workflow",
+  "riii111/harnexus-crew/share/failure",
+}
+
+// Values
+pub async fn open_chat(@workflow.CloudInput, @environment.Env) -> @json.Json raise @failure.TaskFailed
+
+pub async fn review(@workflow.ReviewInput, @environment.Env) -> @json.Json raise @failure.TaskFailed
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,22 @@
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/infra/prwake",
+  "riii111/harnexus-crew/app/workflow",
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/text",
+}
+
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/env",
+  "riii111/harnexus-crew/app/cli/args",
+  "riii111/harnexus-crew/app/infra/store",
+  "riii111/harnexus-crew/share/os/process",
+  "riii111/harnexus-crew/share/os/testkit",
+} for "wbtest"
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"

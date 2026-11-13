@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/workflow/adapter"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/app/infra/environment",
+}
+
+// Values
+pub async fn serve(@environment.Env, String, read_line~ : async () -> String? noraise, send~ : async (String) -> Unit noraise, log~ : async (Array[(String, @json.Json)]) -> Unit noraise) -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -1,6 +1,0 @@
-import {
-  "riii111/harnexus-crew/sys",
-  "moonbitlang/core/env",
-}
-
-supported_targets = "+native"

@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/workflow/prompt"
+
+import {
+  "moonbitlang/core/json",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/share/failure",
+}
+
+// Values
+pub fn check_templates(@environment.Env) -> @json.Json raise @failure.TaskFailed
+
+pub fn task_prompt(@environment.Env, TemplateKind, Map[String, String]) -> String raise @failure.TaskFailed
+
+// Errors
+
+// Types and methods
+pub(all) enum TemplateKind {
+  Worker
+  Reviewer
+}
+
+// Type aliases
+
+// Traits

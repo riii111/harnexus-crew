@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/share/text"
+
+// Values
+pub fn compare_utf16(String, String) -> Int32
+
+pub fn excerpt(String) -> String
+
+pub fn has_space(String) -> Bool
+
+pub fn is_ascii_alphanumeric(Int32) -> Bool
+
+pub fn is_blank(String) -> Bool
+
+pub fn is_space(Int32) -> Bool
+
+pub fn js_trim(String) -> String
+
+pub fn js_trim_end(String) -> String
+
+pub fn nonempty(String?) -> String?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

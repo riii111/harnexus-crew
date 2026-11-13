@@ -1,0 +1,20 @@
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/infra/git",
+  "riii111/harnexus-crew/app/infra/store",
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/path",
+  "riii111/harnexus-crew/share/text",
+}
+
+import {
+  "moonbitlang/core/async",
+  "riii111/harnexus-crew/share/boundary",
+  "riii111/harnexus-crew/share/jsonio",
+} for "wbtest"
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"

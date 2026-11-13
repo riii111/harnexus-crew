@@ -1,0 +1,13 @@
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/infra/store",
+  "riii111/harnexus-crew/app/workflow/prompt/template",
+  "riii111/harnexus-crew/app/workflow/request",
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/jsonio",
+  "riii111/harnexus-crew/share/markdown",
+  "riii111/harnexus-crew/share/path",
+  "riii111/harnexus-crew/share/text",
+}
+
+supported_targets = "+native"

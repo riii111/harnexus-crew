@@ -1,0 +1,13 @@
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/share/boundary",
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/os/process",
+  "riii111/harnexus-crew/share/text",
+}
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"

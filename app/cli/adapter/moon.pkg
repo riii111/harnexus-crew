@@ -1,0 +1,17 @@
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/stdio",
+  "moonbitlang/core/encoding/utf8",
+  "riii111/harnexus-crew/app/cli/args",
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/app/infra/store",
+  "riii111/harnexus-crew/app/workflow/adapter" @delivery,
+  "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/run",
+}
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"
