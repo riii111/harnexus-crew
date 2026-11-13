@@ -3,6 +3,14 @@
 priv suberror StillAlive
 
 ///|
+priv struct Supervised {
+  exit : Exit
+  ended : @boundary.ProcessEnd
+  stdout : Bytes
+  stderr : Bytes
+}
+
+///|
 /// Runs a command in its own process group, so a child it started does not outlive it.
 /// Returns after the command exits and its output is read to the end.
 /// input        : Sent to stdin.
@@ -35,6 +43,30 @@ pub async fn run_process(
     child.stop_and_reap()
     child.release_pipes()
   }
+  let run = supervise(child, input, timeout_ms~, kill_grace_ms~) catch {
+    StillAlive =>
+      raise failed(true, "pid \{child.pid} did not exit after SIGKILL")
+    err => raise failed(true, err.to_string())
+  }
+  // To preserve UTF-8 characters split across chunks, decode only after collecting all output.
+  {
+    status: match run.exit {
+      Code(code) => code
+      Signaled(_) => 1
+    },
+    stdout: @utf8.decode_lossy(run.stdout),
+    stderr: @utf8.decode_lossy(run.stderr),
+    ended: run.ended,
+  }
+}
+
+///|
+async fn supervise(
+  child : Child,
+  input : String,
+  timeout_ms~ : Int32,
+  kill_grace_ms~ : Int32,
+) -> Supervised {
   let capture = Capture::new()
   let ended = Ref(@boundary.ProcessEnd::Exit)
   let exited = Ref(false)
@@ -70,21 +102,13 @@ pub async fn run_process(
     reading_err.wait()
     exit.val = waiting.wait()
     exited.val = true
-  }) catch {
-    StillAlive =>
-      raise failed(true, "pid \{child.pid} did not exit after SIGKILL")
-    err => raise failed(true, err.to_string())
-  }
+  })
   child.sweep_group()
-  // To preserve UTF-8 characters split across chunks, decode only after collecting all output.
   {
-    status: match exit.val {
-      Code(code) => code
-      Signaled(_) => 1
-    },
-    stdout: @utf8.decode_lossy(capture.stdout.to_bytes()),
-    stderr: @utf8.decode_lossy(capture.stderr.to_bytes()),
+    exit: exit.val,
     ended: ended.val,
+    stdout: capture.stdout.to_bytes(),
+    stderr: capture.stderr.to_bytes(),
   }
 }
 

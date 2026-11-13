@@ -505,39 +505,94 @@ async test "run_command reports a command that cannot start or dies from a signa
 }
 
 ///|
-async test "run_command leaves stdin open, so a command that waits for it runs into the timeout" {
+async test "run_command ends a command that reads stdin to its end instead of waiting for the timeout" {
   serial(() => {
-    try
-      run_command("/bin/cat", [], plain_env(), timeout_ms=300) |> ignore
-    catch {
-      @boundary.CommandFailed(message~, ..) =>
-        assert_eq(message, "/bin/cat was stopped after 300 ms")
-    } noraise {
-      _ => fail("expected a failure")
+    let ran = run_command("/bin/cat", [], plain_env(), timeout_ms=5000)
+    assert_eq(ran.status, 0)
+    assert_eq(ran.stdout, "")
+  })
+}
+
+///|
+async fn command_outcome(
+  script : String,
+  timeout_ms~ : Int32,
+) -> (String, Int32) {
+  timed(() => {
+    try {
+      run_command("/bin/sh", ["-c", script], plain_env(), timeout_ms~) |> ignore
+      "no failure"
+    } catch {
+      @boundary.CommandFailed(message~, code~, ..) =>
+        "\{message} (\{code.unwrap_or("none")})"
     }
   })
 }
 
 ///|
-async test "run_command sends SIGTERM once and waits for a command that ignores it" {
+async test "run_command kills a command that ignores SIGTERM after a grace" {
   serial(() => {
-    let (failed, elapsed) = timed(() => {
-      try
-        run_command(
-          "/bin/sh",
-          ["-c", "trap '' TERM; sleep 1; echo late"],
-          plain_env(),
-          timeout_ms=100,
-        )
-        |> ignore
-      catch {
-        @boundary.CommandFailed(message~, ..) => message
-      } noraise {
-        _ => "no failure"
-      }
+    let (result, elapsed) = command_outcome(
+      "trap '' TERM; sleep 5",
+      timeout_ms=100,
+    )
+    assert_eq(result, "/bin/sh was stopped after 100 ms (none)")
+    assert_between(elapsed, 1000, 2500)
+  })
+}
+
+///|
+async test "run_command stops a grandchild that keeps the output open after the leader exits" {
+  serial(() => {
+    let dir = scratch("stop-grandchild")
+    ignore(shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    let pidfile = "\{dir}/pid"
+    let (result, elapsed) = command_outcome(
+      "sleep 30 & echo $! > \{pidfile}; exit 0",
+      timeout_ms=300,
+    )
+    assert_eq(result, "/bin/sh was stopped after 300 ms (none)")
+    assert_between(elapsed, 250, 1500)
+    assert_true(is_gone(pid_in(pidfile)))
+  })
+}
+
+///|
+async test "run_command gives up on a grandchild that left the group and keeps the output open" {
+  serial(() => {
+    let before = @testkit.open_fds()
+    let (result, elapsed) = command_outcome(
+      "perl -MPOSIX -e 'POSIX::setsid(); exec q(sleep), q(4)' & exit 0",
+      timeout_ms=300,
+    )
+    assert_true(result.has_prefix("/bin/sh did not finish: pid "), msg=result)
+    assert_true(result.has_suffix(" did not exit after SIGKILL (none)"))
+    assert_between(elapsed, 2000, 3500)
+    assert_eq(@testkit.open_fds(), before)
+  })
+}
+
+///|
+async test "cancelling run_command ends the command's group and closes every descriptor" {
+  serial(() => {
+    let dir = scratch("cancel-command")
+    ignore(shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    let pidfile = "\{dir}/pid"
+    ignore(shell("true"))
+    let before = @testkit.open_fds()
+    let finished = @async.with_timeout_opt(300, () => {
+      run_command(
+        "/bin/sh",
+        ["-c", "sleep 30 & echo $! > \{pidfile}; sleep 30"],
+        plain_env(),
+        timeout_ms=30000,
+      )
     })
-    assert_eq(failed, "/bin/sh was stopped after 100 ms")
-    assert_between(elapsed, 900, 2500)
+    assert_true(finished is None)
+    assert_true(is_gone(pid_in(pidfile)))
+    assert_eq(@testkit.open_fds(), before)
   })
 }
 
@@ -610,31 +665,13 @@ async test "B1 cancelling a run whose leader already exited still ends the group
 }
 
 ///|
-async test "B2 run_command limits each stream on its own" {
+async test "B2 run_command counts both streams against one 16 MiB limit" {
   serial(() => {
-    let both = run_command(
-      "/bin/sh",
-      ["-c", "head -c 10000000 /dev/zero; head -c 10000000 /dev/zero >&2"],
-      plain_env(),
+    let (result, _) = command_outcome(
+      "head -c 10000000 /dev/zero; head -c 10000000 /dev/zero >&2",
       timeout_ms=20000,
     )
-    assert_eq(both.status, 0)
-    assert_eq(both.stdout.length(), 10000000)
-    assert_eq(both.stderr.length(), 10000000)
-    try
-      run_command(
-        "/bin/sh",
-        ["-c", "head -c 17000000 /dev/zero >&2"],
-        plain_env(),
-        timeout_ms=20000,
-      )
-      |> ignore
-    catch {
-      @boundary.CommandFailed(message~, ..) =>
-        assert_eq(message, "cannot run /bin/sh")
-    } noraise {
-      _ => fail("expected a failure")
-    }
+    assert_eq(result, "cannot run /bin/sh (ERR_CHILD_PROCESS_STDIO_MAXBUFFER)")
   })
 }
 
