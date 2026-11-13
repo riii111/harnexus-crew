@@ -13,10 +13,7 @@ pub async fn run_command(
     @boundary.CommandFailed(command=file, message~, code~)
   }
   let child = spawn(file, args, env, "", piped=true, new_session=false) catch {
-    SpawnFailed(errno~) =>
-      raise failed("cannot run \{file}", Some(@unix.errno_name(errno)))
-    InvalidArgument =>
-      raise failed("cannot run \{file}", Some("ERR_INVALID_ARG_VALUE"))
+    err => raise failed("cannot run \{file}", Some(err.code()))
   }
   defer {
     child.stop_and_reap()
@@ -82,35 +79,15 @@ pub async fn run_inherited(
   env : Map[String, String],
 ) -> Int32 raise @boundary.CommandFailed {
   let child = spawn(file, args, env, "", piped=false, new_session=false) catch {
-    SpawnFailed(errno~) =>
+    err =>
       raise @boundary.CommandFailed(
         command=file,
         message="cannot run \{file}",
-        code=Some(@unix.errno_name(errno)),
-      )
-    InvalidArgument =>
-      raise @boundary.CommandFailed(
-        command=file,
-        message="cannot run \{file}",
-        code=Some("ERR_INVALID_ARG_VALUE"),
+        code=Some(err.code()),
       )
   }
   match child.wait_exit(patience_ms=50) {
     Code(status) => status
     Signaled(sig) => 128 + sig
-  }
-}
-
-///|
-/// What Bun says when a command cannot be started, which reaches the user inside a process failure.
-fn spawn_reason(file : String, err : SpawnFailed) -> String {
-  match err {
-    InvalidArgument => "The argument must be a string without null bytes"
-    SpawnFailed(errno~) =>
-      if @unix.errno_name(errno) == "ENOENT" && !file.contains("/") {
-        "Executable not found in $PATH: \"\{file}\""
-      } else {
-        "\{@unix.errno_message(errno)}, posix_spawn '\{file}'"
-      }
   }
 }

@@ -6,7 +6,7 @@ extern "C" fn rmdir_raw(path : Bytes) -> Int32 = "harnexus_store_rmdir"
 /// A new empty directory under the temporary directory, for one test to fill.
 fn scratch() -> String {
   let base = @env.get_env_var("TMPDIR").unwrap_or("/tmp")
-  let directory = "\{trim_trailing_separators(base)}/hx-store-\{new_uuid()}"
+  let directory = @path.join([base, "hx-store-\{new_uuid()}"])
   prepare_directory(directory) catch {
     failed => abort(failed.user_message())
   }
@@ -24,7 +24,7 @@ fn remove_tree(path : String) -> Unit {
       ignore(unlink_at(child))
     }
   }
-  match c_path(path) {
+  match @sys.c_string(path) {
     Some(bytes) => ignore(rmdir_raw(bytes))
     None => ()
   }

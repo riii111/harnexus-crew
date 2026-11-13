@@ -20,6 +20,8 @@ pub fn is_space(Int32) -> Bool
 
 pub fn js_trim(String) -> String
 
+pub fn js_trim_end(String) -> String
+
 // Errors
 
 // Types and methods

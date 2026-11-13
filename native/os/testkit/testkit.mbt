@@ -35,16 +35,7 @@ extern "C" fn eagain_raw() -> Int32 = "harnexus_testkit_eagain"
 
 ///|
 fn c_string(text : String) -> Bytes {
-  let bytes = @utf8.encode(text)
-  Bytes::from_array(
-    Array::makei(bytes.length() + 1, i => {
-      if i < bytes.length() {
-        bytes[i]
-      } else {
-        b'\x00'
-      }
-    }),
-  )
+  @sys.c_string(text).unwrap()
 }
 
 ///|

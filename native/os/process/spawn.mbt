@@ -25,6 +25,15 @@ priv suberror SpawnFailed {
 }
 
 ///|
+/// The errno name, or Node's code for an argument with a NUL.
+fn SpawnFailed::code(self : SpawnFailed) -> String {
+  match self {
+    SpawnFailed(errno~) => @unix.errno_name(errno)
+    InvalidArgument => "ERR_INVALID_ARG_VALUE"
+  }
+}
+
+///|
 /// A descriptor the caller owns until a stream takes it.
 /// `close_unless_taken` is the one place that closes it, so every path out releases it exactly once.
 priv struct Fd {
@@ -84,13 +93,6 @@ fn spawn(
     if key != "" {
       entries.push("\{key}=\{value}")
     }
-  }
-  // A NUL would end the string early in C, which could run a different command than the one asked for.
-  let strings = [cwd]
-  strings.append(argv)
-  strings.append(entries)
-  guard !strings.iter().any(text => text.contains("\u{0}")) else {
-    raise InvalidArgument
   }
   let out = FixedArray::make(4, -1)
   let flags = (if new_session { SPAWN_NEW_SESSION } else { 0 }) |
@@ -196,18 +198,19 @@ fn Child::release_pipes(self : Child) -> Unit {
 }
 
 ///|
-fn pack(items : ArrayView[String]) -> Bytes {
-  let buffer = @buffer.Buffer()
-  for item in items {
-    buffer.write_bytes(@utf8.encode(@jsonio.lossy_text(item)))
-    buffer.write_byte(b'\x00')
-  }
-  buffer.to_bytes()
+/// A NUL would end the string early in C, which could run a different command than the one asked for.
+fn c_string(text : String) -> Bytes raise SpawnFailed {
+  guard @sys.c_string(text) is Some(bytes) else { raise InvalidArgument }
+  bytes
 }
 
 ///|
-fn c_string(text : String) -> Bytes {
-  pack([text])
+fn pack(items : ArrayView[String]) -> Bytes raise SpawnFailed {
+  let buffer = @buffer.Buffer()
+  for item in items {
+    buffer.write_bytes(c_string(item))
+  }
+  buffer.to_bytes()
 }
 
 ///|

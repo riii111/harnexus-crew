@@ -24,6 +24,15 @@ test "dirname follows Node, including its odd results" {
 }
 
 ///|
+test "basename drops trailing separators" {
+  inspect(basename("a/b/c.json"), content="c.json")
+  inspect(basename("/a/b//"), content="b")
+  inspect(basename("a"), content="a")
+  inspect(basename("/"), content="")
+  inspect(basename(""), content="")
+}
+
+///|
 test "normalize keeps a trailing slash and the parents of a relative path" {
   inspect(normalize("a/../.."), content="..")
   inspect(normalize("/../a"), content="/a")

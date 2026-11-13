@@ -114,7 +114,7 @@ pub fn prepare_directory(path : String) -> Unit raise FileFailed {
     raise failure(Prepare, path, -made, message)
   }
   // The parent is synced too, so files created inside later are not lost with a directory entry that never reached the disk.
-  let synced = sync_directory(dirname(path))
+  let synced = sync_directory(@path.dirname(path))
   if synced < 0 {
     raise failure(Prepare, path, -synced, message)
   }
@@ -124,7 +124,7 @@ pub fn prepare_directory(path : String) -> Unit raise FileFailed {
 /// Appends one line to a log kept by one writer at a time, and syncs it so a record of what was seen survives a crash.
 pub fn append_line(path : String, line : String) -> Unit raise FileFailed {
   let message = "cannot append to \{path}"
-  let made = make_directories(dirname(path))
+  let made = make_directories(@path.dirname(path))
   if made < 0 {
     raise failure(Append, path, -made, message)
   }
@@ -169,9 +169,9 @@ pub fn path_exists(path : String) -> Bool {
 ///|
 /// The absolute path with symbolic links resolved, or the absolute path as written when it cannot be resolved.
 pub fn real_path_or_self(path : String) -> String {
-  let absolute = resolve_path(path)
+  let absolute = @path.resolve(cwd=@env.current_dir().unwrap_or("/"), [path])
   let out : FixedArray[Byte] = FixedArray::make(4096, b'\x00')
-  let len = match c_path(absolute) {
+  let len = match @sys.c_string(absolute) {
     Some(bytes) => realpath_raw(bytes, out, 4096)
     None => -einval
   }
@@ -218,7 +218,7 @@ fn failure(
   errno : Int32,
   message : String,
 ) -> FileFailed {
-  FileFailed(action~, path~, code=errno_code(errno), message~)
+  FileFailed(action~, path~, code=Some(@unix.errno_name(errno)), message~)
 }
 
 ///|
@@ -295,8 +295,8 @@ fn write_temporary(path : String, content : String) -> String raise FileFailed {
 
 ///|
 fn temporary_path(path : String) -> String {
-  let name = ".\{basename(path)}.\{new_uuid()}.tmp"
-  let directory = dirname(path)
+  let name = ".\{@path.basename(path)}.\{new_uuid()}.tmp"
+  let directory = @path.dirname(path)
   if directory == "." {
     name
   } else if directory.has_suffix("/") {
@@ -308,7 +308,7 @@ fn temporary_path(path : String) -> String {
 
 ///|
 fn sync_parent(path : String, done : String) -> Unit raise FileFailed {
-  let synced = sync_directory(dirname(path))
+  let synced = sync_directory(@path.dirname(path))
   if synced < 0 {
     raise failure(
       Sync,
@@ -344,7 +344,7 @@ fn make_directories(path : String) -> Int32 {
   if made != -enoent {
     return made
   }
-  let parent = dirname(path)
+  let parent = @path.dirname(path)
   if parent == path {
     return made
   }
@@ -367,7 +367,7 @@ fn list_with_capacity(
   capacity : Int32,
 ) -> Array[String]? raise FileFailed {
   let out : FixedArray[Byte] = FixedArray::make(capacity, b'\x00')
-  let needed = match c_path(path) {
+  let needed = match @sys.c_string(path) {
     Some(bytes) => list_raw(bytes, out, capacity)
     None => -einval
   }
