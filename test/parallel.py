@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+SHARED_BUILD_MODULE = "test_install"
 
 
 def test_ids(suite):
@@ -20,6 +21,11 @@ def test_ids(suite):
             yield from test_ids(test)
         else:
             yield test.id()
+
+
+def deal(ids, count):
+    # Tests of one module sit next to each other in discovery order, so dealing them out in turn spreads the slow modules over every process.
+    return [ids[k::count] for k in range(count) if ids[k::count]]
 
 
 def run_shard(ids, options):
@@ -46,8 +52,13 @@ def main():
     if not ids:
         print("no tests matched")
         return 5
-    # Tests of one module sit next to each other in discovery order, so dealing them out in turn spreads the slow modules over every process.
-    shards = [ids[k :: args.processes] for k in range(args.processes) if ids[k :: args.processes]]
+    # The install tests share one real build that each process would otherwise repeat, so they run together in a process of their own.
+    install = [test for test in ids if test.startswith(SHARED_BUILD_MODULE + ".")]
+    others = [test for test in ids if not test.startswith(SHARED_BUILD_MODULE + ".")]
+    if install and args.processes > 1:
+        shards = [install, *deal(others, args.processes - 1)]
+    else:
+        shards = deal(ids, args.processes)
     with ThreadPoolExecutor(len(shards)) as pool:
         results = list(pool.map(lambda shard: run_shard(shard, options), shards))
     for number, (status, report) in enumerate(results, 1):
