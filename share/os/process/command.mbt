@@ -1,9 +1,12 @@
 ///|
+const COMMAND_KILL_GRACE_MS : Int32 = 1000
+
+///|
 /// Runs a short command and returns what it printed.
 /// exit status: Any status is a result; the caller decides what a failure means.
-/// raises     : When the command cannot start, is stopped by the timeout, prints more than 16 MiB, or dies from a signal.
+/// raises     : When the command cannot start, is stopped by the timeout, prints more than 16 MiB in all, dies from a signal, or survives SIGKILL.
 /// stdin      : Closed at once, so a command that reads it sees the end of input.
-/// timeout    : A command that outlives it gets SIGTERM only.
+/// stop       : The command leads its own process group. At the timeout or the output limit the group gets SIGTERM, then SIGKILL after one second.
 pub async fn run_command(
   file : String,
   args : ArrayView[String],
@@ -13,63 +16,42 @@ pub async fn run_command(
   let failed = (message : String, code : String?) => {
     @boundary.CommandFailed(command=file, message~, code~)
   }
-  let child = spawn(file, args, env, "", piped=true, new_session=false) catch {
+  let child = spawn(file, args, env, "", piped=true, new_session=true) catch {
     err => raise failed("cannot run \{file}", Some(err.code()))
   }
   defer {
     child.stop_and_reap()
     child.release_pipes()
   }
-  // Nothing is ever written to the command, so closing stdin at once keeps a command that reads it from waiting for the timeout.
-  child.stdin.close_unless_taken()
-  let capture = Capture::new()
-  let stopped = Ref(false)
-  let overflowed = Ref(false)
-  let exit = Ref(Exit::Code(0))
-  @async.with_task_group(group => {
-    group.spawn_bg(no_wait=true, () => {
-      @async.sleep(timeout_ms)
-      if child.signal(SIGTERM, group=false) {
-        stopped.val = true
-      }
-    })
-    let on_limit = () => {
-      if !overflowed.val {
-        overflowed.val = true
-        ignore(child.signal(SIGTERM, group=false))
-      }
-    }
-    // execFile applies its limit to each stream on its own.
-    let reading_out = group.spawn(() => {
-      drain(child.stdout, capture.stdout, Ref(0), on_limit)
-    })
-    let reading_err = group.spawn(() => {
-      drain(child.stderr, capture.stderr, Ref(0), on_limit)
-    })
-    let waiting = group.spawn(() => child.wait_exit())
-    reading_out.wait()
-    reading_err.wait()
-    exit.val = waiting.wait()
-  }) catch {
+  let run = supervise(
+    child,
+    "",
+    timeout_ms~,
+    kill_grace_ms=COMMAND_KILL_GRACE_MS,
+  ) catch {
+    StillAlive =>
+      raise failed(
+        "\{file} did not finish: pid \{child.pid} did not exit after SIGKILL",
+        None,
+      )
     _ => raise failed("cannot run \{file}", None)
   }
-  if stopped.val {
-    raise failed("\{file} was stopped after \{timeout_ms} ms", None)
-  }
-  match exit.val {
-    _ if overflowed.val =>
+  match (run.ended, run.exit) {
+    (Timeout, _) =>
+      raise failed("\{file} was stopped after \{timeout_ms} ms", None)
+    (OutputLimit, _) =>
       raise failed(
         "cannot run \{file}",
         Some("ERR_CHILD_PROCESS_STDIO_MAXBUFFER"),
       )
-    Code(status) =>
+    (Exit, Signaled(_)) => raise failed("cannot run \{file}", None)
+    (Exit, Code(status)) =>
       // To preserve UTF-8 characters split across chunks, decode only after collecting all output.
       {
         status,
-        stdout: @utf8.decode_lossy(capture.stdout.to_bytes()),
-        stderr: @utf8.decode_lossy(capture.stderr.to_bytes()),
+        stdout: @utf8.decode_lossy(run.stdout),
+        stderr: @utf8.decode_lossy(run.stderr),
       }
-    Signaled(_) => raise failed("cannot run \{file}", None)
   }
 }
 
