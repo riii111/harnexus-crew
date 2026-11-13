@@ -43,6 +43,9 @@ def main():
     if args.patterns:
         loader.testNamePatterns = [pattern if "*" in pattern else f"*{pattern}*" for pattern in args.patterns]
     ids = list(test_ids(loader.discover(".", top_level_dir=".")))
+    if not ids:
+        print("no tests matched")
+        return 5
     # Tests of one module sit next to each other in discovery order, so dealing them out in turn spreads the slow modules over every process.
     shards = [ids[k :: args.processes] for k in range(args.processes) if ids[k :: args.processes]]
     with ThreadPoolExecutor(len(shards)) as pool:
