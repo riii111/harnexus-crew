@@ -25,7 +25,7 @@ async fn review_in(
   if args.ask is Some(_) {
     @failure.fail("--ask applies to review only in a Claude Code cloud session")
   }
-  if args.recover is Some(_) {
+  if args.discard_pending {
     @failure.fail(
       "--recover applies to review only in a Claude Code cloud session",
     )

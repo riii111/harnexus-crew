@@ -80,15 +80,8 @@ async fn codex_review_project(
       "list_projects failed: \{@jsonio.stringify(answer.to_json())}",
     )
   }
-  for project in projects_in(answer.fields.get("result")) {
-    guard project is Object(members) else { continue }
-    guard members.get("path") is Some(String(path)) &&
-      members.get("projectId") is Some(String(project_id)) else {
-      continue
-    }
-    if @store.real_path_or_self(path) == home {
-      return project_id
-    }
+  if project_at(answer.fields.get("result"), home) is Some(project_id) {
+    return project_id
   }
   @failure.fail(
     "add \{home} to the Codex app as a project, so reviewers run there instead of in a worktree of their own",

@@ -272,16 +272,7 @@ async fn Adapter::greet(self : Adapter) -> Unit noraise {
 
 ///|
 fn Adapter::review_project(self : Adapter, result : Json?) -> String? {
-  let real = @store.real_path_or_self(self.deps.review_home)
-  for project in @app.projects_in(result) {
-    if project is Object(members) &&
-      members.get("projectId") is Some(String(project_id)) &&
-      members.get("path") is Some(String(path)) &&
-      @store.real_path_or_self(path) == real {
-      return Some(project_id)
-    }
-  }
-  None
+  @app.project_at(result, self.deps.review_home)
 }
 
 ///|

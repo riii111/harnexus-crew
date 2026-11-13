@@ -282,18 +282,3 @@ fn as_text(value : Json) -> String {
     other => @jsonio.stringify(other)
   }
 }
-
-///|
-/// A child's output is repeated in an error only as far as it names the cause: the trimmed text up to 500 UTF-16 units.
-fn detail(text : String) -> String {
-  let trimmed = @text.js_trim(text)
-  if trimmed.length() <= 500 {
-    return trimmed
-  }
-  // A cut through a surrogate pair leaves half of it, which the output shows as U+FFFD.
-  if trimmed.code_unit_at(499).to_int() is (0xD800..<=0xDBFF) {
-    "\{trimmed[:499]}\u{FFFD}"
-  } else {
-    trimmed[:500].to_owned()
-  }
-}

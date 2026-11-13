@@ -1,5 +1,5 @@
 {
-  "name": "cloud-prompt-file-is-blank-by-js-only",
+  "name": "cloud-prompt-file-is-blank",
   "kind": "command",
   "argv": ["cloud", "--prompt-file", "prompt.md"],
   "env": {
@@ -7,7 +7,7 @@
     "CODEX_THREAD_ID": "w1"
   },
   "files": {
-    "work/prompt.md": "\u001c"
+    "work/prompt.md": "\ufeff \n"
   },
   "bridge": [
     {

@@ -11,7 +11,7 @@ fn outcome(command : String, rest : Array[String]) -> String {
       Run(Launch(a)) =>
         "launch request=\{a.request} model=\{opt(a.model)} thinking=\{opt(a.thinking)}"
       Run(Review(a)) =>
-        "review request=\{a.request} update_base=\{a.update_base} discard=\{a.recover is Some(Discard)} ask=\{opt(a.ask)}"
+        "review request=\{a.request} update_base=\{a.update_base} discard=\{a.discard_pending} ask=\{opt(a.ask)}"
       Run(State(a)) => "state request=\{opt(a.request)}"
       Run(Resolve(a)) =>
         "resolve request=\{a.request} sent=\{a.sent} thread=\{opt(a.thread_id)}"

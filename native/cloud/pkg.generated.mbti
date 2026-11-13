@@ -9,7 +9,7 @@ import {
 }
 
 // Values
-pub async fn open_chat(@args.CloudArgs, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+pub async fn open_chat(@args.CloudArgs, @environment.Env) -> @json.Json raise @failure.TaskFailed
 
 pub async fn review(@args.ReviewArgs, @environment.Env) -> @json.Json raise @failure.TaskFailed
 

@@ -39,7 +39,7 @@ pub fn Env::home(self : Env) -> String {
 }
 
 ///|
-pub fn Env::codex_home(self : Env) -> String {
+fn Env::codex_home(self : Env) -> String {
   absolute_or(self.get("CODEX_HOME"), @path.join([self.home(), ".codex"]))
 }
 

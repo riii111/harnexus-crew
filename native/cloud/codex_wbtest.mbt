@@ -194,13 +194,3 @@ test "a resumed review keeps the reviewer's own settings unless it is told other
     "-",
   ])
 }
-
-///|
-test "an error repeats a child's output only as far as it names the cause" {
-  assert_eq(detail("  boom \n\n"), "boom")
-  assert_eq(detail(""), "")
-  assert_eq(detail("あ".repeat(500)), "あ".repeat(500))
-  assert_eq(detail("あ".repeat(600)), "あ".repeat(500))
-  assert_eq(detail("a".repeat(498) + "😀tail"), "a".repeat(498) + "😀")
-  assert_eq(detail("a".repeat(499) + "😀tail"), "a".repeat(499) + "\u{FFFD}")
-}

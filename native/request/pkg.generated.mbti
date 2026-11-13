@@ -34,11 +34,13 @@ pub(all) struct FileProbe {
   is_directory : async (String) -> Bool noraise
   real_path_or_self : async (String) -> String noraise
 }
+pub fn FileProbe::of_machine() -> Self
 
 pub struct Git {
   // private fields
 }
 pub fn Git::new(GitRunner, @environment.Env) -> Self
+pub fn Git::of_env(@environment.Env) -> Self
 pub async fn Git::run(Self, String, Array[String]) -> String raise @failure.TaskFailed
 
 pub(all) struct GitRunner {

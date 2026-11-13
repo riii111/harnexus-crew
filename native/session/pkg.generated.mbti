@@ -3,7 +3,6 @@ package "riii111/harnexus-crew/session"
 
 import {
   "moonbitlang/core/json",
-  "riii111/harnexus-crew/app",
   "riii111/harnexus-crew/args",
   "riii111/harnexus-crew/environment",
   "riii111/harnexus-crew/shared/call",
@@ -16,8 +15,6 @@ pub fn check_kept(@json.Json, @json.Json, Array[String]) -> Unit raise @failure.
 pub async fn launch(@args.LaunchArgs, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
 
 pub async fn name(@args.NameArgs, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
-
-pub fn ports_of(@app.Host) -> Ports
 
 pub async fn resolve(@args.ResolveArgs, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
 

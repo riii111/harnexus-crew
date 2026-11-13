@@ -11,7 +11,7 @@ pub fn join(parts : Array[String]) -> String {
 
 ///|
 /// Same results as Node's `path.posix.normalize`.
-pub fn normalize(path : String) -> String {
+fn normalize(path : String) -> String {
   if path == "" {
     return "."
   }

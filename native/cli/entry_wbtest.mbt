@@ -100,7 +100,7 @@ async test "the session commands are run by the session package" {
   let run = run_with(["name", "--pr", "x"], [])
   assert_eq(
     run.stderr,
-    "harnexus-crew: --pr must be a pull request URL or number\n",
+    "harnexus-crew: x is not watched: the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>\n",
   )
 }
 

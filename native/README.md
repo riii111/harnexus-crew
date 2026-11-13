@@ -101,7 +101,7 @@ JSONの境界:
 `cli::run` が1回の呼び出しを受け、`shared/run` の `CommandRun` を返す。
 usageの文面、`-h` と使い方エラー（終了コード2）、成功時のJSON1行（stdout）、`TaskFailed` の出力（`harnexus-crew: メッセージ`、終了コード1）、クラッシュ報告をここだけが持つ。
 `TaskFailed` 以外のエラーはクラッシュとして報告する。
-環境変数は引数が受理されてから読む。HOMEがないときだけアカウントのホームを調べ、見つからなければクラッシュとして報告する。
+環境変数は引数が受理されてから読む。HOMEがなければ、ホームを使うコマンドは `TaskFailed` で失敗する。
 
 `cli/registry.mbt` の分岐が、コマンドごとのパッケージを呼ぶ。
 PATH上のコマンド探索が要るパッケージ（`app` のT3 CLI探索、`prwake` のpr-wake探索）は、`(String) -> String?` の引数を受け取り、`cli/registry.mbt` の分岐が `@which.in_env(env)` を渡す。
@@ -117,23 +117,21 @@ JSONや文字列から型への変換は副作用を持たない。
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `environment` | 環境変数 `Env`、App/T3の判定、各種ディレクトリ、call socketとharnexus状態ファイルのパス、実行環境の判定（`detect`）、Cloud・T3での拒否                         |
 | `request`     | 起動要求 `LaunchRequest`、レビュー要求 `ReviewRequest`、固定base/headを持つ `ReviewCandidate`、チャットIDの検証、テンプレートへ渡す値、Gitの実行器 `GitRunner` |
-| `config`      | テンプレート設定 `task.json` の検査                                                                                                                            |
 | `args`        | コマンドの引数。オプション定義と型付きの `Command`。usageの文面と入口の振り分けは `cli`                                                                        |
 | `template`    | `{name}` の埋め込み規則とリンク先に入れる値の制約。Markdownの判定は `markdown`、リンク解決は `prompt`                                                          |
 | `path`        | Nodeの `path.posix` と同じ結果の `join`・`normalize`・`dirname`・`resolve`                                                                                     |
-| `text`        | `\p{L}`・`\p{N}`、Pythonの空白、JSの `trim`・`\s` と文字列の順序                                                                                               |
+| `text`        | ASCII英数字、JSの `\s` の空白と `trim`、エラーに添える出力の切り詰め、文字列の順序                                                                              |
 
-- `request` の注入は `FileProbe`（存在・ディレクトリ判定・実パス）と `GitRunner`（`shared/boundary` の `CommandOutput` を返す）。非同期の関数型なので、同期の関数も渡せる。Gitは安全フラグ付きの `git -C <checkout>` で、`GIT_NO_LAZY_FETCH=1` を渡す。
-- `Env::state_root` が `store::state_directory` の `root` になる。`FileProbe` の存在・ディレクトリ判定・実パスは、`store` の `path_exists`・`is_directory`・`real_path_or_self` で満たせる。
+- `request` の注入は `FileProbe`（存在・ディレクトリ判定・実パス）と `GitRunner`（`shared/boundary` の `CommandOutput` を返す）。非同期の関数型なので、同期の関数も渡せる。実機の分は `FileProbe::of_machine` と `Git::of_env` が作る。Gitは安全フラグ付きの `git -C <checkout>` で、`GIT_NO_LAZY_FETCH=1` を渡す。
+- `Env::state_root` が `store::state_directory` の `root` になる。
 - 保存する要求は、受け取ったメンバーを保つ。`startingBranch` や `displayName` のnullと欠落は区別し、`prUrl` は欠落でもnullで保存する。メンバーの順序は保存しない。
 - セッションの保存先は、`LaunchRequest::session_key` と `ReviewRequest::session_key` が返す文字列のSHA256で決まる。JSのUTF-8符号化に合わせて `lossy_text` を通してある。
 - 実行環境の判定は2段階。`detect` が環境変数だけで決まる結果か、ソケットへの接続を試す相手を返し、接続できたかどうかで `Detected::socket_accepted` か `Detected::undetermined` を選ぶ。
 - `String` の `<` と `compare` は辞書順ではない。JSの並び替えと同じ順序が要るときは `@text.compare_utf16` を使う。
-- `text` の文字分類表は、Bun 1.4.4の `\p{L}`・`\p{N}` から生成した固定のデータで、再生成の手段は持たない。`test/native/unicode-classes.json` の件数とSHA-256が、表の書き換えを検出する。
 
 ## テンプレートとMarkdown
 
-`prompt::task_prompt` が、設定 `task.json` の指すテンプレートを読み、リンクを解決し、値を埋め込んだ文字列を返す。
+`prompt::task_prompt` が、設定 `task.json`（`templates.worker`・`templates.reviewer` に絶対パス）を検査し、その指すテンプレートを読み、リンクを解決し、値を埋め込んだ文字列を返す。
 `prompt::check_templates` が `check` の出力を作る。
 TS版と同じく、実在しないファイルや、値の入りうる位置が名前でないリンク先は、送信前に失敗させる。
 

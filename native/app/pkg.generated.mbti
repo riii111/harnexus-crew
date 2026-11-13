@@ -11,8 +11,6 @@ import {
 // Values
 pub const CLOUD_MARK : String = "☁️"
 
-pub const PROTOCOL_VERSION : Int32 = 1
-
 pub const REVIEW_ASK_SENT : String = "Sent to the worker running this reviewer, which passes it on; the reviewer's answer appears here once the worker's session is copied."
 
 pub const REVIEW_ASK_UNKNOWN : String = "The message may or may not have reached the worker's session, so it is not sent again; check the worker's chat."
@@ -21,11 +19,9 @@ pub const REVIEW_ASK_UNROUTED : String = "The Cloud session that ran this review
 
 pub async fn call_app(@environment.Env, String, String, Map[String, @json.Json], timeout_ms? : Int32) -> @call.CallAnswer noraise
 
-pub async fn call_t3(T3Deps, String, Map[String, @json.Json]) -> @call.CallAnswer noraise
-
 pub fn host_of(@environment.Env, which~ : (String) -> String?) -> Host
 
-pub fn projects_in(@json.Json?) -> Array[@json.Json]
+pub fn project_at(@json.Json?, String) -> String?
 
 pub fn refusal_of(TurnSettings, TurnSettings) -> String
 
@@ -64,11 +60,6 @@ pub struct Host {
   thinking : DefaultThinking?
   reply_to : (String) -> String
   renames_threads : Bool
-}
-
-pub(all) struct T3Deps {
-  env : @environment.Env
-  which : (String) -> String?
 }
 
 pub(all) struct TurnSettings {

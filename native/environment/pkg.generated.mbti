@@ -7,21 +7,9 @@ import {
 }
 
 // Values
-pub const CLAUDE_CLOUD_VARIABLE : String = "CLAUDE_CODE_REMOTE"
-
-pub const CODEX_CLOUD_VARIABLE : String = "CODEX_ENVIRONMENT_ID"
-
-pub const CODEX_THREAD_VARIABLE : String = "CODEX_THREAD_ID"
-
-pub const EXECUTION_VARIABLE : String = "HARNEXUS_EXECUTION_ENV"
-
 pub const NAME : String = "harnexus-crew"
 
-pub const T3_THREAD_VARIABLE : String = "T3CODE_THREAD_ID"
-
 pub fn app_of(Env) -> App
-
-pub fn call_socket_path(Env) -> String raise @failure.TaskFailed
 
 pub fn caller_socket(Env) -> String? raise @failure.TaskFailed
 
@@ -71,7 +59,6 @@ pub enum Detection {
 pub struct Env {
   // private fields
 }
-pub fn Env::codex_home(Self) -> String
 pub fn Env::config_home(Self) -> String
 pub fn Env::get(Self, String) -> String?
 pub fn Env::get_nonempty(Self, String) -> String?

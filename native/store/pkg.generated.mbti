@@ -29,8 +29,6 @@ pub fn path_exists(String) -> Bool
 
 pub fn prepare_directory(String) -> Unit raise FileFailed
 
-pub fn process_alive(Double) -> Bool
-
 pub fn read_records(String) -> Records raise @failure.TaskFailed
 
 pub fn read_regular_text(String) -> String raise FileFailed
@@ -46,8 +44,6 @@ pub fn remove_file(String) -> Unit raise FileFailed
 pub fn remove_record(String) -> Unit raise @failure.TaskFailed
 
 pub fn save_json(String, @json.Json, exclusive~ : Bool) -> Unit raise @failure.TaskFailed
-
-pub fn settle_pending(Records, Recover?, blocked~ : (@json.Json) -> String, nothing_pending~ : String) -> Unit raise @failure.TaskFailed
 
 pub fn sha256_hex(String) -> String
 
@@ -81,10 +77,6 @@ pub struct Records {
   loaded : @json.Json
   state : @json.Json?
   pending : @json.Json?
-}
-
-pub(all) enum Recover {
-  Discard
 }
 
 // Type aliases

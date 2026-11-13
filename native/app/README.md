@@ -6,14 +6,13 @@ Codex AppのブリッジとT3 Codeの `t3` CLIへ、タスクの操作を送る�
 | 公開する関数・型                                                |
 | --------------------------------------------------------------- |
 | `call_app(env, caller, tool, args, timeout_ms?)`                |
-| `call_t3(T3Deps, tool, args)`                                   |
 | `host_of(env, which~)` と `Host`                                |
-| `projects_in(result)`                                           |
+| `project_at(result, directory)`                                 |
 | `TurnSettings`、`refusal_of`                                    |
 | `CloudReview`、`reviews_in`、`review_text`、`reviewer_ask` ほか |
 
 ソケットのパス、App/T3の判定、呼び出し元のチャットIDは `environment` と `request` を使う。
-`call_app` と `call_t3` は失敗を例外にせず、結果の種類を `CallAnswer` に入れて返す。
+`call_app` と、`Host` の `call` が使う `call_t3` は失敗を例外にせず、結果の種類を `CallAnswer` に入れて返す。
 
 ## 契約
 

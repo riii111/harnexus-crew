@@ -1,6 +1,6 @@
 ///|
 /// The projects a `list_projects` result carries, wherever the app put them: structured content, the result itself, or JSON text in its content.
-pub fn projects_in(result : Json?) -> Array[Json] {
+fn projects_in(result : Json?) -> Array[Json] {
   guard result is Some(Object(members) as whole) else { return [] }
   let candidates = [members.get("structuredContent"), Some(whole)]
   if members.get("content") is Some(Array(content)) {
@@ -27,4 +27,19 @@ fn text_content(item : Json) -> String? {
     Some(String(text)) => Some(text)
     _ => None
   }
+}
+
+///|
+/// The ID of the listed project whose real path is `directory`'s.
+pub fn project_at(result : Json?, directory : String) -> String? {
+  let real = @store.real_path_or_self(directory)
+  for project in projects_in(result) {
+    if project is Object(members) &&
+      members.get("projectId") is Some(String(project_id)) &&
+      members.get("path") is Some(String(path)) &&
+      @store.real_path_or_self(path) == real {
+      return Some(project_id)
+    }
+  }
+  None
 }

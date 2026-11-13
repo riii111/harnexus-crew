@@ -1,5 +1,5 @@
 ///|
-pub const PROTOCOL_VERSION : Int32 = 1
+const PROTOCOL_VERSION : Int32 = 1
 
 ///|
 /// Longer than the longest wait_threads the bridge allows, so the bridge always answers first.

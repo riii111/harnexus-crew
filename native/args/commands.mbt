@@ -6,17 +6,13 @@ pub struct LaunchArgs {
 }
 
 ///|
-pub enum RecoverMode {
-  Discard
-}
-
-///|
 pub struct ReviewArgs {
   request : String
   model : String?
   thinking : String?
   update_base : Bool
-  recover : RecoverMode?
+  /// `--recover discard`.
+  discard_pending : Bool
   /// A message for the task's reviewer, in a Claude Code cloud session.
   ask : String?
 }
@@ -193,9 +189,9 @@ fn review_args(options : ParsedOptions) -> ReviewArgs raise UsageError {
     )
   }
   let request = required(options, "request")
-  let recover = match options.text("recover") {
-    None => None
-    Some("discard") => Some(Discard)
+  let discard_pending = match options.text("recover") {
+    None => false
+    Some("discard") => true
     Some(_) => raise UsageError("--recover must be one of discard")
   }
   {
@@ -203,7 +199,7 @@ fn review_args(options : ParsedOptions) -> ReviewArgs raise UsageError {
     model: options.text("model"),
     thinking: options.text("thinking"),
     update_base: options.flag("update-base"),
-    recover,
+    discard_pending,
     ask,
   }
 }

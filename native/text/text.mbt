@@ -62,3 +62,21 @@ pub fn compare_utf16(left : String, right : String) -> Int32 {
   }
   a.length().compare(b.length())
 }
+
+///|
+const EXCERPT_UNITS : Int32 = 500
+
+///|
+/// Output repeated in an error: the trimmed text, cut to name the cause without flooding the message.
+pub fn excerpt(text : String) -> String {
+  let trimmed = js_trim(text)
+  if trimmed.length() <= EXCERPT_UNITS {
+    return trimmed
+  }
+  // A cut through a surrogate pair would leave half of it, so that half becomes U+FFFD.
+  if trimmed.code_unit_at(EXCERPT_UNITS - 1).to_int() is (0xD800..<=0xDBFF) {
+    "\{trimmed[:EXCERPT_UNITS - 1]}\u{FFFD}"
+  } else {
+    trimmed[:EXCERPT_UNITS].to_owned()
+  }
+}

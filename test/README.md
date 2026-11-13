@@ -26,7 +26,6 @@ python3 -m unittest discover -s test
 | `test_markdown.py`      | `markdown/probe` でMarkdownのリンク判定を確かめる                                                                       |
 | `test_install.py`       | `scripts/install.sh` の新規ビルド、一時prefixへの設置、失敗時の既存バイナリの保持                                       |
 | `test_harness.py`       | 実行器自身。意図した差を見つけること、重複した要求や結果不明を隠さないこと                                              |
-| `test_unicode_tables.py` | 文字分類表が、固定したBunの `\p{L}`・`\p{N}` から変わっていないこと                                                    |
 | `harness/`              | 実行器。一時領域、模擬のブリッジ、模擬コマンド、観測、置換、比較                                                        |
 | `fixtures/`             | 旧版が残した状態と、テンプレートの試験用skill                                                                           |
 | `native/`               | リンク判定と保存内容の事例、`moon test` が使う模擬コマンド                                                              |

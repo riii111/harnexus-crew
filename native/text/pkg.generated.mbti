@@ -4,6 +4,8 @@ package "riii111/harnexus-crew/text"
 // Values
 pub fn compare_utf16(String, String) -> Int32
 
+pub fn excerpt(String) -> String
+
 pub fn has_space(String) -> Bool
 
 pub fn is_ascii_alphanumeric(Int32) -> Bool

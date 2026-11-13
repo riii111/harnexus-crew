@@ -1,7 +1,7 @@
 ///|
 /// Whether the value is a github.com pull request URL, which is all the watch can see.
 /// Anything after the number must start with `/`, `?` or `#` and hold no whitespace, as when a URL is copied from the browser.
-pub fn is_github_pr(value : String) -> Bool {
+fn is_github_pr(value : String) -> Bool {
   github_pr_number(value) is Some(_)
 }
 

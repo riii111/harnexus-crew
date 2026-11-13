@@ -1,9 +1,11 @@
 import {
   "riii111/harnexus-crew/environment",
+  "riii111/harnexus-crew/os/process",
   "riii111/harnexus-crew/path",
   "riii111/harnexus-crew/shared/boundary",
   "riii111/harnexus-crew/shared/failure",
   "riii111/harnexus-crew/shared/jsonio",
+  "riii111/harnexus-crew/store",
   "riii111/harnexus-crew/text",
 }
 
