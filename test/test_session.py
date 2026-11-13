@@ -383,7 +383,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         for _ in range(5):
             done = with_rig(fields, lambda rig: [started.ended() for started in [rig.start(LAUNCH) for _ in range(4)]])
             created = [line for line in done.requests if '"create_thread"' in line]
-            self.assertEqual(1, len(created))
+            self.assertEqual(1, len(created), f"runs: {done.result!r}; requests: {done.requests!r}; files: {done.files!r}")
             for ran in done.result:
                 # A run is the one that sent, finds that worker, or is refused because another run is sending.
                 self.assertTrue(

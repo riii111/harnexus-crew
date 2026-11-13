@@ -7,11 +7,14 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from harness import expected
 from harness.binaries import binary
+from harness.bridge import Bridge
 from harness.cases import load_cases, make_case, parse_case, InvalidCase
 from harness.compare import compare
 from harness.execute import observe
@@ -151,6 +154,65 @@ class Harness(unittest.TestCase):
     def test_a_case_with_an_unknown_member_is_refused(self):
         with self.assertRaises(InvalidCase):
             parse_case({"name": "x", "owner": "MB12", "status": "active", "kind": "command", "argv": [], "extra": 1})
+
+
+class BridgeSynchronization(unittest.TestCase):
+    def test_finished_requests_waits_for_queued_and_unread_connections(self):
+        accept_gate = threading.Event()
+        serve_gate = threading.Event()
+        serve_started = threading.Event()
+        snapshot_done = threading.Event()
+        original_accept = Bridge._accept_loop
+        original_serve = Bridge._serve
+
+        def delayed_accept(bridge):
+            accept_gate.wait()
+            original_accept(bridge)
+
+        def delayed_serve(bridge, connection, recorded):
+            serve_started.set()
+            serve_gate.wait()
+            original_serve(bridge, connection, recorded)
+
+        with tempfile.TemporaryDirectory(prefix="hxc-bridge-") as directory:
+            with patch.object(Bridge, "_accept_loop", delayed_accept), patch.object(Bridge, "_serve", delayed_serve):
+                bridge = Bridge(os.path.join(directory, "bridge.sock"), [])
+                result = []
+                try:
+                    for payload in (b"", b"partial"):
+                        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                            client.connect(bridge.path)
+                            client.sendall(payload)
+
+                    def collect():
+                        try:
+                            result.append(bridge.finished_requests(timeout=5))
+                        finally:
+                            snapshot_done.set()
+
+                    collector = threading.Thread(target=collect)
+                    collector.start()
+                    self.assertFalse(snapshot_done.wait(0.05))
+                    accept_gate.set()
+                    self.assertTrue(serve_started.wait(5))
+                    self.assertFalse(snapshot_done.wait(0.05))
+                    serve_gate.set()
+                    collector.join(5)
+                    self.assertFalse(collector.is_alive())
+                    self.assertEqual(["", "partial"], sorted(result[0]))
+                    self.assertEqual(["", "partial"], sorted(bridge.finished_requests()))
+                finally:
+                    accept_gate.set()
+                    serve_gate.set()
+                    bridge.stop()
+
+    def test_finished_requests_does_not_record_its_own_barrier(self):
+        with tempfile.TemporaryDirectory(prefix="hxc-bridge-") as directory:
+            bridge = Bridge(os.path.join(directory, "bridge.sock"), [])
+            try:
+                self.assertEqual([], bridge.finished_requests())
+            finally:
+                bridge.stop()
 
 
 class CasesAndRecordings(unittest.TestCase):

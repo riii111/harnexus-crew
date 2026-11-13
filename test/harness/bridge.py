@@ -1,8 +1,10 @@
 """A stand-in for the harnexus bridge: it records every connection and answers from the plan, once per step."""
 
 import json
+import select
 import socket
 import threading
+import time
 
 from . import jsonvalue
 
@@ -21,22 +23,48 @@ class Bridge:
         self._used = set()
         self._held = []
         self._lock = threading.Lock()
+        self._flush_lock = threading.Lock()
+        self._flushed = threading.Event()
+        self._handlers = []
+        self._flush_handlers = []
+        self._control_read, self._control_write = socket.socketpair()
         self._server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._server.bind(path)
         self._server.listen(128)
-        self._stopped = False
+        self._server.setblocking(False)
         self._thread = threading.Thread(target=self._accept_loop, daemon=True)
         self._thread.start()
 
     def _accept_loop(self):
         while True:
             try:
-                connection, _ = self._server.accept()
+                ready, _, _ = select.select([self._server, self._control_read], [], [])
+                if self._server in ready:
+                    self._accept_pending()
+                if self._control_read in ready:
+                    command = self._control_read.recv(1)
+                    if command != b"f":
+                        return
+                    # A flush is requested only after the clients have finished. Accept the
+                    # connections already queued, including probes that sent no data.
+                    self._accept_pending()
+                    self._flush_handlers = list(self._handlers)
+                    self._flushed.set()
             except OSError:
                 return
-            threading.Thread(target=self._serve, args=(connection,), daemon=True).start()
 
-    def _serve(self, connection):
+    def _accept_pending(self):
+        while True:
+            try:
+                connection, _ = self._server.accept()
+            except BlockingIOError:
+                return
+            connection.setblocking(True)
+            finished = threading.Event()
+            self._handlers.append(finished)
+            threading.Thread(target=self._serve, args=(connection, finished), daemon=True).start()
+
+    def _serve(self, connection, finished):
         data = b""
         line = None
         try:
@@ -62,6 +90,21 @@ class Bridge:
                 held = connection in self._held
             if not held:
                 connection.close()
+            finished.set()
+
+    def finished_requests(self, timeout=30):
+        """Collect all connections queued by finished clients before reading their requests."""
+        with self._flush_lock:
+            deadline = time.monotonic() + timeout
+            self._flushed.clear()
+            self._control_write.sendall(b"f")
+            if not self._flushed.wait(max(0, deadline - time.monotonic())):
+                raise TimeoutError("timed out waiting for the bridge to accept connections")
+            for finished in self._flush_handlers:
+                if not finished.wait(max(0, deadline - time.monotonic())):
+                    raise TimeoutError("timed out waiting for the bridge to record a connection")
+            with self._lock:
+                return list(self.requests)
 
     def _answer(self, connection, line):
         parsed = jsonvalue.try_loads(line)
@@ -96,8 +139,16 @@ class Bridge:
         connection.close()
 
     def stop(self):
+        self._control_write.sendall(b"s")
+        self._thread.join()
         self._server.close()
+        self._control_read.close()
+        self._control_write.close()
         with self._lock:
             held, self._held = self._held, []
         for connection in held:
+            try:
+                connection.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
             connection.close()
