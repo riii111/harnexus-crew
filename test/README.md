@@ -24,7 +24,7 @@ python3 -m unittest discover -s test
 | `test_store.py`         | `test/probes/store` を複数起動し、ロック・原子的な書き込みの競合と途中終了を確かめる                                          |
 | `test_prompt.py`        | `test/probes/prompt` でテンプレートの展開とリンクの拒否を確かめる                                                             |
 | `test_markdown.py`      | `test/probes/markdown` でMarkdownのリンク判定を確かめる                                                                       |
-| `test_install.py`       | `scripts/install.sh` の新規ビルド、一時prefixへの設置、失敗時の既存バイナリの保持                                       |
+| `test_install.py`       | `scripts/install.sh` の実ビルド1回、入れ子prefixへの設置、失敗時の既存バイナリの保持                                    |
 | `test_harness.py`       | 実行器自身。意図した差を見つけること、重複した要求や結果不明を隠さないこと                                              |
 | `harness/`              | 実行器。一時領域、模擬のブリッジ、模擬コマンド、観測、置換、比較                                                        |
 | `fixtures/`             | テンプレートの試験用skill                                                                                               |
