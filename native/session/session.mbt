@@ -2,7 +2,7 @@
 /// The ports a session works through; a test replaces them.
 pub(all) struct Ports {
   /// Sends an App operation as the caller's thread: caller, tool, arguments.
-  call : async (String, String, Map[String, Json]) -> @call.CallAnswer noraise
+  call : async (String, String, Map[String, Json]) -> @app.CallAnswer noraise
   /// Writes a record; with `exclusive` the record must not exist yet.
   save : (String, Json, Bool) -> Unit raise @failure.TaskFailed
 }
@@ -86,12 +86,12 @@ fn Session::check_idle(self : Session) -> Unit raise @failure.TaskFailed {
 ///|
 fn check_idle(pending : Map[String, Json]?) -> Unit raise @failure.TaskFailed {
   guard pending is Some(pending) else { return }
-  let thread = as_text(value_of(pending, "threadId"))
+  let thread = @jsonio.as_text(value_of(pending, "threadId"))
   if value_of(pending, "status") is String("refused") {
     let reason = value_of(pending, "reason")
     if truthy(reason) {
       @failure.fail(
-        "the bridge refused the first turn of thread \{thread}: \{as_text(reason)}; fix the cause, then resolve --not-sent",
+        "the bridge refused the first turn of thread \{thread}: \{@jsonio.as_text(reason)}; fix the cause, then resolve --not-sent",
       )
     }
     let expected = value_of(pending, "expected")
@@ -101,7 +101,7 @@ fn check_idle(pending : Map[String, Json]?) -> Unit raise @failure.TaskFailed {
     )
   }
   @failure.fail(
-    "previous \{as_text(value_of(pending, "tool"))} ended as \{as_text(value_of(pending, "status"))}; never resend. Ask the user to check the App, then run resolve --sent or --not-sent",
+    "previous \{@jsonio.as_text(value_of(pending, "tool"))} ended as \{@jsonio.as_text(value_of(pending, "status"))}; never resend. Ask the user to check the App, then run resolve --sent or --not-sent",
   )
 }
 
@@ -111,7 +111,8 @@ fn refusal_text(expected : Json, actual : Json) -> String {
   match (expected, actual) {
     (Object(_), Object(_)) =>
       @app.refusal_of(checked_settings(expected), checked_settings(actual))
-    _ => "expected \{as_text(expected)}, actual \{as_text(actual)}"
+    _ =>
+      "expected \{@jsonio.as_text(expected)}, actual \{@jsonio.as_text(actual)}"
   }
 }
 
@@ -125,8 +126,8 @@ fn checked_settings(settings : Json) -> @app.TurnSettings {
   }
 
   {
-    model: text_of(field(settings, "model")),
-    effort: text_of(field(settings, "effort")),
+    model: text_of(@jsonio.field(settings, "model")),
+    effort: text_of(@jsonio.field(settings, "effort")),
   }
 }
 
@@ -202,7 +203,7 @@ async fn Session::send(
     self.pending = Some(record)
     self.check_idle()
   }
-  let text = @jsonio.stringify(answer.to_json())
+  let text = answer.to_json().stringify()
   if answer.is_unsent() {
     @store.remove_record(self.pending_path)
     @failure.fail("\{tool} was not sent: \{text}")
@@ -258,7 +259,7 @@ fn Session::confirm(
   self : Session,
   record : Map[String, Json],
   thread : Json,
-  answer : @call.CallAnswer?,
+  answer : @app.CallAnswer?,
 ) -> Json raise @failure.TaskFailed {
   if !truthy(thread) {
     @failure.fail(
@@ -323,23 +324,23 @@ fn Session::confirm(
 fn Session::show(self : Session) -> Json raise @failure.TaskFailed {
   let refused = @store.load(self.history_path)
   let state = state_json(self.state)
-  let sent = field(state, "sent")
+  let sent = @jsonio.field(state, "sent")
   // A state saved before settings were kept still holds them in its create.
-  let settings = match field(state, "settings") {
+  let settings = match @jsonio.field(state, "settings") {
     Null => sent_settings(sent)
     kept => kept
   }
   let pending = state_json(self.pending)
   let shown = (self.summarize)(self.state, self.pending)
-  shown["requested"] = settings_of(field(settings, "requested"))
-  shown["actual"] = settings_of(field(settings, "actual"))
-  shown["pending"] = field(pending, "status")
-  shown["pendingThreadId"] = field(pending, "threadId")
+  shown["requested"] = settings_of(@jsonio.field(settings, "requested"))
+  shown["actual"] = settings_of(@jsonio.field(settings, "actual"))
+  shown["pending"] = @jsonio.field(pending, "status")
+  shown["pendingThreadId"] = @jsonio.field(pending, "threadId")
   shown["statePath"] = Json::string(self.state_path)
-  shown["prompt"] = field(sent, "prompt")
+  shown["prompt"] = @jsonio.field(sent, "prompt")
   shown["refusedThreadIds"] = Json::array(
     match refused {
-      Array(items) => items.map(item => field(item, "threadId"))
+      Array(items) => items.map(item => @jsonio.field(item, "threadId"))
       _ => []
     },
   )

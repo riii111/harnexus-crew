@@ -16,7 +16,7 @@ async fn watched(
   args : @args.WatchArgs,
   extra~ : Array[(String, String)] = [],
 ) -> String raise @failure.TaskFailed {
-  @jsonio.stringify(watch(args, rig.env(extra), which=rig.which()))
+  watch(args, rig.env(extra), which=rig.which()).stringify()
 }
 
 ///|
@@ -132,7 +132,7 @@ async test "the engine is looked up beside the resolved pr-wake, not the link to
       }
     }
     let stopped = watch(watch_args([]), rig.env([]), which=found)
-    assert_eq(@jsonio.stringify(stopped), "{\"watch\":\"stopped\"}")
+    assert_eq(stopped.stringify(), "{\"watch\":\"stopped\"}")
     assert_true(rig.ran("pr-wake-engine"))
     assert_false(rig.ran("pr-wake"))
   })

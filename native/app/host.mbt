@@ -11,7 +11,7 @@ pub struct Host {
   // The variable naming the thread a command runs in.
   thread_variable : String
   // Sends an App operation as the caller's thread: caller, tool, arguments.
-  call : async (String, String, Map[String, Json]) -> @call.CallAnswer noraise
+  call : async (String, String, Map[String, Json]) -> CallAnswer noraise
   // The project a reviewer is started in, as the app's create_thread target names it.
   review_project : async (String) -> String raise @failure.TaskFailed
   // The folder whose <id>/<name> folders are worker worktrees.
@@ -76,9 +76,7 @@ async fn codex_review_project(
   let home = review_home(env)
   let answer = call_app(env, caller, "list_projects", {})
   if answer.outcome != "done" {
-    @failure.fail(
-      "list_projects failed: \{@jsonio.stringify(answer.to_json())}",
-    )
+    @failure.fail("list_projects failed: \{answer.to_json().stringify()}")
   }
   for project in projects_in(answer.fields.get("result")) {
     guard project is Object(members) else { continue }

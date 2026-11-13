@@ -15,7 +15,7 @@ pub async fn call_app(
   tool : String,
   args : Map[String, Json],
   timeout_ms~ : Int32 = ANSWER_TIMEOUT_MS,
-) -> @call.CallAnswer noraise {
+) -> CallAnswer noraise {
   let socket = @environment.caller_socket(env) catch {
     @failure.TaskFailed(message) => return not_sent(message)
   }
@@ -23,14 +23,12 @@ pub async fn call_app(
     Some(path) => path
     None => return not_sent("the call socket is off (HARNEXUS_CALL_SOCKET=off)")
   }
-  let line = @jsonio.stringify(
-    Json::object({
-      "version": Json::number(PROTOCOL_VERSION.to_double()),
-      "threadId": Json::string(caller),
-      "tool": Json::string(tool),
-      "arguments": Json::object(args),
-    }),
-  )
+  let line = Json::object({
+    "version": Json::number(PROTOCOL_VERSION.to_double()),
+    "threadId": Json::string(caller),
+    "tool": Json::string(tool),
+    "arguments": Json::object(args),
+  }).stringify()
   let answer = @socket.exchange_line(path, line, timeout_ms) catch {
     @boundary.LineExchangeFailed(code~, connected~, message~, ..) => {
       let reason = code.unwrap_or(message)
@@ -58,36 +56,28 @@ fn socket_hint(code : String?) -> String {
 }
 
 ///|
-fn not_sent(error : String) -> @call.CallAnswer {
-  @call.CallAnswer::failed(NotSent, error~)
+fn not_sent(error : String) -> CallAnswer {
+  CallAnswer::failed(NotSent, error~)
 }
 
 ///|
-fn unsupported(error : String) -> @call.CallAnswer {
-  @call.CallAnswer::failed(Unsupported, error~)
+fn unsupported(error : String) -> CallAnswer {
+  CallAnswer::failed(Unsupported, error~)
 }
 
 ///|
-fn unknown(error : String) -> @call.CallAnswer {
-  @call.CallAnswer::failed(Unknown, error~)
+fn unknown(error : String) -> CallAnswer {
+  CallAnswer::failed(Unknown, error~)
 }
 
 ///|
 /// The version only frames the line, so the records keep the answer as the first protocol gave it.
-fn answer_of(line : String) -> @call.CallAnswer {
-  let without_outcome = unknown("no answer: answer without outcome")
-  let parsed = @jsonio.parse(line) catch { _ => return without_outcome }
-  guard parsed is Object(members) else { return without_outcome }
-  guard members.get("outcome") is Some(String(_)) else {
-    return without_outcome
+fn answer_of(line : String) -> CallAnswer {
+  let parsed = @jsonio.parse(line) catch { _ => Json::null() }
+  if parsed is Object(members) {
+    members.remove("version")
   }
-  let rest = Map([])
-  for name, item in members {
-    if name != "version" {
-      rest[name] = item
-    }
-  }
-  @call.CallAnswer::of_json(Json::object(rest)) catch {
-    _ => without_outcome
-  }
+  CallAnswer::of_json(parsed).unwrap_or(
+    unknown("no answer: answer without outcome"),
+  )
 }

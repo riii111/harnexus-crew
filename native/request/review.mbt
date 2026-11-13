@@ -21,8 +21,7 @@ pub struct ReviewRequest {
   document_refs : Array[String]
   display_name : OptionalText
   pr_url : String?
-  /// Not checked here: the command compares it with the thread it runs in, and a value of another type is a mismatch there.
-  worker_chat_id : Json?
+  worker_chat_id : String?
 }
 
 ///|
@@ -63,7 +62,7 @@ pub async fn ReviewRequest::from_json(
     document_refs,
     display_name,
     pr_url,
-    worker_chat_id: members.get("workerChatId"),
+    worker_chat_id: worker_chat_id_of(members.get("workerChatId")),
   }
 }
 
@@ -72,7 +71,7 @@ pub fn ReviewRequest::with_worker_chat_id(
   self : ReviewRequest,
   id : String,
 ) -> ReviewRequest {
-  { ..self, worker_chat_id: Some(Json::string(id)), }
+  { ..self, worker_chat_id: Some(id), }
 }
 
 ///|
@@ -87,7 +86,7 @@ pub fn ReviewRequest::session_key(
   self : ReviewRequest,
   worker_chat_id : String,
 ) -> String {
-  @jsonio.lossy_text("\{self.checkout}\n\{worker_chat_id}")
+  "\{self.checkout}\n\{worker_chat_id}"
 }
 
 ///|
@@ -110,7 +109,7 @@ fn ReviewRequest::members(self : ReviewRequest) -> Map[String, Json] {
     None => ()
   }
   match self.worker_chat_id {
-    Some(id) => members["workerChatId"] = id
+    Some(id) => members["workerChatId"] = Json::string(id)
     None => ()
   }
   add_optional(members, "displayName", self.display_name)
@@ -123,6 +122,15 @@ fn worker_ai_of(value : Json?) -> WorkerAi raise @failure.TaskFailed {
     Some(String("Claude")) => Claude
     Some(String("Codex")) => Codex
     _ => @failure.fail("workerAI must be Claude or Codex")
+  }
+}
+
+///|
+fn worker_chat_id_of(value : Json?) -> String? raise @failure.TaskFailed {
+  match value {
+    None | Some(Null) => None
+    Some(String(id)) => Some(id)
+    Some(_) => @failure.fail("workerChatId must be a string or null")
   }
 }
 

@@ -22,6 +22,8 @@ pub fn js_trim(String) -> String
 
 pub fn js_trim_end(String) -> String
 
+pub fn nonempty(String?) -> String?
+
 // Errors
 
 // Types and methods

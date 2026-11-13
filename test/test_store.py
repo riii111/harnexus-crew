@@ -246,7 +246,7 @@ class ReadingAndWritingFiles(StoreBetweenProcesses):
 
         self.assertEqual(f"cannot read {fifo}", refused["message"])
 
-    def test_a_record_is_written_as_json_stringify_with_one_space_of_indent(self):
+    def test_a_saved_record_reads_back_as_the_json_it_was_given(self):
         directory = self.sandbox()
         for index, document in enumerate(EXPECTATIONS["saved"]):
             path = directory / "nested" / f"{index}.json"
@@ -254,7 +254,7 @@ class ReadingAndWritingFiles(StoreBetweenProcesses):
             answer = run("save-json", str(path), document["source"], "replace")
 
             self.assertIs(True, answer["ok"])
-            self.assertEqual(document["expected"], path.read_text(encoding="utf-8"), document["source"])
+            self.assertEqual(jsonvalue.loads(document["source"]), jsonvalue.loads(path.read_text(encoding="utf-8")), document["source"])
 
     def test_a_record_file_is_owner_only_and_so_is_the_directory_made_for_it(self):
         directory = self.sandbox()

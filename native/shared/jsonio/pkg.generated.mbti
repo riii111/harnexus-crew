@@ -6,13 +6,11 @@ import {
 }
 
 // Values
-pub fn lossy_text(String) -> String
+pub fn as_text(@json.Json) -> String
 
-pub fn object_with_extra(Array[(String, @json.Json)], Map[String, @json.Json]) -> @json.Json
+pub fn field(@json.Json, String) -> @json.Json
 
 pub fn parse(String) -> @json.Json raise JsonError
-
-pub fn stringify(@json.Json) -> String
 
 // Errors
 pub suberror JsonError {
@@ -20,19 +18,6 @@ pub suberror JsonError {
 }
 
 // Types and methods
-pub struct Fields {
-  // private fields
-}
-pub fn Fields::from_json(@json.Json, context~ : String) -> Self raise JsonError
-pub fn Fields::reject_unknown(Self) -> Unit raise JsonError
-pub fn Fields::rest(Self) -> Map[String, @json.Json]
-pub fn Fields::take(Self, String) -> @json.Json?
-pub fn Fields::take_array(Self, String) -> Array[@json.Json] raise JsonError
-pub fn Fields::take_bool(Self, String) -> Bool raise JsonError
-pub fn Fields::take_int(Self, String) -> Int64 raise JsonError
-pub fn Fields::take_object(Self, String) -> Self raise JsonError
-pub fn Fields::take_optional_string(Self, String) -> String? raise JsonError
-pub fn Fields::take_string(Self, String) -> String raise JsonError
 
 // Type aliases
 

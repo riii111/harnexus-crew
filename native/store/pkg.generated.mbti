@@ -29,6 +29,8 @@ pub fn prepare_directory(String) -> Unit raise FileFailed
 
 pub fn process_alive(Double) -> Bool
 
+pub fn read_json(String) -> @json.Json raise @failure.TaskFailed
+
 pub fn read_records(String) -> Records raise @failure.TaskFailed
 
 pub fn read_regular_text(String) -> String raise FileFailed

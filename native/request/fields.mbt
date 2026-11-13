@@ -22,8 +22,8 @@ pub async fn ReviewCandidate::reviewer_fields(
 ) -> Map[String, String] raise @failure.TaskFailed {
   let request = self.request
   let worker_chat_id = match request.worker_chat_id {
-    Some(String(id)) => id
-    _ => @failure.fail("workerChatId must be the chat ID of the worker")
+    Some(id) => id
+    None => @failure.fail("workerChatId must be the chat ID of the worker")
   }
   {
     "task_id": request.task_id,

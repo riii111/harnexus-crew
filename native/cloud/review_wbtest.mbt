@@ -30,10 +30,10 @@ async test "the first head is reviewed by a new reviewer, whose answer is the re
     assert_eq(fields.get("reply_to"), Some("Cloud"))
     assert_eq(fields.get("worker_chat_id"), Some("worker-session"))
     let saved = read_state("\{state}/state.json")
-    assert_eq(show(field(saved, "heads")), "[\"\{HEAD_1}\"]")
-    assert_eq(show(field(saved, "verdict")), "\"LGTM\"")
+    assert_eq(show(@jsonio.field(saved, "heads")), "[\"\{HEAD_1}\"]")
+    assert_eq(show(@jsonio.field(saved, "verdict")), "\"LGTM\"")
     assert_eq(
-      show(field(field(saved, "candidate"), "workerChatId")),
+      show(@jsonio.field(@jsonio.field(saved, "candidate"), "workerChatId")),
       "\"worker-session\"",
     )
     assert_false(rig.pending_exists("example"))
@@ -49,9 +49,9 @@ async test "a new head is reviewed by resuming the same reviewer in the checkout
     ignore(rig.review())
     rig.head.val = HEAD_2
     let done = rig.review()
-    assert_eq(show(field(done, "verdict")), "\"LGTM\"")
-    assert_eq(show(field(done, "base")), "\"\{BASE}\"")
-    assert_eq(show(field(done, "head")), "\"\{HEAD_2}\"")
+    assert_eq(show(@jsonio.field(done, "verdict")), "\"LGTM\"")
+    assert_eq(show(@jsonio.field(done, "base")), "\"\{BASE}\"")
+    assert_eq(show(@jsonio.field(done, "head")), "\"\{HEAD_2}\"")
     assert_eq(rig.args(2), [
       "exec",
       "resume",
@@ -63,7 +63,10 @@ async test "a new head is reviewed by resuming the same reviewer in the checkout
     ])
     assert_eq(@text.js_trim(rig.recorded("cwd", 2)), rig.checkout)
     let saved = read_state("\{rig.state_dir("example")}/state.json")
-    assert_eq(show(field(saved, "heads")), "[\"\{HEAD_1}\",\"\{HEAD_2}\"]")
+    assert_eq(
+      show(@jsonio.field(saved, "heads")),
+      "[\"\{HEAD_1}\",\"\{HEAD_2}\"]",
+    )
   })
 }
 
@@ -178,11 +181,11 @@ async test "a reviewer gone from the machine is forgotten and a new one is start
     )
     assert_false(rig.pending_exists("example"))
     let saved = read_state("\{rig.state_dir("example")}/state.json")
-    assert_eq(show(field(saved, "reviewer")), "null")
-    assert_eq(show(field(saved, "heads")), "[\"\{HEAD_1}\"]")
+    assert_eq(show(@jsonio.field(saved, "reviewer")), "null")
+    assert_eq(show(@jsonio.field(saved, "heads")), "[\"\{HEAD_1}\"]")
     rig.plan(3, out=events(OTHER, "判定: LGTM"))
     let done = rig.review()
-    assert_eq(show(field(done, "reviewer")), "\"\{OTHER}\"")
+    assert_eq(show(@jsonio.field(done, "reviewer")), "\"\{OTHER}\"")
     assert_eq(rig.args(3)[1], "--json")
   })
 }
@@ -218,8 +221,8 @@ async test "a run that was stopped holds the review until it is discarded" {
     )
     assert_true(rig.pending_exists("example"))
     let pending = read_state("\{rig.state_dir("example")}/pending.json")
-    assert_eq(show(field(pending, "reviewer")), "null")
-    assert_eq(show(field(pending, "head")), "\"\{HEAD_1}\"")
+    assert_eq(show(@jsonio.field(pending, "reviewer")), "null")
+    assert_eq(show(@jsonio.field(pending, "head")), "\"\{HEAD_1}\"")
     assert_eq(
       rig.review_failure(),
       "the review of head \{HEAD_1} did not report back: its result is unknown, so it is not sent again on its own. Check the reviewer, then rerun with --recover discard to send the candidate again",
@@ -227,7 +230,7 @@ async test "a run that was stopped holds the review until it is discarded" {
     assert_eq(rig.runs(), 1)
     rig.plan(2, out=events(REVIEWER, "判定: LGTM"))
     let done = rig.review(extra=["--recover", "discard"])
-    assert_eq(show(field(done, "verdict")), "\"LGTM\"")
+    assert_eq(show(@jsonio.field(done, "verdict")), "\"LGTM\"")
     assert_eq(rig.runs(), 2)
     assert_false(rig.pending_exists("example"))
   })
@@ -251,7 +254,7 @@ async test "a stopped run names the reviewer it had started or was resuming" {
     )
     assert_eq(
       show(
-        field(
+        @jsonio.field(
           read_state("\{rig.state_dir("example")}/pending.json"),
           "reviewer",
         ),
@@ -319,15 +322,15 @@ async test "a question goes to the task's reviewer and leaves the verdict and he
       out=events(REVIEWER, "B1 は残っています。\n判定: LGTM"),
     )
     let answer = rig.review(extra=["--ask", ask])
-    assert_eq(show(field(answer, "kind")), "\"reply\"")
-    assert_eq(show(field(answer, "head")), "\"\{HEAD_1}\"")
-    assert_eq(show(field(answer, "reviewer")), "\"\{REVIEWER}\"")
-    assert_eq(show(field(answer, "verdict")), "\"LGTM\"")
+    assert_eq(show(@jsonio.field(answer, "kind")), "\"reply\"")
+    assert_eq(show(@jsonio.field(answer, "head")), "\"\{HEAD_1}\"")
+    assert_eq(show(@jsonio.field(answer, "reviewer")), "\"\{REVIEWER}\"")
+    assert_eq(show(@jsonio.field(answer, "verdict")), "\"LGTM\"")
     assert_eq(
-      show(field(answer, "answer")),
+      show(@jsonio.field(answer, "answer")),
       "\"B1 は残っています。\\n判定: LGTM\"",
     )
-    assert_true(show(field(answer, "askedAt")).length() > 10)
+    assert_true(show(@jsonio.field(answer, "askedAt")).length() > 10)
     assert_eq(rig.recorded("stdin", 2), "B1 はまだ残っていますか")
     assert_eq(rig.args(2), [
       "exec",
@@ -420,31 +423,10 @@ async test "the worker's chat is the cloud session, or cloud without one" {
     rig.plan(2, out=events(REVIEWER, "判定: LGTM"))
     ignore(rig.review(request=",\"workerChatId\":\"w9\""))
     assert_eq(rig.prompts[1].get("worker_chat_id"), Some("w9"))
-  })
-}
-
-///|
-async test "a worker chat ID of another type is shown as JS writes it and saved as it came" {
-  with_rig("chat-types", rig => {
-    let cases = [
-      ("null", "null"),
-      ("7", "7"),
-      ("true", "true"),
-      ("[1,null,\"a\"]", "1,,a"),
-      ("{\"a\":1}", "[object Object]"),
-      ("1.5", "1.5"),
-    ]
-    let mut run = 0
-    for item in cases {
-      let (written, shown) = item
-      run += 1
-      rig.plan(run, out=events(REVIEWER, "判定: LGTM"))
-      ignore(rig.review(request=",\"workerChatId\":\{written}"))
-      assert_eq(rig.prompts[run - 1].get("worker_chat_id"), Some(shown))
-      let saved = read_state("\{rig.state_dir("example")}/state.json")
-      assert_eq(show(field(field(saved, "candidate"), "workerChatId")), written)
-      @store.remove_record("\{rig.state_dir("example")}/state.json")
-    }
+    rig.head.val = HEAD_1
+    rig.plan(3, out=events(REVIEWER, "判定: LGTM"))
+    ignore(rig.review(request=",\"workerChatId\":null"))
+    assert_eq(rig.prompts[2].get("worker_chat_id"), Some("worker-session"))
   })
 }
 

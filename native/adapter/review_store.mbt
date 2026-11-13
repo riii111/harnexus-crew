@@ -176,7 +176,7 @@ fn ReviewStore::write(
   value : Json,
 ) -> Unit raise @failure.TaskFailed {
   io(() => @store.prepare_directory(self.dir))
-  io(() => @store.write_atomic(path, @jsonio.stringify(value)))
+  io(() => @store.write_atomic(path, value.stringify()))
 }
 
 ///|
@@ -245,7 +245,7 @@ fn ReviewStore::claim(self : ReviewStore, key : String) -> Claim {
   let path = self.reservation_path(key)
   let reserved = object([("reservedAt", Json::string(@store.now_iso()))])
   match
-    (Ok(@store.write_exclusive(path, @jsonio.stringify(reserved))) catch {
+    (Ok(@store.write_exclusive(path, reserved.stringify())) catch {
       e => Err(e)
     }) {
     Ok(true) => Claimed
