@@ -10,11 +10,11 @@ pub(all) struct TurnSettings {
 pub fn refusal_of(expected : TurnSettings, actual : TurnSettings) -> String {
   let differences = []
   for
-    difference in [
+    found in [
       difference("model", expected.model, actual.model),
       difference("effort", expected.effort, actual.effort),
     ] {
-    if difference is Some(text) {
+    if found is Some(text) {
       differences.push(text)
     }
   }

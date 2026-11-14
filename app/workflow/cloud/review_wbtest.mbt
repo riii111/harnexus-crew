@@ -8,7 +8,7 @@ async test "a session keeps its worker AI, and a changed base needs --update-bas
       ignore(rig.review(request=",\"workerAI\":\"Codex\""))
     })
     assert_eq(mismatch, "review session must keep the original workerAI")
-    assert_eq(rig.runs(), 1)
+    assert_eq(rig.count_runs(), 1)
   })
 }
 
@@ -64,7 +64,7 @@ async test "a review whose pending record cannot be written does not run" {
       rig.review_failure(),
       "cannot write \{rig.state_dir("example")}/pending.json",
     )
-    assert_eq(rig.runs(), 0)
+    assert_eq(rig.count_runs(), 0)
   })
 }
 

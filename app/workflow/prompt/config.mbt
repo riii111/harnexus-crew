@@ -9,24 +9,27 @@ fn TemplateConfig::from_json(
   path : String,
   json : Json,
 ) -> TemplateConfig raise @failure.TaskFailed {
-  guard json is Object(members) else { invalid(path, "it must be an object") }
+  guard json is Object(members) else {
+    fail_invalid(path, "it must be an object")
+  }
   if unknown_key(members, ["templates"]) is Some(key) {
-    invalid(path, "unknown field \"\{key}\"")
+    fail_invalid(path, "unknown field \"\{key}\"")
   }
   guard members.get("templates") is Some(Object(templates)) else {
-    invalid(path, "templates must be an object")
+    fail_invalid(path, "templates must be an object")
   }
   if unknown_key(templates, ["worker", "reviewer"]) is Some(key) {
-    invalid(path, "unknown field \"templates.\{key}\"")
+    fail_invalid(path, "unknown field \"templates.\{key}\"")
   }
-  let template = fn(kind : String) -> String? raise @failure.TaskFailed {
+  let template_path = fn(kind : String) -> String? raise @failure.TaskFailed {
     match templates.get(kind) {
       None => None
       Some(String(text)) if text.has_prefix("/") => Some(text)
-      Some(_) => invalid(path, "templates.\{kind} must be an absolute path")
+      Some(_) =>
+        fail_invalid(path, "templates.\{kind} must be an absolute path")
     }
   }
-  { worker: template("worker"), reviewer: template("reviewer"), }
+  { worker: template_path("worker"), reviewer: template_path("reviewer"), }
 }
 
 ///|
@@ -46,6 +49,9 @@ fn unknown_key(members : Map[String, Json], known : Array[String]) -> String? {
 }
 
 ///|
-fn[T] invalid(path : String, problem : String) -> T raise @failure.TaskFailed {
+fn[T] fail_invalid(
+  path : String,
+  problem : String,
+) -> T raise @failure.TaskFailed {
   @failure.fail("\{path} is invalid: \{problem}")
 }

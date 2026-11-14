@@ -4,7 +4,7 @@ fn no_which(_ : String) -> String? {
 }
 
 ///|
-fn codex_env(pairs : Array[(String, String)]) -> @environment.Env {
+fn env_with_home(pairs : Array[(String, String)]) -> @environment.Env {
   env_of([("HOME", "/h"), ..pairs])
 }
 
@@ -25,7 +25,7 @@ async fn with_home(
 }
 
 ///|
-async fn review_project_of(host : Host) -> String {
+async fn resolve_review_project(host : Host) -> String {
   (host.review_project)("w1") catch {
     @failure.TaskFailed(message) => "failed: \{message}"
   }
@@ -33,7 +33,7 @@ async fn review_project_of(host : Host) -> String {
 
 ///|
 test "the Codex App host sends through the bridge and renames threads" {
-  let host = host_of(codex_env([("CODEX_HOME", "/cx")]), which=no_which)
+  let host = host_of(env_with_home([("CODEX_HOME", "/cx")]), which=no_which)
   inspect(host.thread_variable, content="CODEX_THREAD_ID")
   inspect(host.worktrees, content="/cx/worktrees")
   inspect(host.renames_threads, content="true")
@@ -51,7 +51,7 @@ test "the Codex App host sends through the bridge and renames threads" {
 ///|
 test "the T3 Code host has its own thread variable, folder and reply template, and no thinking" {
   let host = host_of(
-    codex_env([("T3CODE_THREAD_ID", "t"), ("T3CODE_HOME", "/data/t3")]),
+    env_with_home([("T3CODE_THREAD_ID", "t"), ("T3CODE_HOME", "/data/t3")]),
     which=no_which,
   )
   inspect(host.thread_variable, content="T3CODE_THREAD_ID")
@@ -61,7 +61,7 @@ test "the T3 Code host has its own thread variable, folder and reply template, a
   inspect((host.reply_to)("Claude"), content="T3")
   inspect((host.reply_to)("Codex"), content="T3")
   inspect(
-    host_of(codex_env([("T3CODE_THREAD_ID", "t")]), which=no_which).worktrees,
+    host_of(env_with_home([("T3CODE_THREAD_ID", "t")]), which=no_which).worktrees,
     content="/h/.t3/worktrees",
   )
 }
@@ -69,12 +69,15 @@ test "the T3 Code host has its own thread variable, folder and reply template, a
 ///|
 async test "each host sends to its own app" {
   let off = ("HARNEXUS_CALL_SOCKET", "off")
-  let codex = host_of(codex_env([off]), which=no_which)
+  let codex = host_of(env_with_home([off]), which=no_which)
   inspect(
     json_text((codex.call)("w1", "name_thread", {}).to_json()),
     content="{\"outcome\":\"not_sent\",\"error\":\"the call socket is off (HARNEXUS_CALL_SOCKET=off)\"}",
   )
-  let t3 = host_of(codex_env([off, ("T3CODE_THREAD_ID", "t")]), which=no_which)
+  let t3 = host_of(
+    env_with_home([off, ("T3CODE_THREAD_ID", "t")]),
+    which=no_which,
+  )
   inspect(
     json_text((t3.call)("w1", "name_thread", {}).to_json()),
     content="{\"outcome\":\"unsupported\",\"error\":\"T3 Code does not offer name_thread\"}",
@@ -97,7 +100,7 @@ async test "a Codex App reviewer runs in the project whose folder is the review 
           env_of([("HOME", home), ("HARNEXUS_CALL_SOCKET", path)]),
           which=no_which,
         )
-        assert_eq(review_project_of(host), "p1")
+        assert_eq(resolve_review_project(host), "p1")
         assert_eq(
           lines[0],
           "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"list_projects\",\"arguments\":{}}",
