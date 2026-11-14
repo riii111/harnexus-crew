@@ -1,14 +1,4 @@
 ///|
-fn temp_base() -> String {
-  let base = @env.get_env_var("TMPDIR").unwrap_or("/tmp")
-  if base.has_suffix("/") {
-    base[:base.length() - 1].to_owned()
-  } else {
-    base
-  }
-}
-
-///|
 /// What a test of a session command works with: a scratch root, and the calls the app was asked for.
 struct Rig {
   root : String
@@ -22,10 +12,6 @@ struct Rig {
   head : Ref[String]
   /// Where the worker's checkout is, which depends on the app.
   mut checkout_path : String
-  /// What pr-wake printed for the last link.
-  linked : Ref[Map[String, Json]?]
-  /// The arguments pr-wake was run with.
-  pr_wake_calls : Array[Array[String]]
   /// The kind of each prompt template filled and the reply it was filled for, as `kind:reply_to`.
   prompts : Array[String]
 }
@@ -40,27 +26,18 @@ const HEAD_1 : String = "2222222222222222222222222222222222222222"
 const HEAD_2 : String = "3333333333333333333333333333333333333333"
 
 ///|
-async fn remove_tree(directory : String) -> Unit {
-  ignore(
-    @process.run_command("rm", ["-rf", directory], { "PATH": "/usr/bin:/bin" }) catch {
-      _ => abort("cannot remove \{directory}")
-    },
-  )
-}
-
-///|
 /// Runs `body` with a scratch root that is removed afterwards.
 async fn with_rig(
   name : String,
   answers : Array[@bridge.CallAnswer],
   body : async (Rig) -> Unit,
 ) -> Unit {
-  let made = "\{temp_base()}/hxs-\{@testkit.pid()}-\{name}-\{@store.new_uuid()[:8]}"
+  let made = "\{@testkit.temp_base()}/hxs-\{@testkit.pid()}-\{name}-\{@store.new_uuid()[:8]}"
   @store.prepare_directory(made) catch {
     failed => abort(failed.user_message())
   }
   let root = @store.resolve_real_path_or_self(made)
-  errdefer @async.protect_from_cancel(() => remove_tree(root))
+  errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
   let rig = {
     root,
     answers,
@@ -68,12 +45,10 @@ async fn with_rig(
     before_save: (_, _) => (),
     head: Ref(HEAD_1),
     checkout_path: "\{root}/codex/worktrees/ab12/repo",
-    linked: Ref(None),
-    pr_wake_calls: [],
     prompts: [],
   }
   body(rig)
-  remove_tree(root)
+  @testkit.remove_tree(root)
 }
 
 ///|
@@ -168,13 +143,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
       self.prompts.push("\{name}:\{fields.get("reply_to").unwrap_or("-")}")
       "\{name} prompt for \{fields.get("task_id").unwrap_or("?")}"
     },
-    pr_wake: args => {
-      self.pr_wake_calls.push(args)
-      match self.linked.val {
-        Some(printed) => printed
-        None => @failure.fail("pr-wake is not set up")
-      }
-    },
+    pr_wake: _ => @failure.fail("pr-wake is not set up"),
   }
 }
 
@@ -196,27 +165,11 @@ fn read_state(path : String) -> Json {
 }
 
 ///|
-async fn failure_of(
-  work : async () -> Unit raise @failure.TaskFailed,
-) -> String {
-  try {
-    work()
-    ""
-  } catch {
-    failed => failed.message()
-  }
-}
-
-///|
-fn done(
-  thread : String,
-  model? : String,
-  effort? : String,
-) -> @bridge.CallAnswer {
+fn done(thread : String) -> @bridge.CallAnswer {
   @bridge.CallAnswer::new(Done, [
     ("threadId", Json::string(thread)),
-    ("model", Json::string(model.unwrap_or("claude-sonnet-5-5"))),
-    ("effort", Json::string(effort.unwrap_or("high"))),
+    ("model", Json::string("claude-sonnet-5-5")),
+    ("effort", Json::string("high")),
   ])
 }
 
@@ -231,9 +184,9 @@ fn launch_request_text() -> String {
 }
 
 ///|
-fn Rig::write_launch_file(self : Rig, text? : String) -> String {
+fn Rig::write_launch_file(self : Rig) -> String {
   let path = "\{self.root}/launch.json"
-  write_text(path, text.unwrap_or(launch_request_text()))
+  write_text(path, launch_request_text())
   path
 }
 
