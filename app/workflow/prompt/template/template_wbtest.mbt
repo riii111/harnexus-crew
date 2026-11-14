@@ -17,31 +17,51 @@ let fields : Map[String, String] = {
 }
 
 ///|
-test "a field is filled and a doubled brace is one brace" {
-  inspect(
-    outcome("Work on {task_id} {{literal}}", fields),
-    content="Work on T-1 {literal}",
-  )
+test "a field is filled" {
+  inspect(outcome("Work on {task_id}", fields), content="Work on T-1")
 }
 
 ///|
-test "an unknown field or a single brace is refused at the first problem" {
-  inspect(
-    outcome("{unknown}", fields),
-    content="refused: unknown template field {unknown}",
-  )
-  inspect(outcome("a { b", fields), content="refused: single '{' in template")
-  inspect(outcome("a } b", fields), content="refused: single '}' in template")
-  inspect(outcome("{{a}", fields), content="refused: single '}' in template")
-  inspect(
-    outcome("{a}}", fields),
-    content="refused: unknown template field {a}",
-  )
-  inspect(outcome("{}", fields), content="refused: unknown template field {}")
-  inspect(
-    outcome("{task_id", fields),
-    content="refused: single '{' in template",
-  )
+test "a doubled brace is one brace" {
+  inspect(outcome("{{literal}}", fields), content="{literal}")
+}
+
+///|
+test "an unknown field is refused" {
+  let unknown = [("{unknown}", "unknown"), ("{a}}", "a"), ("{}", "")]
+  for case in unknown {
+    assert_eq(
+      outcome(case.0, fields),
+      "refused: unknown template field {\{case.1}}",
+      msg=case.0,
+    )
+  }
+}
+
+///|
+test "a single opening brace is refused" {
+  for template in ["a { b", "{task_id"] {
+    assert_eq(
+      outcome(template, fields),
+      "refused: single '{' in template",
+      msg=template,
+    )
+  }
+}
+
+///|
+test "a single closing brace is refused" {
+  for template in ["a } b", "{{a}"] {
+    assert_eq(
+      outcome(template, fields),
+      "refused: single '}' in template",
+      msg=template,
+    )
+  }
+}
+
+///|
+test "the first problem in a template is the one reported" {
   inspect(
     outcome("{checkout} {nope} {", fields),
     content="refused: unknown template field {nope}",
@@ -62,10 +82,14 @@ test "a value can be refused at the place it goes" {
 
 ///|
 test "a name may hold only ASCII letters and digits, _ and -" {
-  inspect(refuse_unless_name("Name_2-x") is None, content="true")
-  inspect(refuse_unless_name("名前") is Some(_), content="true")
-  inspect(refuse_unless_name("") is Some(_), content="true")
-  inspect(refuse_unless_name("a.b") is Some(_), content="true")
+  assert_eq(refuse_unless_name("Name_2-x"), None)
+  for value in ["名前", "", "a.b"] {
+    assert_eq(
+      refuse_unless_name(value),
+      Some("may hold only letters, digits, _ and - inside a link target"),
+      msg=value,
+    )
+  }
 }
 
 ///|
