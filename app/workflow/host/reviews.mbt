@@ -11,28 +11,6 @@ pub(all) struct CloudReview {
 }
 
 ///|
-/// The mark that tells a chat showing a Cloud session from other chats in the app's list.
-pub const CLOUD_MARK : String = "\u{2601}\u{FE0F}"
-
-///|
-pub const REVIEW_ASK_SENT : String = "Sent to the worker running this reviewer, which passes it on; the reviewer's answer appears here once the worker's session is copied."
-
-///|
-pub const REVIEW_ASK_UNROUTED : String = "The Cloud session that ran this reviewer is not shown in a chat here, so its answer could not come back and the message was not sent. Link the worker's session with /cloud, or ask in the worker's chat."
-
-///|
-pub const REVIEW_ASK_UNKNOWN : String = "The message may or may not have reached the worker's session, so it is not sent again; check the worker's chat."
-
-///|
-pub fn uuid_of(record : Json?) -> String? {
-  guard record is Some(Object(members)) else { return None }
-  match members.get("uuid") {
-    Some(String(uuid)) => Some(uuid)
-    _ => None
-  }
-}
-
-///|
 /// The reviews whose output a Cloud session read at or after `from` and before `to`, in order, each once; the output may be read from a file it was written to.
 pub fn reviews_in(
   records : Array[Json],
@@ -75,6 +53,28 @@ pub fn review_text(review : CloudReview) -> String {
 pub fn reviewer_ask(reviewer : String, text : String) -> String {
   "The user sent this to your Codex reviewer `\{reviewer}` from its Review chat in the Codex App:\n\n\{text}\n\nPass it to the same reviewer: write it to a file and run `harnexus-crew review --request <your review request file> --ask <that file>`, then reply with the reviewer's answer as it is."
 }
+
+///|
+pub fn uuid_of(record : Json?) -> String? {
+  guard record is Some(Object(members)) else { return None }
+  match members.get("uuid") {
+    Some(String(uuid)) => Some(uuid)
+    _ => None
+  }
+}
+
+///|
+/// The mark that tells a chat showing a Cloud session from other chats in the app's list.
+pub const CLOUD_MARK : String = "\u{2601}\u{FE0F}"
+
+///|
+pub const REVIEW_ASK_SENT : String = "Sent to the worker running this reviewer, which passes it on; the reviewer's answer appears here once the worker's session is copied."
+
+///|
+pub const REVIEW_ASK_UNROUTED : String = "The Cloud session that ran this reviewer is not shown in a chat here, so its answer could not come back and the message was not sent. Link the worker's session with /cloud, or ask in the worker's chat."
+
+///|
+pub const REVIEW_ASK_UNKNOWN : String = "The message may or may not have reached the worker's session, so it is not sent again; check the worker's chat."
 
 ///|
 fn content_of(record : Json) -> Array[Map[String, Json]] {
@@ -141,14 +141,6 @@ fn review_of(text : String) -> CloudReview? {
 }
 
 ///|
-fn text_or_none(value : Json?) -> String? {
-  match value {
-    Some(String(text)) if text != "" => Some(text)
-    _ => None
-  }
-}
-
-///|
 fn strip_line_numbers(text : String) -> String {
   let units = text.code_units()
   let out = StringBuilder()
@@ -192,5 +184,13 @@ fn line_number_width(units : ArrayView[UInt16], at : Int32) -> Int32 {
     0
   } else {
     end + 1 - at
+  }
+}
+
+///|
+fn text_or_none(value : Json?) -> String? {
+  match value {
+    Some(String(text)) if text != "" => Some(text)
+    _ => None
   }
 }

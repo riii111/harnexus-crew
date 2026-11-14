@@ -8,6 +8,17 @@ priv struct Context {
 }
 
 ///|
+fn Context::of_env(env : @environment.Env) -> Context {
+  {
+    env,
+    probe: @request.FileProbe::of_machine(),
+    git: @git.Git::of_env(env),
+    prompt: fields => @prompt.render_task_prompt(env, Reviewer, fields),
+    save: (path, data) => @store.save_json(path, data, exclusive=false),
+  }
+}
+
+///|
 /// Reviews in a Claude Code cloud session with a Codex CLI run beside the worker, answering with its result instead of a chat in the app.
 /// With `ask`, passes that message to the same reviewer instead.
 pub async fn review(
@@ -47,6 +58,19 @@ async fn review_in(
     Some(ask) => run_ask(ctx, ask, directory, request)
   }
 }
+
+///|
+/// Reads a review request, whose checkout may be any repository's top level because no app project is involved.
+async fn read_request(
+  ctx : Context,
+  path : String,
+) -> @request.ReviewRequest raise @failure.TaskFailed {
+  let json = @store.read_regular_json(path)
+  @request.ReviewRequest::from_json(json, Cloud, ctx.probe, ctx.git)
+}
+
+///|
+let recovery_hint : String = "its result is unknown, so it is not sent again on its own. Check the reviewer, then rerun with --recover discard to send the candidate again"
 
 ///|
 async fn run_review(
@@ -218,27 +242,6 @@ async fn run_ask(
 }
 
 ///|
-fn Context::of_env(env : @environment.Env) -> Context {
-  {
-    env,
-    probe: @request.FileProbe::of_machine(),
-    git: @git.Git::of_env(env),
-    prompt: fields => @prompt.render_task_prompt(env, Reviewer, fields),
-    save: (path, data) => @store.save_json(path, data, exclusive=false),
-  }
-}
-
-///|
-/// Reads a review request, whose checkout may be any repository's top level because no app project is involved.
-async fn read_request(
-  ctx : Context,
-  path : String,
-) -> @request.ReviewRequest raise @failure.TaskFailed {
-  let json = @store.read_regular_json(path)
-  @request.ReviewRequest::from_json(json, Cloud, ctx.probe, ctx.git)
-}
-
-///|
 fn check_continuation(
   state : Json?,
   previous : Map[String, Json],
@@ -271,6 +274,9 @@ fn reviewer_of(state : Json?) -> String? {
     _ => None
   }
 }
+
+///|
+const NO_ROLLOUT : String = "no rollout found"
 
 ///|
 /// reviewed nothing: Clears the pending record so the candidate can be sent again.

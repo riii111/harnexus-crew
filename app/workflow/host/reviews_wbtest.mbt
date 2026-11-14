@@ -1,38 +1,4 @@
 ///|
-/// A Cloud session record whose tool result carries `content`.
-fn result_record(uuid : String, content : String) -> Json {
-  parse(
-    "{\"uuid\":\"\{uuid}\",\"message\":{\"content\":[{\"type\":\"tool_result\",\"content\":\{content}}]}}",
-  )
-}
-
-///|
-fn review_output(extra : String) -> String {
-  "{\"status\":\"completed\",\"reviewer\":\"r1\",\"verdict\":\"LGTM\",\"taskId\":\"TR1\",\"head\":\"0123456789abcdef\",\"answer\":\"Looks good.\\n\"\{extra}}"
-}
-
-///|
-fn quoted(text : String) -> String {
-  json_text(Json::string(text))
-}
-
-///|
-fn or_none(text : String?) -> String {
-  text.unwrap_or("none")
-}
-
-///|
-fn summary(reviews : Array[CloudReview]) -> String {
-  let parts = []
-  for review in reviews {
-    parts.push(
-      "\{review.key} \{review.reviewer} \{or_none(review.verdict)} \{or_none(review.task_id)} \{or_none(review.head)} \{json_text(Json::string(review.answer))}",
-    )
-  }
-  parts.join("; ")
-}
-
-///|
 test "a review is read from the tool result that carries harnexus-task's output" {
   inspect(
     summary(reviews_in([result_record("u1", quoted(review_output("")))])),
@@ -225,6 +191,27 @@ test "a review without a head is shown without one" {
 }
 
 ///|
+test "a head of seven units or fewer is shown whole" {
+  let review : CloudReview = {
+    key: "k",
+    reviewer: "r1",
+    verdict: None,
+    task_id: None,
+    head: Some("abc"),
+    answer: "ok",
+  }
+
+  inspect(
+    review_text(review),
+    content="ok\n\n_Codex reviewer `r1` on `abc`, run in a Cloud session. Ask for changes in the worker's chat._",
+  )
+  inspect(
+    review_text({ ..review, head: Some("abcdefg"), }),
+    content="ok\n\n_Codex reviewer `r1` on `abcdefg`, run in a Cloud session. Ask for changes in the worker's chat._",
+  )
+}
+
+///|
 test "a question for a reviewer asks the session to pass it on" {
   inspect(
     reviewer_ask("r1", "why?"),
@@ -248,39 +235,43 @@ test "the Cloud mark is the cloud and its variation selector" {
 }
 
 ///|
-test "a head of seven units or fewer is shown whole" {
-  let review : CloudReview = {
-    key: "k",
-    reviewer: "r1",
-    verdict: None,
-    task_id: None,
-    head: Some("abc"),
-    answer: "ok",
+fn summary(reviews : Array[CloudReview]) -> String {
+  let parts = []
+  for review in reviews {
+    parts.push(
+      "\{review.key} \{review.reviewer} \{or_none(review.verdict)} \{or_none(review.task_id)} \{or_none(review.head)} \{json_text(Json::string(review.answer))}",
+    )
   }
+  parts.join("; ")
+}
 
-  inspect(
-    review_text(review),
-    content="ok\n\n_Codex reviewer `r1` on `abc`, run in a Cloud session. Ask for changes in the worker's chat._",
-  )
-  inspect(
-    review_text({ ..review, head: Some("abcdefg"), }),
-    content="ok\n\n_Codex reviewer `r1` on `abcdefg`, run in a Cloud session. Ask for changes in the worker's chat._",
+///|
+fn or_none(text : String?) -> String {
+  text.unwrap_or("none")
+}
+
+///|
+/// A Cloud session record whose tool result carries `content`.
+fn result_record(uuid : String, content : String) -> Json {
+  parse(
+    "{\"uuid\":\"\{uuid}\",\"message\":{\"content\":[{\"type\":\"tool_result\",\"content\":\{content}}]}}",
   )
 }
 
 ///|
-const BESIDE_REVIEW : String = "0ac6e09193aa9513d7fd0420db43b7e6 r1 LGTM TR1 ffffffffffffffff \"Looks good.\\n\""
-
-///|
-fn parse(text : String) -> Json {
-  @jsonio.parse(text) catch {
-    _ => abort("not JSON: \{text}")
-  }
+fn review_output(extra : String) -> String {
+  "{\"status\":\"completed\",\"reviewer\":\"r1\",\"verdict\":\"LGTM\",\"taskId\":\"TR1\",\"head\":\"0123456789abcdef\",\"answer\":\"Looks good.\\n\"\{extra}}"
 }
 
 ///|
-fn block_record(block : String) -> Json {
-  parse("{\"uuid\":\"u\",\"message\":{\"content\":[\{block}]}}")
+fn quoted(text : String) -> String {
+  json_text(Json::string(text))
+}
+
+///|
+fn review_at_head(uuid : String, head : String) -> Json {
+  let output = review_output("").replace_all(old="0123456789abcdef", new=head)
+  result_record(uuid, quoted(output))
 }
 
 ///|
@@ -289,7 +280,16 @@ fn summary_beside_review(skipped : Json) -> String {
 }
 
 ///|
-fn review_at_head(uuid : String, head : String) -> Json {
-  let output = review_output("").replace_all(old="0123456789abcdef", new=head)
-  result_record(uuid, quoted(output))
+const BESIDE_REVIEW : String = "0ac6e09193aa9513d7fd0420db43b7e6 r1 LGTM TR1 ffffffffffffffff \"Looks good.\\n\""
+
+///|
+fn block_record(block : String) -> Json {
+  parse("{\"uuid\":\"u\",\"message\":{\"content\":[\{block}]}}")
+}
+
+///|
+fn parse(text : String) -> Json {
+  @jsonio.parse(text) catch {
+    _ => abort("not JSON: \{text}")
+  }
 }
