@@ -26,10 +26,22 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: cachix/install-nix-action@d9186cbdca7adedf113a159fa91f725a27866771 # v31
+      - uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+      # Fetching the pinned toolchain takes most of the macOS job, so the Nix store is kept between runs for each flake.lock.
+      - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+      # The workflow and flake.nix read the same on every OS, so they are checked once.
       - name: Lint workflows
+        if: runner.os == 'Linux'
         run: actionlint
       - name: Check Nix formatting
+        if: runner.os == 'Linux'
         run: nix fmt --no-write-lock-file -- --check flake.nix
       - name: Check formatting
         run: moon fmt --check
