@@ -6,6 +6,28 @@ priv struct Chat {
 }
 
 ///|
+fn Chat::to_json(self : Chat) -> Json {
+  object([
+    ("threadId", Json::string(self.thread_id)),
+    ("session", text_or_null(self.session)),
+  ])
+}
+
+///|
+fn chat_in(value : Json) -> Chat? {
+  match value {
+    String(thread_id) => Some({ thread_id, session: None, })
+    Object(members) =>
+      match members.get("threadId") {
+        Some(String(thread_id)) =>
+          Some({ thread_id, session: text_or_none(members.get("session")), })
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
 priv enum ReviewState {
   Sent
   /// A file may stand over a sent review, so the review is held.
@@ -22,24 +44,10 @@ priv enum Claim {
 }
 
 ///|
-priv enum ReadObject {
-  Absent
-  Unreadable
-  Found(Map[String, Json])
-}
-
-///|
 priv struct HistoryEntry {
   role : String
   text : String
   at : String
-}
-
-///|
-priv struct Shown {
-  at : String
-  asked : Bool
-  entries : Array[HistoryEntry]
 }
 
 ///|
@@ -259,11 +267,35 @@ fn ReviewStore::read_history(
 }
 
 ///|
-fn Chat::to_json(self : Chat) -> Json {
-  object([
-    ("threadId", Json::string(self.thread_id)),
-    ("session", text_or_null(self.session)),
-  ])
+fn ReviewStore::chats_path(self : ReviewStore) -> String {
+  @path.join([self.dir, CHATS])
+}
+
+///|
+fn ReviewStore::review_path(self : ReviewStore, key : String) -> String {
+  @path.join([self.dir, "\{key}.json"])
+}
+
+///|
+fn ReviewStore::reservation_path(self : ReviewStore, key : String) -> String {
+  @path.join([self.dir, "\{key}\{RESERVED}"])
+}
+
+///|
+fn ReviewStore::write(
+  self : ReviewStore,
+  path : String,
+  value : Json,
+) -> Unit raise @failure.TaskFailed {
+  lift_file_failure(() => @store.prepare_directory(self.dir))
+  lift_file_failure(() => @store.write_atomic(path, value.stringify()))
+}
+
+///|
+priv struct Shown {
+  at : String
+  asked : Bool
+  entries : Array[HistoryEntry]
 }
 
 ///|
@@ -287,33 +319,6 @@ fn review_json(review : @host.CloudReview) -> Json {
     ("head", text_or_null(review.head)),
     ("answer", Json::string(review.answer)),
   ])
-}
-
-///|
-fn read_object(path : String) -> ReadObject {
-  match (Ok(@store.read_text_if_exists(path)) catch { e => Err(e) }) {
-    Err(_) => Unreadable
-    Ok(None) => Absent
-    Ok(Some(text)) =>
-      match (Ok(@jsonio.parse(text)) catch { e => Err(e) }) {
-        Ok(Object(members)) => Found(members)
-        _ => Unreadable
-      }
-  }
-}
-
-///|
-fn chat_in(value : Json) -> Chat? {
-  match value {
-    String(thread_id) => Some({ thread_id, session: None, })
-    Object(members) =>
-      match members.get("threadId") {
-        Some(String(thread_id)) =>
-          Some({ thread_id, session: text_or_none(members.get("session")), })
-        _ => None
-      }
-    _ => None
-  }
 }
 
 ///|
@@ -355,26 +360,21 @@ fn is_unsent_review_file(kept : Map[String, Json], key : String) -> Bool {
 }
 
 ///|
-fn ReviewStore::chats_path(self : ReviewStore) -> String {
-  @path.join([self.dir, CHATS])
+priv enum ReadObject {
+  Absent
+  Unreadable
+  Found(Map[String, Json])
 }
 
 ///|
-fn ReviewStore::review_path(self : ReviewStore, key : String) -> String {
-  @path.join([self.dir, "\{key}.json"])
-}
-
-///|
-fn ReviewStore::reservation_path(self : ReviewStore, key : String) -> String {
-  @path.join([self.dir, "\{key}\{RESERVED}"])
-}
-
-///|
-fn ReviewStore::write(
-  self : ReviewStore,
-  path : String,
-  value : Json,
-) -> Unit raise @failure.TaskFailed {
-  lift_file_failure(() => @store.prepare_directory(self.dir))
-  lift_file_failure(() => @store.write_atomic(path, value.stringify()))
+fn read_object(path : String) -> ReadObject {
+  match (Ok(@store.read_text_if_exists(path)) catch { e => Err(e) }) {
+    Err(_) => Unreadable
+    Ok(None) => Absent
+    Ok(Some(text)) =>
+      match (Ok(@jsonio.parse(text)) catch { e => Err(e) }) {
+        Ok(Object(members)) => Found(members)
+        _ => Unreadable
+      }
+  }
 }

@@ -1,58 +1,4 @@
 ///|
-fn write_sent_file(
-  at : Place,
-  review : @host.CloudReview,
-  thread_id : String,
-) -> Unit {
-  guard review_json(review) is Object(members) else { return }
-  members["sent"] = Json::boolean(true)
-  members["threadId"] = str(thread_id)
-  members["shownAt"] = str("2026-11-01T00:00:00.000Z")
-  write_file("\{at.reviews}/\{review.key}.json", text_of(Json::object(members)))
-}
-
-///|
-fn binding(reviewer : String, thread_id : String) -> Json {
-  object([("conversationId", str(reviewer)), ("threadId", str(thread_id))])
-}
-
-///|
-fn bound_line(reviewer : String, thread_id : String) -> Array[(String, Json)] {
-  [
-    ("type", str("event")),
-    ("event", str("conversation_bound")),
-    ("conversationId", str(reviewer)),
-    ("threadId", str(thread_id)),
-  ]
-}
-
-///|
-fn opening_path(at : Place, reviewer : String) -> String {
-  "\{at.observe}/opening/\{short_hash(reviewer)}.json"
-}
-
-///|
-fn save_opening(at : Place, showing : Bool) -> Unit {
-  write_file(
-    opening_path(at, "R1"),
-    text_of(
-      object([
-        ("key", str("k1")),
-        ("text", str("first review")),
-        ("sessionId", str(session)),
-        ("showing", Json::boolean(showing)),
-      ]),
-    ),
-  )
-}
-
-///|
-async fn reconnect(link : Link) -> Unit {
-  link.say(hello_line("write"))
-  link.say(ready_line([binding("R1", "chat-r1")]))
-}
-
-///|
 async test "a review is shown once when two adapters take it at the same time" {
   with_place("write-race", at => {
     @async.with_task_group(group => {
@@ -372,6 +318,60 @@ async test "a chat's first review stays for the next connection when the bridge 
       assert_eq(field(kept, "showing"), Some(Json::boolean(false)))
     })
   })
+}
+
+///|
+fn write_sent_file(
+  at : Place,
+  review : @host.CloudReview,
+  thread_id : String,
+) -> Unit {
+  guard review_json(review) is Object(members) else { return }
+  members["sent"] = Json::boolean(true)
+  members["threadId"] = str(thread_id)
+  members["shownAt"] = str("2026-11-01T00:00:00.000Z")
+  write_file("\{at.reviews}/\{review.key}.json", text_of(Json::object(members)))
+}
+
+///|
+fn binding(reviewer : String, thread_id : String) -> Json {
+  object([("conversationId", str(reviewer)), ("threadId", str(thread_id))])
+}
+
+///|
+fn bound_line(reviewer : String, thread_id : String) -> Array[(String, Json)] {
+  [
+    ("type", str("event")),
+    ("event", str("conversation_bound")),
+    ("conversationId", str(reviewer)),
+    ("threadId", str(thread_id)),
+  ]
+}
+
+///|
+fn opening_path(at : Place, reviewer : String) -> String {
+  "\{at.observe}/opening/\{short_hash(reviewer)}.json"
+}
+
+///|
+fn save_opening(at : Place, showing : Bool) -> Unit {
+  write_file(
+    opening_path(at, "R1"),
+    text_of(
+      object([
+        ("key", str("k1")),
+        ("text", str("first review")),
+        ("sessionId", str(session)),
+        ("showing", Json::boolean(showing)),
+      ]),
+    ),
+  )
+}
+
+///|
+async fn reconnect(link : Link) -> Unit {
+  link.say(hello_line("write"))
+  link.say(ready_line([binding("R1", "chat-r1")]))
 }
 
 ///|
