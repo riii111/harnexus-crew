@@ -1,51 +1,11 @@
 ///|
-#borrow(path)
-extern "C" fn rmdir_raw(path : Bytes) -> Int32 = "harnexus_store_rmdir"
-
-///|
-/// A new empty directory under the temporary directory, for one test to fill.
-fn scratch() -> String {
-  let base = @env.get_env_var("TMPDIR").unwrap_or("/tmp")
-  let directory = @path.join([base, "hx-store-\{new_uuid()}"])
-  prepare_directory(directory) catch {
-    failed => abort(failed.user_message())
-  }
-  directory
-}
-
-///|
-fn remove_tree(path : String) -> Unit {
-  let names = list_directory_if_exists(path) catch { _ => None }
-  for name in names.unwrap_or([]) {
-    let child = "\{path}/\{name}"
-    if is_directory(child) {
-      remove_tree(child)
-    } else {
-      ignore(unlink_path(child))
-    }
-  }
-  match @sys.c_string(path) {
-    Some(bytes) => ignore(rmdir_raw(bytes))
-    None => ()
-  }
-}
-
-///|
-fn in_scratch(body : (String) -> Unit raise Error) -> Unit raise Error {
-  let directory = scratch()
-  defer remove_tree(directory)
+async fn in_scratch(
+  body : async (String) -> Unit raise Error,
+) -> Unit raise Error {
+  let directory = @testkit.scratch("store")
+  errdefer @async.protect_from_cancel(() => @testkit.remove_tree(directory))
   body(directory)
-}
-
-///|
-/// The message a file operation fails with, or "" when it succeeds.
-fn file_failure(work : () -> Unit raise FileFailed) -> String {
-  try {
-    work()
-    ""
-  } catch {
-    failed => failed.user_message()
-  }
+  @testkit.remove_tree(directory)
 }
 
 ///|
@@ -61,12 +21,17 @@ fn task_failure(work : () -> Unit raise @failure.TaskFailed) -> String {
 
 ///|
 fn read_text(path : String) -> String raise {
-  read_text_if_exists(path).unwrap()
+  match read_text_if_exists(path) {
+    Some(text) => text
+    None => fail("\{path} does not exist")
+  }
 }
 
 ///|
 fn list_names(path : String) -> Array[String] raise {
-  let names = list_directory_if_exists(path).unwrap()
+  guard list_directory_if_exists(path) is Some(names) else {
+    fail("\{path} is not a directory")
+  }
   names.sort_by(String::lexical_compare)
   names
 }

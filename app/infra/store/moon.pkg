@@ -10,6 +10,11 @@ import {
   "riii111/harnexus-crew/share/sys",
 }
 
+import {
+  "moonbitlang/core/async/fs",
+  "riii111/harnexus-crew/share/os/testkit",
+} for "wbtest"
+
 options(
   "allow-experimental-packages": true,
   "native-stub": [ "stub.c" ],

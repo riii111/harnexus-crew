@@ -35,13 +35,12 @@ test "sha256 matches the digests of Node's crypto" {
     ),
   ]
   for case in cases {
-    assert_eq(sha256_hex(case.0), case.1)
+    assert_eq(sha256_hex(case.0), case.1, msg=case.0)
   }
 }
 
 ///|
-test "new_uuid writes a version 4 UUID and does not repeat" {
-  let seen : Map[String, Bool] = Map([])
+test "new_uuid writes a version 4 UUID" {
   for _ in 0..<2 {
     let uuid = new_uuid()
     assert_eq(uuid.length(), 36)
@@ -50,9 +49,15 @@ test "new_uuid writes a version 4 UUID and does not repeat" {
     }
     assert_eq(uuid[14], '4')
     assert_true(["8", "9", "a", "b"].contains(uuid[19:20].to_owned()))
-    assert_false(seen.contains(uuid))
-    seen[uuid] = true
   }
+}
+
+///|
+test "new_uuid does not repeat" {
+  let first = new_uuid()
+  let second = new_uuid()
+
+  assert_not_eq(first, second)
 }
 
 ///|
@@ -70,25 +75,40 @@ test "iso_time matches Date#toISOString" {
     (1709251199999L, "2024-02-29T23:59:59.999Z"),
   ]
   for case in cases {
-    assert_eq(iso_time(case.0), case.1)
+    assert_eq(iso_time(case.0), case.1, msg=case.0.to_string())
   }
 }
 
 ///|
 test "now_iso is a current UTC time" {
+  let before = iso_time(@env.now().reinterpret_as_int64())
   let now = now_iso()
+  let after = iso_time(@env.now().reinterpret_as_int64())
+
   assert_eq(now.length(), 24)
-  assert_true(now.has_suffix("Z"))
-  assert_true(now >= "2026-")
+  assert_eq(now[23], 'Z')
+  assert_true(
+    before <= now && now <= after,
+    msg="\{before} <= \{now} <= \{after}",
+  )
 }
 
 ///|
-test "is_process_alive counts this process and refuses what kill would" {
+test "is_process_alive tells this process from one that does not exist" {
   assert_true(is_process_alive(current_pid().to_double()))
   assert_false(is_process_alive(dead_pid))
-  assert_false(is_process_alive(1.5))
-  assert_false(is_process_alive(2147483648.0))
-  assert_false(is_process_alive(-2147483649.0))
+}
+
+///|
+test "is_process_alive refuses a pid that is not a signed 32-bit integer" {
+  assert_true(is_process_alive(current_pid().to_double()))
+  for pid in [1.5, 2147483648.0, -2147483649.0] {
+    assert_false(is_process_alive(pid), msg=pid.to_string())
+  }
+}
+
+///|
+test "is_process_alive counts the process group ids 0 and -1 as alive" {
   assert_true(is_process_alive(0.0))
   assert_true(is_process_alive(-1.0))
 }
