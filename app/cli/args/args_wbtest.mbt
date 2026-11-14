@@ -29,7 +29,7 @@ fn describe_parse(command : String, rest : Array[String]) -> String {
 }
 
 ///|
-test "options are read with a value after a space or after an equals sign" {
+test "an option value follows after a space or an equals sign" {
   inspect(
     describe_parse("launch", ["--request", "a"]),
     content="launch request=a model=(none) thinking=(none)",
@@ -38,6 +38,10 @@ test "options are read with a value after a space or after an equals sign" {
     describe_parse("launch", ["--request=a=b", "--model", "-"]),
     content="launch request=a=b model=- thinking=(none)",
   )
+}
+
+///|
+test "the last occurrence of a repeated option wins" {
   inspect(
     describe_parse("launch", ["--request", "a", "--request", "b", "--request="]),
     content="launch request= model=(none) thinking=(none)",
@@ -45,9 +49,14 @@ test "options are read with a value after a space or after an equals sign" {
 }
 
 ///|
-test "help wins over a missing option but not over a bad one" {
+test "help wins over a missing option" {
   inspect(describe_parse("launch", ["-h"]), content="help")
   inspect(describe_parse("launch", ["--help"]), content="help")
+}
+
+///|
+test "help does not win over a bad option" {
+  inspect(describe_parse("launch", ["-h"]), content="help")
   inspect(
     describe_parse("launch", ["-hh"]),
     content="usage: Unknown option '-hh'",
@@ -59,61 +68,40 @@ test "help wins over a missing option but not over a bad one" {
 }
 
 ///|
-test "an unknown option or a stray argument is refused" {
-  inspect(
-    describe_parse("check", ["--nope"]),
-    content="usage: Unknown option '--nope'",
-  )
-  inspect(
-    describe_parse("check", ["--nope=1"]),
-    content="usage: Unknown option '--nope'",
-  )
-  inspect(describe_parse("check", ["-x"]), content="usage: Unknown option '-x'")
-  inspect(
-    describe_parse("check", ["-hx"]),
-    content="usage: Unknown option '-hx'",
-  )
-  inspect(
-    describe_parse("check", ["-h=1"]),
-    content="usage: Unknown option '-h=1'",
-  )
-  inspect(
-    describe_parse("check", ["--=x"]),
-    content="usage: Unknown option '--=x'",
-  )
-  inspect(
-    describe_parse("check", ["---x"]),
-    content="usage: Unknown option '---x'",
-  )
-  inspect(
-    describe_parse("check", ["--req"]),
-    content="usage: Unknown option '--req'",
-  )
-  inspect(
-    describe_parse("check", ["pos"]),
-    content="usage: Unexpected argument 'pos'. This command does not take positional arguments",
-  )
-  inspect(
-    describe_parse("check", ["-"]),
-    content="usage: Unexpected argument '-'. This command does not take positional arguments",
-  )
-  inspect(
-    describe_parse("check", [""]),
-    content="usage: Unexpected argument ''. This command does not take positional arguments",
-  )
+test "an unknown option is refused with its name" {
+  let unknown = [
+    ("--nope", "--nope"),
+    ("--nope=1", "--nope"),
+    ("-x", "-x"),
+    ("-hx", "-hx"),
+    ("-h=1", "-h=1"),
+    ("--=x", "--=x"),
+    ("---x", "---x"),
+    ("--req", "--req"),
+  ]
+  for option in unknown {
+    assert_eq(
+      describe_parse("check", [option.0]),
+      "usage: Unknown option '\{option.1}'",
+      msg=option.0,
+    )
+  }
 }
 
 ///|
-test "a lone double dash ends the options and nothing may follow it" {
+test "a stray argument is refused" {
+  for arg in ["pos", "-", ""] {
+    assert_eq(
+      describe_parse("check", [arg]),
+      "usage: Unexpected argument '\{arg}'. This command does not take positional arguments",
+      msg=arg,
+    )
+  }
+}
+
+///|
+test "a lone double dash ends the options" {
   inspect(describe_parse("check", ["--"]), content="check")
-  inspect(
-    describe_parse("check", ["--", "--"]),
-    content="usage: Unexpected argument '--'. This command does not take positional arguments",
-  )
-  inspect(
-    describe_parse("check", ["--", "--help"]),
-    content="usage: Unexpected argument '--help'. This command does not take positional arguments",
-  )
   inspect(
     describe_parse("launch", ["--request", "a", "--"]),
     content="launch request=a model=(none) thinking=(none)",
@@ -121,15 +109,31 @@ test "a lone double dash ends the options and nothing may follow it" {
 }
 
 ///|
-test "a value that looks like an option is ambiguous, and a missing one is named" {
+test "an argument after a lone double dash is refused as a stray argument" {
+  inspect(describe_parse("check", ["--"]), content="check")
+  for arg in ["--", "--help"] {
+    assert_eq(
+      describe_parse("check", ["--", arg]),
+      "usage: Unexpected argument '\{arg}'. This command does not take positional arguments",
+      msg=arg,
+    )
+  }
+}
+
+///|
+test "a value that looks like an option is ambiguous" {
   let ambiguous = "usage: Option '--request' argument is ambiguous.\nDid you forget to specify the option argument for '--request'?\nTo specify an option argument starting with a dash use '--request=-XYZ'."
-  inspect(describe_parse("launch", ["--request", "--model"]), content=ambiguous)
-  inspect(describe_parse("launch", ["--request", "-1"]), content=ambiguous)
-  inspect(describe_parse("launch", ["--request", "--"]), content=ambiguous)
-  inspect(
-    describe_parse("launch", ["--request"]),
-    content="usage: Option '--request <value>' argument missing",
-  )
+  for value in ["--model", "-1", "--"] {
+    assert_eq(
+      describe_parse("launch", ["--request", value]),
+      ambiguous,
+      msg=value,
+    )
+  }
+}
+
+///|
+test "a value that starts with a dash is taken after an equals sign" {
   inspect(
     describe_parse("launch", ["--request=--x"]),
     content="launch request=--x model=(none) thinking=(none)",
@@ -137,49 +141,73 @@ test "a value that looks like an option is ambiguous, and a missing one is named
 }
 
 ///|
-test "a flag takes no value" {
+test "a missing option value is named" {
   inspect(
-    describe_parse("review", ["--request", "a", "--update-base=1"]),
-    content="usage: Option '--update-base' does not take an argument",
-  )
-  inspect(
-    describe_parse("review", ["--help=1"]),
-    content="usage: Option '--help' does not take an argument",
+    describe_parse("launch", ["--request"]),
+    content="usage: Option '--request <value>' argument missing",
   )
 }
 
 ///|
-test "review options conflict with a question to the reviewer" {
+test "a flag takes no value" {
+  let flags = [
+    (["--request", "a", "--update-base=1"], "--update-base"),
+    (["--help=1"], "--help"),
+  ]
+  for flag in flags {
+    assert_eq(
+      describe_parse("review", flag.0),
+      "usage: Option '\{flag.1}' does not take an argument",
+      msg=flag.1,
+    )
+  }
+}
+
+///|
+test "a question to the reviewer conflicts with the other review options" {
   inspect(
     describe_parse("review", ["--request", "a", "--ask", "q", "--model", "m"]),
     content="usage: --ask takes none of --update-base, --recover, --model and --thinking",
   )
-  inspect(
-    describe_parse("review", ["--request", "a", "--recover", "other"]),
-    content="usage: --recover must be one of discard",
-  )
-  inspect(
-    describe_parse("review", ["--ask", "q"]),
-    content="usage: --request is required",
-  )
+}
+
+///|
+test "review recovers only by discarding" {
   inspect(
     describe_parse("review", [
       "--request", "a", "--recover=discard", "--update-base",
     ]),
     content="review request=a update_base=true discard=true ask=(none)",
   )
+  inspect(
+    describe_parse("review", ["--request", "a", "--recover", "other"]),
+    content="usage: --recover must be one of discard",
+  )
 }
 
 ///|
-test "resolve takes exactly one of sent and not-sent" {
+test "a review needs --request even when it asks a question" {
   inspect(
-    describe_parse("resolve", ["--request", "a"]),
-    content="usage: exactly one of --sent and --not-sent is required",
+    describe_parse("review", ["--ask", "q"]),
+    content="usage: --request is required",
   )
-  inspect(
-    describe_parse("resolve", ["--request", "a", "--sent", "--not-sent"]),
-    content="usage: exactly one of --sent and --not-sent is required",
-  )
+}
+
+///|
+test "resolve refuses neither or both of sent and not-sent" {
+  let both = ["--request", "a", "--sent", "--not-sent"]
+  let neither = ["--request", "a"]
+  for argv in [neither, both] {
+    assert_eq(
+      describe_parse("resolve", argv),
+      "usage: exactly one of --sent and --not-sent is required",
+      msg=argv.join(" "),
+    )
+  }
+}
+
+///|
+test "resolve with not-sent keeps the thread id" {
   inspect(
     describe_parse("resolve", [
       "--request", "a", "--not-sent", "--thread-id", "t",
@@ -189,19 +217,31 @@ test "resolve takes exactly one of sent and not-sent" {
 }
 
 ///|
-test "watch keeps every pr and allows one mode" {
+test "watch keeps every pr" {
   inspect(
     describe_parse("watch", ["--dry-run", "--pr", "1", "--pr=2"]),
     content="watch dry_run=true prs=1,2 release=(none) status=false sender=false link=(none)",
   )
+}
+
+///|
+test "watch takes --pr only with --dry-run" {
   inspect(
     describe_parse("watch", ["--pr", "1"]),
     content="usage: --pr is only for --dry-run",
   )
+}
+
+///|
+test "watch allows only one mode" {
   inspect(
     describe_parse("watch", ["--status", "--sender"]),
     content="usage: use only one of --dry-run, --release, --status, --sender and --link",
   )
+}
+
+///|
+test "watch without options takes no mode" {
   inspect(
     describe_parse("watch", []),
     content="watch dry_run=false prs= release=(none) status=false sender=false link=(none)",
@@ -209,15 +249,20 @@ test "watch keeps every pr and allows one mode" {
 }
 
 ///|
-test "cloud takes exactly one of link and prompt file" {
-  inspect(
-    describe_parse("cloud", []),
-    content="usage: exactly one of --link and --prompt-file is required",
-  )
-  inspect(
-    describe_parse("cloud", ["--link", "s", "--prompt-file", "p"]),
-    content="usage: exactly one of --link and --prompt-file is required",
-  )
+test "cloud refuses neither or both of link and prompt file" {
+  let neither = []
+  let both = ["--link", "s", "--prompt-file", "p"]
+  for argv in [neither, both] {
+    assert_eq(
+      describe_parse("cloud", argv),
+      "usage: exactly one of --link and --prompt-file is required",
+      msg=argv.join(" "),
+    )
+  }
+}
+
+///|
+test "cloud takes a prompt file with a project" {
   inspect(
     describe_parse("cloud", ["--prompt-file", "p", "--project", "x"]),
     content="cloud link=(none) prompt_file=p project=x",
@@ -225,12 +270,24 @@ test "cloud takes exactly one of link and prompt file" {
 }
 
 ///|
-test "required options are named, and the other commands take none" {
+test "a missing required option is named" {
   inspect(describe_parse("launch", []), content="usage: --request is required")
   inspect(describe_parse("name", []), content="usage: --pr is required")
+}
+
+///|
+test "name takes its required option" {
   inspect(describe_parse("name", ["--pr", "1"]), content="name pr=1")
+}
+
+///|
+test "state and environment take no option" {
   inspect(describe_parse("state", []), content="state request=(none)")
   inspect(describe_parse("environment", []), content="environment")
+}
+
+///|
+test "the command names are listed in order" {
   inspect(
     command_names().join(","),
     content="launch,review,state,resolve,name,watch,environment,check,cloud",
@@ -238,7 +295,7 @@ test "required options are named, and the other commands take none" {
 }
 
 ///|
-test "a name is split at the first equals sign by code unit" {
+test "an unknown option name is cut at the first equals sign by code unit" {
   inspect(
     describe_parse("check", ["--\u{1F600}=1"]),
     content="usage: Unknown option '--\u{1F600}'",
@@ -247,6 +304,10 @@ test "a name is split at the first equals sign by code unit" {
     describe_parse("check", ["--\u{E9}=1"]),
     content="usage: Unknown option '--\u{E9}'",
   )
+}
+
+///|
+test "a value after the first equals sign keeps its non-ASCII characters" {
   inspect(
     describe_parse("name", ["--pr=\u{1F600}\u{E9}"]),
     content="name pr=\u{1F600}\u{E9}",
