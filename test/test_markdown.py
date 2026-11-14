@@ -1,4 +1,4 @@
-"""The Markdown link judgement: the TypeScript build's, made by Bun.markdown.render on the template with its link targets swapped for markers."""
+"""The Markdown link judgement as `Bun.markdown.render` makes it on a template with its link targets swapped for markers."""
 
 import shutil
 import subprocess

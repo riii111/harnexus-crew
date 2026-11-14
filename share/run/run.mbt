@@ -6,7 +6,7 @@ pub(all) struct CommandRun {
 }
 
 ///|
-/// A result that cannot be written is not reported as a success.
+/// Writes the output and exits the process.
 pub fn finish(run : CommandRun) -> Unit {
   let wrote = try {
     @sys.write_text(1, run.stdout)
@@ -15,5 +15,6 @@ pub fn finish(run : CommandRun) -> Unit {
   } catch {
     @sys.WriteFailed(..) => false
   }
+  // A result that cannot be written must not be reported as a success, so a successful code becomes 1.
   @env.exit(if wrote || run.code != 0 { run.code } else { 1 })
 }

@@ -1,7 +1,7 @@
 ///|
 /// A review `harnexus-task review` finished in a Cloud session, as its output names it.
 pub(all) struct CloudReview {
-  // Names the review by its reviewer, head, answer and, for a reply to a question, when it was asked, so a review read twice, such as from the file it was written to, is taken once.
+  /// Names the review by its reviewer, head, answer and, for a reply to a question, when it was asked, so a review read twice is taken once.
   key : String
   reviewer : String
   verdict : String?
@@ -24,7 +24,6 @@ pub const REVIEW_ASK_UNROUTED : String = "The Cloud session that ran this review
 pub const REVIEW_ASK_UNKNOWN : String = "The message may or may not have reached the worker's session, so it is not sent again; check the worker's chat."
 
 ///|
-/// The uuid of a Cloud session record, which is Claude's own session message.
 pub fn uuid_of(record : Json?) -> String? {
   guard record is Some(Object(members)) else { return None }
   match members.get("uuid") {

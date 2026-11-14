@@ -1,7 +1,6 @@
 ///|
-/// Where one kind of state for `key` lives under the state root.
-/// The directory is named by the first 16 hex digits of the SHA-256 of `key`, so a change to how a kind lays out its key would lose the directories already recorded under it.
 pub fn state_directory(root : String, kind : String, key : String) -> String {
+  // A change to how a kind lays out its key would lose the directories already recorded under it, so the name stays the first 16 hex digits of the SHA-256 of `key`.
   "\{root}/\{kind}/\{sha256_hex(key)[:16]}"
 }
 
@@ -57,7 +56,7 @@ fn is_process_alive(pid : Double) -> Bool {
   if pid != pid.floor() || pid < -2147483648.0 || pid > 2147483647.0 {
     return false
   }
-  // A process owned by another user, or a process group ID of 0 or -1, counts as alive.
+  // Node's process.kill reports a process owned by another user, or a process group ID of 0 or -1, as alive, so they count as alive.
   process_alive_raw(pid.to_int()) == 1
 }
 

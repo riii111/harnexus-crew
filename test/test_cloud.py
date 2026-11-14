@@ -142,7 +142,7 @@ def write_json(path, value):
 
 class CloudReviews(ScenarioAsserts, unittest.TestCase):
     def run_scenario(self, name, runs, body, **options):
-        """Runs the scenario on the Native build and checks it against what the TypeScript build did."""
+        """Runs the scenario on the Native build and checks it against the recorded expectation."""
         done = with_rig({"name": name, **scenario_fields(runs, **options)}, body, timeout=RUN_TIMEOUT_SECONDS)
         native = observed(done, steady=True)
         self.assertSameJson(read_recorded(name, done), without_pid(native, self.dead))
@@ -214,7 +214,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         steps = native["result"]
         self.assertEqual([0, 1, 0], codes(steps))
         self.assertIn("codex did not review (exit 1): network down", steps[1]["stderr"])
-        # The third run resumed the kept reviewer, and takes the thread its events name.
+        # The third run resumes the kept reviewer and takes the thread its events name.
         self.assertMatches(steps[2]["stdout"], {"reviewer": OTHER})
         self.assertIn(f"resume\n{REVIEWER}", native["files"]["fake/args.3"])
         self.assertFalse(any(path.endswith("pending.json") for path in native["files"]))

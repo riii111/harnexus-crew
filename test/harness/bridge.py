@@ -45,8 +45,7 @@ class Bridge:
                     command = self._control_read.recv(1)
                     if command != b"f":
                         return
-                    # A flush is requested only after the clients have finished. Accept the
-                    # connections already queued, including probes that sent no data.
+                    # The clients have finished before a flush is requested, so accept the connections already queued, including probes that sent no data.
                     self._accept_pending()
                     self._flush_handlers = list(self._handlers)
                     self._flushed.set()
@@ -93,7 +92,7 @@ class Bridge:
             finished.set()
 
     def collect_finished_requests(self, timeout=30):
-        """Collect all connections queued by finished clients before reading their requests."""
+        """Collects all connections queued by finished clients before reading their requests."""
         with self._flush_lock:
             deadline = time.monotonic() + timeout
             self._flushed.clear()

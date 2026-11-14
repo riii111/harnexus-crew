@@ -12,7 +12,6 @@ pub enum Command {
 }
 
 ///|
-/// What reading a command's arguments came to.
 pub enum Parsed {
   /// `-h` or `--help` was given, and nothing else was wrong.
   Help
@@ -29,8 +28,7 @@ pub fn command_names() -> Array[String] {
 }
 
 ///|
-/// Reads the arguments after a command's name.
-/// The caller has checked the name against `command_names`.
+/// `command` must be one of `command_names`.
 pub fn parse_command(
   command : String,
   rest : ArrayView[String],
@@ -45,7 +43,7 @@ pub fn parse_command(
 }
 
 ///|
-/// Reads the arguments after `adapter serve`, which takes no `--help`; the id is None when it was not given.
+/// Takes no `--help`; the id is None when it was not given.
 pub fn parse_adapter_serve(
   rest : ArrayView[String],
 ) -> String? raise UsageError {

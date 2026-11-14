@@ -1,6 +1,5 @@
 ///|
 /// The values a worker template is filled with.
-/// The document references are checked again, because the files may have gone since the request was read.
 pub async fn LaunchRequest::build_worker_fields(
   self : LaunchRequest,
   probe : FileProbe,
@@ -14,7 +13,6 @@ pub async fn LaunchRequest::build_worker_fields(
 
 ///|
 /// The values a reviewer template is filled with.
-/// `reply_to` names how the reviewer returns its result: the worker's AI in the app, `T3` in T3 Code, or `Cloud` in a Claude Code cloud session.
 pub async fn ReviewCandidate::build_reviewer_fields(
   self : ReviewCandidate,
   reply_to : String,
@@ -70,6 +68,7 @@ async fn render_document_block(
   refs : Array[String],
   probe : FileProbe,
 ) -> String raise @failure.TaskFailed {
+  // The files may have gone since the request was read, so the document references are checked again.
   let checked = parse_document_refs(
     Some(Json::array(refs.map(fn(reference) { Json::string(reference) }))),
     probe,

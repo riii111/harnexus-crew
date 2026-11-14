@@ -89,7 +89,6 @@ test "is_process_alive counts this process and refuses what kill would" {
   assert_false(is_process_alive(1.5))
   assert_false(is_process_alive(2147483648.0))
   assert_false(is_process_alive(-2147483649.0))
-  // 0 and -1 name process groups, which Node's process.kill also reports as alive.
   assert_true(is_process_alive(0.0))
   assert_true(is_process_alive(-1.0))
 }

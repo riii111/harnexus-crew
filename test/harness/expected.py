@@ -1,4 +1,4 @@
-"""What a case must do, as recorded from the TypeScript build this CLI replaced (see test/README.md).
+"""What a case must do, as recorded under test/expected (see test/README.md).
 
 A state key made from a path in the sandbox differs on every run, so the recording names the text a key was made from and a token stands where the key was.
 `{{key:N}}` becomes the SHA-256 of keys[N].text, cut to keys[N].length, with <ROOT> read as this run's sandbox root.

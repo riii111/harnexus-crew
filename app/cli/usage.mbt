@@ -1,5 +1,4 @@
 ///|
-/// Where to report a bug, which the help and a crash report both end with.
 let feedback_hint : String = "To report a bug, open an issue at https://github.com/riii111/taskctl/issues with the command you ran and its output."
 
 ///|

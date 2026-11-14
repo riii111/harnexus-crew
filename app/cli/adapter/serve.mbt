@@ -46,7 +46,7 @@ fn log_text(entry : Array[(String, Json)]) -> String {
 }
 
 ///|
-/// Split CRLF, LF and lone CR the same way as Node's readline.
+/// Takes a chunk whose LF is already removed, drops a trailing CR and splits at the remaining CRs, as Node's readline splits CRLF, LF and lone CR.
 fn split_lines(chunk : String) -> Array[String] {
   let text = if chunk.has_suffix("\r") {
     chunk[:chunk.length() - 1].to_owned()

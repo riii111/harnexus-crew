@@ -15,7 +15,7 @@ from .cases import REPO
 
 SHIM = Path(__file__).with_name("shim.py")
 
-# Commits are dated, so a repository made twice has the same commits.
+# A repository made twice must have the same commits, so the author, committer and dates are fixed.
 GIT_FIXED = {
     "GIT_AUTHOR_NAME": "Test",
     "GIT_AUTHOR_EMAIL": "test@example.com",
@@ -131,7 +131,9 @@ def read_commands(root):
 
 
 def snapshot_files(root, dirs):
-    """Regular files under the snapshot directories, by path relative to the root. Sockets and links are not state, and neither is what git keeps in .git, which differs between git versions."""
+    """Regular files under the snapshot directories, by path relative to the root.
+    Sockets and links are not state, and neither is what git keeps in .git, which differs between git versions.
+    """
     files = {}
 
     def walk(relative):

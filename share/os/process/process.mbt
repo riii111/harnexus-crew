@@ -6,6 +6,7 @@ priv suberror StillAlive
 priv struct Supervised {
   exit : Exit
   ended : @boundary.ProcessEnd
+  // To preserve UTF-8 characters split across chunks, the output stays bytes until all of it is collected.
   stdout : Bytes
   stderr : Bytes
 }
@@ -13,9 +14,7 @@ priv struct Supervised {
 ///|
 /// Runs a command in its own process group, so a child it started does not outlive it.
 /// Returns after the command exits and its output is read to the end.
-/// input        : Sent to stdin.
 /// stop         : At the deadline or above 16 MiB of output, the group gets SIGTERM, then SIGKILL after `kill_grace_ms`.
-/// result       : Says why the run ended; anything but `Exit` means the command's own result is unknown.
 /// still running: Raises with `started` true if the command is alive a second grace after SIGKILL.
 pub async fn run_process(
   file : String,
@@ -48,7 +47,6 @@ pub async fn run_process(
       raise failed(true, "pid \{child.pid} did not exit after SIGKILL")
     err => raise failed(true, err.to_string())
   }
-  // To preserve UTF-8 characters split across chunks, decode only after collecting all output.
   {
     status: match run.exit {
       Code(code) => code
@@ -88,6 +86,7 @@ async fn supervise(
       @async.sleep(timeout_ms)
       stop(Timeout)
     })
+    // To keep the input out of the process list, it goes through stdin.
     group.spawn_bg(no_wait=true, () => feed_input(child.stdin, input))
     // One count over both streams: the limit bounds what a run keeps in memory.
     let size = Ref(0)
@@ -113,12 +112,11 @@ async fn supervise(
 }
 
 ///|
-/// The input goes through stdin so it never shows in the process list.
-/// A command that exits without reading closes its end, which does not fail the run.
 async fn feed_input(slot : Fd, input : String) -> Unit {
   let stream = slot.into_stream()
   defer stream.close()
   if input != "" {
+    // A command that exits without reading closes its end, so a failed write is ignored instead of failing the run.
     stream.write(@utf8.encode(input)) catch {
       _ => ()
     }

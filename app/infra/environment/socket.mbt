@@ -18,7 +18,7 @@ pub fn resolve_harnexus_state_path(
 }
 
 ///|
-/// Where a caller sends, or None when the socket is turned off, so a caller can say so instead of failing to connect.
+/// Where a caller sends, or None when the socket is turned off.
 pub fn resolve_caller_socket(env : Env) -> String? raise @failure.TaskFailed {
   match parse_call_socket_setting(env) {
     Off => None
@@ -27,10 +27,11 @@ pub fn resolve_caller_socket(env : Env) -> String? raise @failure.TaskFailed {
 }
 
 ///|
-/// Where the bridge's call socket is, even when the setting turns it off, for a probe that only asks whether a bridge runs.
+/// Where the bridge's call socket is, even when the setting turns it off.
 fn resolve_call_socket_path(env : Env) -> String raise @failure.TaskFailed {
   match parse_call_socket_setting(env) {
     At(path) => path
+    // A probe that only asks whether a bridge runs needs the path even when the setting turns the socket off.
     Off | Default =>
       @path.join([@path.dirname(resolve_harnexus_state_path(env)), "call.sock"])
   }

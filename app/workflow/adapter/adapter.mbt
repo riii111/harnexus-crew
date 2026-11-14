@@ -45,9 +45,9 @@ priv struct Job {
 }
 
 ///|
-/// What reading one line comes to: nothing more to do, or work to run in its own task.
 priv enum Handling {
   Handled
+  /// Work to run in its own task.
   Later(async () -> Unit noraise)
 }
 
@@ -249,7 +249,7 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
     position.cursor = Some(uuid)
   }
   position.parent_thread_id = parent
-  // The bridge is told only once the position is kept, so a crash before it reads the records again.
+  // A crash before the position is kept must read the records again, so the bridge is told only once it is kept.
   let kept = Ok(self.deps.observations.keep_position(position)) catch {
     e => Err(e)
   }
@@ -394,7 +394,6 @@ fn Adapter::enqueue(self : Adapter, work : async () -> Unit noraise) -> Unit {
 }
 
 ///|
-/// A binding the bridge saved while this adapter stopped before recording it is written to the chats file, which stays the record of which chat shows which reviewer.
 async fn Adapter::adopt_bridge_bindings(
   self : Adapter,
   bindings : Json?,
@@ -418,6 +417,7 @@ async fn Adapter::adopt_bridge_bindings(
       continue
     }
     let session = self.read_opening_session(reviewer)
+    // The chats file stays the record of which chat shows which reviewer, so a binding the bridge saved while this adapter was stopped is written to it.
     self.deps.store.keep_chat(reviewer, { thread_id, session, }) catch {
       failed => self.log_failure("chat_unwritable", failed)
     }
@@ -445,7 +445,7 @@ async fn Adapter::post_missed_openings(
 }
 
 ///|
-/// Serialize a chat's first review and report whether it may have been shown.
+/// Serializes a chat's first review and report whether it may have been shown.
 async fn Adapter::show_opening(
   self : Adapter,
   reviewer : String,
@@ -477,7 +477,7 @@ async fn Adapter::show_opening(
       return false
     }
     let shown = show(record.text)
-    // A post surely not carried out leaves the record as it was, for the next connection.
+    // A post surely not carried out may be repeated, so its record is put back as it was for the next connection.
     if shown {
       observations.drop_opening(reviewer) catch {
         _ => ()
@@ -606,7 +606,6 @@ async fn Adapter::drain(self : Adapter) -> Unit noraise {
 }
 
 ///|
-/// Deliver a review under the lock for its shared records.
 async fn Adapter::deliver(
   self : Adapter,
   entry : PendingReview,
@@ -665,7 +664,6 @@ async fn Adapter::deliver_locked(
   let mut shown : Delivery? = None
   if chats.get(review.reviewer) is Some(chat) {
     let posted = self.post_text(review.reviewer, text)
-    // Only a chat the bridge no longer binds is replaced by a new one.
     if !(posted.outcome == "rejected" && posted.reason() == Some("unbound")) {
       shown = Some({ outcome: posted.outcome, thread_id: Some(chat.thread_id), })
     }
@@ -750,7 +748,7 @@ async fn Adapter::open_chat(
     ),
   ])
   let thread_id = text_or_none(created.field("threadId"))
-  // Only a create surely not carried out lets the record go; an unknown one may still bind the chat and open its first turn later.
+  // An unknown create may still bind the chat and open its first turn later, so only a create surely not carried out lets the record go.
   if created.outcome != "done" && created.outcome != "unknown" {
     self.deps.observations.drop_opening(review.reviewer) catch {
       _ => ()

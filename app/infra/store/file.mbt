@@ -1,16 +1,14 @@
 ///|
-/// What a file operation was doing when it failed.
-/// `Sync` means the change was made but may not survive a crash.
 pub enum FileAction {
   Read
   Write
+  /// The change was made but may not survive a crash.
   Sync
   Remove
   Prepare
 }
 
 ///|
-/// A file operation that did not complete.
 /// `code` is the symbolic errno such as "ENOENT", or None when the failure has no errno.
 pub suberror FileFailed {
   FileFailed(
@@ -58,7 +56,6 @@ pub fn FileFailed::user_message(self : FileFailed) -> String {
 }
 
 ///|
-/// Reads a file as text; None when it does not exist.
 pub fn read_text_if_exists(path : String) -> String? raise FileFailed {
   let message = "cannot read \{path}"
   let fd = open_path(path, open_read)
@@ -70,11 +67,11 @@ pub fn read_text_if_exists(path : String) -> String? raise FileFailed {
 }
 
 ///|
-/// A FIFO or device is refused, since reading it could wait forever.
 pub fn read_regular_text(path : String) -> String raise FileFailed {
   let message = "cannot read \{path}"
   let fd = check(open_path(path, open_read), Read, path, message)
   let kind = fd_kind_raw(fd)
+  // Reading a FIFO or a device could wait forever, so only a regular file is read.
   if kind != kind_file {
     ignore(close_raw(fd))
     if kind < 0 {
@@ -87,7 +84,6 @@ pub fn read_regular_text(path : String) -> String raise FileFailed {
 
 ///|
 /// Replaces the file with `content` so that a reader sees either the previous content or all of the new content.
-/// A `Sync` failure means the new content is in place but its directory entry may not survive a crash.
 pub fn write_atomic(path : String, content : String) -> Unit raise FileFailed {
   replace_file(path, content)
   sync_parent(path, "wrote")
@@ -102,7 +98,7 @@ pub fn write_exclusive(
 ) -> Bool raise FileFailed {
   let message = "cannot write \{path}"
   let temporary = write_temporary(path, content)
-  // Linking fails when a file already exists at the path, which is what lets exactly one writer create it.
+  // Linking fails when a file already exists at the path, so exactly one writer creates it.
   let linked = link_path(temporary, path)
   let removed = unlink_path(temporary)
   if linked < 0 && linked != -eexist {
@@ -120,7 +116,6 @@ pub fn write_exclusive(
 
 ///|
 /// Removes the file; a file that is already missing counts as removed.
-/// A `Sync` failure means the file is gone but may come back after a crash.
 pub fn remove_file(path : String) -> Unit raise FileFailed {
   let removed = unlink_path(path)
   if removed < 0 && removed != -enoent {
@@ -137,7 +132,7 @@ pub fn prepare_directory(path : String) -> Unit raise FileFailed {
   if made < 0 {
     raise failure(Prepare, path, -made, message)
   }
-  // The parent is synced too, so files created inside later are not lost with a directory entry that never reached the disk.
+  // Files created inside later are lost if the directory entry never reached the disk, so the parent is synced too.
   let synced = sync_directory(@path.dirname(path))
   if synced < 0 {
     raise failure(Prepare, path, -synced, message)
@@ -185,7 +180,7 @@ pub fn resolve_real_path_or_self(path : String) -> String {
 ///|
 fn replace_file(path : String, content : String) -> Unit raise FileFailed {
   let temporary = write_temporary(path, content)
-  // The rename happens only after the temporary file is flushed to disk, so a reader never sees a half-written file.
+  // A reader must never see a half-written file, so the rename happens only after the temporary file is flushed to disk.
   let renamed = rename_path(temporary, path)
   if renamed < 0 {
     ignore(unlink_path(temporary))

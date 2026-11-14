@@ -5,10 +5,8 @@ priv suberror ConnectFailed {
 
 ///|
 /// Sends one line to a Unix stream socket and returns what the peer answers before it closes, without trailing whitespace.
-/// deadline      : Covers the connect, the write and the read.
-/// empty line    : Only probes; the connection proves the peer is alive and nothing is sent.
-/// before connect: A failure leaves the line unsent (`connected` is false).
-/// after connect : A failure leaves it unknown whether the line was sent.
+/// deadline   : Covers the connect, the write and the read.
+/// empty line : Only probes; the connection proves the peer is alive and nothing is sent.
 pub async fn exchange_line(
   path : String,
   line : String,
@@ -20,7 +18,7 @@ pub async fn exchange_line(
 }
 
 ///|
-/// The exchange with its connect attempt supplied, so a test can hold the connect still.
+/// Takes the connect attempt as an argument so a test can hold the connect still.
 /// An attempt answers 0 once connected, else an errno.
 async fn exchange_with(
   path : String,

@@ -2,9 +2,8 @@
 let gate : @async.Mutex = @async.Mutex()
 
 ///|
-/// The test driver runs up to ten tests at once on one thread.
-/// Tests that count descriptors or time a deadline run one at a time so another test's children and sleeps do not show up in them.
 async fn serial(body : async () -> Unit) -> Unit {
+  // The test driver runs up to ten tests at once on one thread, so a test that counts descriptors or times a deadline runs alone to keep another test's children and sleeps out of it.
   gate.acquire()
   defer gate.release()
   body()
@@ -16,7 +15,6 @@ fn plain_env() -> Map[String, String] {
 }
 
 ///|
-/// The mock commands that live with the test data.
 fn mock(name : String) -> String {
   "\{@env.current_dir().unwrap()}/test/native/mocks/\{name}"
 }
@@ -42,7 +40,6 @@ fn assert_between(value : Int32, low : Int32, high : Int32) -> Unit raise {
 }
 
 ///|
-/// How a run ended in one line, with the output only when asked for.
 async fn describe_run(
   file : String,
   args : Array[String],
@@ -82,8 +79,8 @@ async fn run_shell(script : String) -> String {
 }
 
 ///|
-/// Waits for a process to be gone: signalled children are collected by init a moment after they die.
 async fn wait_until_gone(pid : Int32) -> Bool {
+  // A signalled child is collected by init a moment after it dies, so poll instead of checking once.
   for _ in 0..<200 {
     if !@testkit.alive(pid) {
       return true
@@ -161,7 +158,7 @@ async test "E4 a program that exits 127 is a result, not a start failure" {
 fn spawn_missing_with_stdio_closed() -> (Int32, Int32, Int32) raise {
   let saved = @testkit.close_stdio()
   let before = @testkit.open_fds()
-  // The synchronous `spawn` is called directly because a print or a wait while descriptors 0 to 2 are closed would hit the test runner's own output.
+  // A print or a wait while descriptors 0 to 2 are closed would hit the test runner's own output, so the synchronous `spawn` is called directly.
   let errno = try {
     let child = spawn(
       "/nonexistent/cmd",
@@ -439,7 +436,7 @@ async test "cancelling a run stops the command and its group and closes every de
     ignore(run_shell("mkdir -p \{dir}"))
     defer @async.protect_from_cancel(() => ignore(run_shell("rm -rf \{dir}")))
     let pidfile = "\{dir}/pid"
-    // Start once so the runtime's own descriptors exist before they are counted.
+    // The runtime's own descriptors exist only after a first start, so start once before counting.
     ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
     let finished = @async.with_timeout_opt(300, () => {

@@ -31,7 +31,6 @@ fn remove_tree(path : String) -> Unit {
 }
 
 ///|
-/// Runs `body` in a scratch directory and removes the directory afterwards.
 fn in_scratch(body : (String) -> Unit raise Error) -> Unit raise Error {
   let directory = scratch()
   defer remove_tree(directory)

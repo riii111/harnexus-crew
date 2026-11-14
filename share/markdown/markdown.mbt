@@ -36,7 +36,7 @@ pub fn links(
   nonce~ : String,
 ) -> Array[Candidate] raise @failure.TaskFailed {
   let candidates = candidates_of(template)
-  // Each whole target is swapped for a bare marker, so a target with spaces or brackets still counts here and is refused by the caller rather than slipping through.
+  // Each whole target is swapped for a bare marker, so a target with spaces or brackets still counts as a link.
   let marked = replace_with_markers(template, candidates, nonce)
   // A comment spanning blocks would be split by the parser, so its text is blanked first, keeping the lines.
   let seen = find_destinations(blank_comments(marked))
@@ -50,7 +50,7 @@ pub fn links(
 }
 
 ///|
-/// An inline link target such as the SKILL.md a template names, up to the first closing parenthesis on its line and never across a backtick, so a `](` in code cannot take in the link after it.
+/// An inline link target, up to the first closing parenthesis on its line.
 /// A line opening with `[label]:` may be prose, so reference definitions are left as written.
 fn candidates_of(template : String) -> Array[Candidate] {
   let units = template.code_units()
@@ -60,6 +60,7 @@ fn candidates_of(template : String) -> Array[Candidate] {
     if units[at] == CLOSE_BRACKET && units[at + 1] == OPEN_PAREN {
       let start = at + 2
       let mut end = start
+      // A `](` in code must not take in the link after it, so the target never crosses a backtick.
       while end < units.length() &&
             units[end] != CLOSE_PAREN &&
             units[end] != NEWLINE &&

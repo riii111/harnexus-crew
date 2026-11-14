@@ -1,5 +1,4 @@
 ///|
-/// Resolve relative template links to existing files.
 fn resolve_links(
   template : String,
   path : String,

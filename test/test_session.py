@@ -86,7 +86,7 @@ def codes(steps):
 
 class SessionCommands(ScenarioAsserts, unittest.TestCase):
     def run_scenario(self, name, fields, body, strip=lambda seen: seen):
-        """Runs the scenario on the Native build and checks it against what the TypeScript build did."""
+        """Runs the scenario on the Native build and checks it against the recorded expectation."""
         done = with_rig({"name": name, **fields}, body)
         native = observed(done)
         self.assertSameJson(strip(read_recorded(name, done)), strip(native))
@@ -342,7 +342,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             created = [line for line in done.requests if '"create_thread"' in line]
             self.assertEqual(1, len(created), f"runs: {done.result!r}; requests: {done.requests!r}; files: {done.files!r}")
             for ran in done.result:
-                # A run is the one that sent, finds that worker, or is refused because another run is sending.
+                # Every run either sent, found that worker, or was refused because another run was sending.
                 self.assertTrue(
                     ran["code"] == 0
                     or any(

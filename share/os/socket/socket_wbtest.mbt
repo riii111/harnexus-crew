@@ -2,9 +2,8 @@
 let gate : @async.Mutex = @async.Mutex()
 
 ///|
-/// The test driver runs up to ten tests at once on one thread.
-/// Tests that count descriptors or time a deadline run one at a time so another test's sockets and sleeps do not show up in them.
 async fn serial(body : async () -> Unit) -> Unit {
+  // The test driver runs up to ten tests at once on one thread, so a test that counts descriptors or times a deadline runs alone to keep another test's sockets and sleeps out of it.
   gate.acquire()
   defer gate.release()
   body()
@@ -58,7 +57,6 @@ async fn with_server(
 }
 
 ///|
-/// Reads the request line, as the bridge does.
 /// None when the peer closed before sending a line, which differs from a line that is empty.
 async fn read_request(stream : @raw_fd.RawFdStream) -> String? {
   let line = stream.read_until(b"\n") catch { _ => None }
@@ -82,7 +80,7 @@ async fn stay_silent(stream : @raw_fd.RawFdStream) -> Unit {
 }
 
 ///|
-/// Answers in parts, five times 300 ms apart, so the whole answer arrives later than a one second deadline.
+/// Answers in parts spaced so the whole answer arrives later than a one second deadline.
 async fn drip_answer(stream : @raw_fd.RawFdStream) -> Unit {
   ignore(read_request(stream))
   for i in 0..<5 {

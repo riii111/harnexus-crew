@@ -13,8 +13,6 @@ type MakeConfirmedState = (String, Map[String, Json], Json, Map[String, Json]?) 
 ] raise @failure.TaskFailed
 
 ///|
-/// state.json  : Confirmed state.
-/// pending.json: A send whose result is unknown; blocks resending.
 priv struct Session {
   ports : Ports
   state_path : String
@@ -244,7 +242,7 @@ fn Session::show(self : Session) -> Json raise @failure.TaskFailed {
   let refused = @store.read_json_or_null(self.history_path)
   let state = state_json(self.state)
   let sent = @jsonio.field(state, "sent")
-  // A state saved before settings were kept still holds them in its create.
+  // A state without kept settings holds them in its create send, so they are read from there.
   let settings = match @jsonio.field(state, "settings") {
     Null => sent_settings(sent)
     kept => kept

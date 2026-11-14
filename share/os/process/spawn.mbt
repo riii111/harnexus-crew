@@ -1,6 +1,5 @@
 ///|
 /// A started command and the parent's ends of its pipes.
-/// Once `reaped`, the pid is no longer this process's child and a signal to it alone would reach a stranger.
 priv struct Child {
   pid : Int32
   new_session : Bool
@@ -18,7 +17,6 @@ priv enum Exit {
 }
 
 ///|
-/// Why a command could not start: the errno, or an argument the OS cannot take.
 priv suberror SpawnFailed {
   SpawnFailed(errno~ : Int32)
   InvalidArgument
@@ -26,7 +24,6 @@ priv suberror SpawnFailed {
 
 ///|
 /// A descriptor the caller owns until a stream takes it.
-/// `close_unless_taken` is the one place that closes it, so every path out releases it exactly once.
 priv struct Fd {
   fd : Int32
   mut taken : Bool
@@ -45,7 +42,6 @@ const SIGTERM : Int32 = 15
 const SIGKILL : Int32 = 9
 
 ///|
-/// Starts a command.
 /// env        : The command's exact environment.
 /// new_session: When true, the command leads its own session and process group, which `Child::signal` reaches with `group`.
 /// piped      : When true, stdin, stdout and stderr are pipes; otherwise they are shared with this process.
@@ -115,6 +111,7 @@ async fn Child::wait_exit(
 
 ///|
 fn Child::signal(self : Child, sig : Int32, group~ : Bool) -> Bool {
+  // Once reaped, the pid is no longer this process's child, so a signal to it alone could reach a stranger.
   if self.reaped && !group {
     return false
   }
@@ -188,6 +185,7 @@ async fn Fd::into_stream(self : Fd) -> @raw_fd.RawFdStream {
 
 ///|
 fn Fd::close_unless_taken(self : Fd) -> Unit {
+  // Every path out of a run calls this, so the descriptor is closed here and only here, exactly once.
   if !self.taken && self.fd >= 0 {
     self.taken = true
     @unix.close_fd(self.fd)

@@ -1,7 +1,6 @@
 ///|
 /// argv    : Arguments after the program name.
-/// read_env: Called only after the arguments are accepted,
-///           so help and usage errors need no environment.
+/// read_env: Called only after the arguments are accepted, so help and usage errors need no environment.
 pub async fn run(
   argv : ArrayView[String],
   read_env : () -> @environment.Env raise,

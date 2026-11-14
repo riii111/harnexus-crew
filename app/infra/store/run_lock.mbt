@@ -12,6 +12,7 @@ pub fn acquire(
   holder : String,
 ) -> String raise @failure.TaskFailed {
   let token = new_uuid()
+  // The first attempt may find a dead holder's lock, which is removed and then created by the second attempt.
   for _ in 0..<2 {
     let content : Map[String, Json] = Map::from_array([
       ("pid", Json::number(current_pid().to_double())),
@@ -42,20 +43,19 @@ pub fn acquire(
 
 ///|
 /// Releases the lock only if it is still the one `token` took, so a lock another run holds now stays.
-/// A lock that cannot be removed is left; the caller has nothing to do about it.
 pub fn release(lock : String, token : String) -> Unit {
   guard read_holder(lock) is Some(current) else { return }
   guard current.get("token") is Some(String(held)) && held == token else {
     return
   }
   remove_file(lock) catch {
+    // A failed removal leaves the lock, because the caller has no way to handle it.
     _ => ()
   }
 }
 
 ///|
 /// Runs `work` while holding a lock file that every process on the machine respects, waiting for one held by another.
-/// A lock left by a dead process is taken over.
 /// After `wait_ms` without the lock it fails with the reason the last attempt failed.
 pub async fn[T] with_lock(
   directory : String,
@@ -83,15 +83,15 @@ pub async fn[T] with_lock(
 }
 
 ///|
-/// Reclaim a dead holder's lock and report whether this run removed the observed lock.
+/// Reports whether this run removed the observed lock.
 fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
-  // A second exclusive file marks the takeover, so of several runs only one removes the lock, and only the one it saw.
+  // Of several runs only one may remove the lock, and only the one it saw, so a second exclusive file marks the takeover.
   let takeover = "\{lock}.reap"
   let pid = Json::number(current_pid().to_double())
   let marker = Json::object({ "pid": pid }).stringify()
   let made = lift_file_failure(() => write_exclusive(takeover, marker))
   if !made {
-    // Only the run that made the marker removes it: a second run deleting a dead marker could delete one made since, and two runs would then hold the lock.
+    // A second run deleting a dead marker could delete one made since, and two runs would then hold the lock, so only the run that made the marker removes it.
     if read_holder(takeover) is Some(owner) && is_dead_holder(owner) {
       @failure.fail(abandoned_takeover(lock, takeover))
     }
@@ -102,6 +102,7 @@ fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
     None => false
   }
   let lock_failure = if reclaimable { try_remove_file(lock) } else { None }
+  // A failed removal of the lock must not leave the marker behind, because the marker would block every later takeover, so both removals run before either failure is raised.
   let takeover_failure = try_remove_file(takeover)
   if lock_failure is Some(failed) {
     raise failed
@@ -123,7 +124,7 @@ fn try_remove_file(path : String) -> @failure.TaskFailed? {
 }
 
 ///|
-/// Read the lock holder, returning None when its record cannot be read.
+/// None when the holder's record cannot be read.
 fn read_holder(path : String) -> Map[String, Json]? {
   try {
     match read_json_or_null(path) {

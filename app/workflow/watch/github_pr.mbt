@@ -2,6 +2,8 @@
 pub const NOT_LINKABLE : String = "the PR watch needs the URL https://github.com/<owner>/<repo>/pull/<number>"
 
 ///|
+/// The number of a github.com pull request URL, None for anything else.
+/// Anything after the number must start with `/`, `?` or `#` and hold no whitespace, as when a URL is copied from the browser.
 pub fn github_pr_number(value : String) -> String? {
   let prefix = "https://github.com/"
   guard value.has_prefix(prefix) else { return None }
@@ -33,8 +35,6 @@ pub fn github_pr_number(value : String) -> String? {
 }
 
 ///|
-/// Whether the value is a github.com pull request URL, which is all the watch can see.
-/// Anything after the number must start with `/`, `?` or `#` and hold no whitespace, as when a URL is copied from the browser.
 fn is_github_pr(value : String) -> Bool {
   github_pr_number(value) is Some(_)
 }

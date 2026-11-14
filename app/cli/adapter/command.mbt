@@ -36,8 +36,8 @@ fn usage(name : String) -> String {
 }
 
 ///|
-/// An adapter id the bridge can name in its logs: 1 to 64 ASCII letters, digits, `_`, `.` and `-`.
 fn is_adapter_id(text : String) -> Bool {
+  // The bridge names the adapter in its logs, so the id is a short token of ASCII letters, digits, `_`, `.` and `-`.
   let units = text.code_units()
   if units.length() < 1 || units.length() > 64 {
     return false

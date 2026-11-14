@@ -63,7 +63,7 @@ pub fn js_trim_end(text : String) -> String {
 const EXCERPT_UNITS : Int32 = 500
 
 ///|
-/// Output repeated in an error: the trimmed text, cut to name the cause without flooding the message.
+/// The trimmed text, cut short so an error message can name the cause without flooding.
 pub fn excerpt(text : String) -> String {
   let trimmed = js_trim(text)
   if trimmed.length() <= EXCERPT_UNITS {

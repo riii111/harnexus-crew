@@ -4,7 +4,6 @@ pub suberror JsonError {
 }
 
 ///|
-/// Parses JSON.
 /// unpaired surrogate: An escaped surrogate without a partner reads as U+FFFD, so every String encodes to UTF-8.
 /// repeated key      : Keeps the last value.
 /// nesting           : Deeper than 1024 levels is refused.

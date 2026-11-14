@@ -1,4 +1,4 @@
-"""Template filling: the cases of the TypeScript build's template tests, run against the Native build's filling through its probe."""
+"""Template filling, run on the cases of the template tests through the Native build's probe."""
 
 import json
 import os

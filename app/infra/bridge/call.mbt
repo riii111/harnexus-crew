@@ -2,7 +2,7 @@
 const PROTOCOL_VERSION : Int32 = 1
 
 ///|
-/// Longer than the longest wait_threads the bridge allows, so the bridge always answers first.
+/// The bridge must answer first, so the timeout exceeds the longest wait_threads it allows.
 const ANSWER_TIMEOUT_MS : Int32 = 900000
 
 ///|
@@ -32,7 +32,7 @@ pub async fn call_app(
   let answer = @socket.exchange_line(path, line, timeout_ms) catch {
     @boundary.LineExchangeFailed(code~, connected~, message~, ..) => {
       let reason = code.unwrap_or(message)
-      // A socket that could not be connected to never received the call; any other failure came after it was written.
+      // After the connection the call may or may not have been written, so only a failure to connect leaves it unsent.
       return if connected {
         unknown("no answer: \{reason}")
       } else {

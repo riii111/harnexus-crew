@@ -18,8 +18,8 @@ async fn name_in(
     @failure.fail("\{args.pr} is not watched: \{@watch.NOT_LINKABLE}")
   }
   let worker = @request.read_caller_id(ctx.env)
-  // Linked first and for any chat, so a worker the owner started by hand is still watched.
-  // A worker naming its PR takes it over, as the latest worker on a PR is the one doing it; pr-wake keeps the start of a link the same chat renews.
+  // A worker the owner started by hand must still be watched, so the PR is linked first and for any chat.
+  // The latest worker on a PR is the one doing it, so a worker naming its PR takes it over.
   let linked = (ctx.pr_wake)(["link", args.pr, "--take-over"])
   let watched = match linked.get("watched") {
     Some(String(watched)) => Some(watched)
@@ -30,8 +30,8 @@ async fn name_in(
   } else {
     None
   }
-  // Only a launched worker has a title to extend; another chat keeps its own.
-  // The number goes last so the title still reads as the task, while a search for the PR finds the worker.
+  // Another chat keeps its own title, so only a launched worker is renamed.
+  // The title must still read as the task while a search for the PR finds the worker, so the number goes last.
   let title = request.map(request => {
     "\{thread_title("Impl", request)} PR#\{number}"
   })
@@ -44,7 +44,7 @@ async fn name_in(
   }
   let renamed = answer.map(answer => answer.outcome == "done").unwrap_or(true)
   let applied_title = if renamed { title } else { None }
-  // Fails even after a rename, so a PR the watch cannot see is never taken as watched.
+  // A PR the watch cannot see must never be taken as watched, so this fails even after a rename.
   guard watched is Some(watched) else {
     let renamed_as = match applied_title {
       Some(title) => " (the thread is named \{title})"
@@ -61,7 +61,7 @@ async fn name_in(
     .unwrap_or(Json::null()),
     "watched": Json::string(watched),
   }
-  // A rename the app did not apply leaves the PR watched, which the result says rather than failing.
+  // The PR stays watched when the app did not apply the rename, so the result says so rather than failing.
   if !renamed {
     let applied = answer
       .map(answer => answer.to_json().stringify())
@@ -70,7 +70,7 @@ async fn name_in(
       "name_thread was not applied: \{applied}",
     )
   }
-  // pr-wake warns about a linked chat nothing can send to, which the link alone would show as watched.
+  // The link alone would show a chat nothing can send to as watched, so the warning pr-wake gives for it is passed on.
   if linked.get("warning") is Some(String(warning)) {
     shown["warning"] = Json::string(warning)
   }
@@ -91,7 +91,7 @@ fn find_launch_request(
     if !@store.is_directory(directory) {
       continue
     }
-    // Another task's unreadable state is skipped, so it cannot stop every worker from finding its own.
+    // Another task's unreadable state must not stop every worker from finding its own, so it is skipped.
     let state = @store.read_json_or_null(@path.join([directory, "state.json"])) catch {
       _ => Json::null()
     }

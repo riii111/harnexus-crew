@@ -1,5 +1,4 @@
 ///|
-/// Opens a chat that shows a Cloud session, through the app's own `cloud_open`.
 pub async fn open_chat(
   args : @workflow.CloudInput,
   env : @environment.Env,
