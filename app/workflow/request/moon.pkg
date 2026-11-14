@@ -9,7 +9,7 @@ import {
 
 import {
   "moonbitlang/core/async",
-  "riii111/harnexus-crew/share/boundary",
+  "riii111/harnexus-crew/app/testkit",
   "riii111/harnexus-crew/share/jsonio",
 } for "wbtest"
 
