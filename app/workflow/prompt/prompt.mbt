@@ -10,7 +10,6 @@ let replies : Array[String] = ["Codex", "Claude", "Cloud"]
 
 ///|
 /// The reply of a worker in T3 Code.
-/// It stays out of `replies` so a template written before T3 Code can still be installed, and the review in T3 Code refuses that template before sending.
 const T3_REPLY : String = "T3"
 
 ///|
@@ -103,6 +102,7 @@ fn read_text(path : String) -> String raise @failure.TaskFailed {
 
 ///|
 fn check_t3_readiness(path : String) -> Json {
+  // A template written before T3 Code must still be installable, and the review in T3 Code refuses it before sending, so the T3 reply is reported apart instead of failing the check.
   try {
     ignore(render_as(Reviewer, path, @request.sample_reviewer_fields(T3_REPLY)))
     object([("ready", Json::boolean(true))])

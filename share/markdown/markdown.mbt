@@ -50,7 +50,7 @@ pub fn links(
 }
 
 ///|
-/// An inline link target, up to the first closing parenthesis on its line and never across a backtick, so a `](` in code cannot take in the link after it.
+/// An inline link target, up to the first closing parenthesis on its line.
 /// A line opening with `[label]:` may be prose, so reference definitions are left as written.
 fn candidates_of(template : String) -> Array[Candidate] {
   let units = template.code_units()
@@ -60,6 +60,7 @@ fn candidates_of(template : String) -> Array[Candidate] {
     if units[at] == CLOSE_BRACKET && units[at + 1] == OPEN_PAREN {
       let start = at + 2
       let mut end = start
+      // A `](` in code must not take in the link after it, so the target never crosses a backtick.
       while end < units.length() &&
             units[end] != CLOSE_PAREN &&
             units[end] != NEWLINE &&
