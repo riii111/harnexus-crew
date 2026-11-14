@@ -67,7 +67,7 @@ priv struct Adapter {
   mut next_id : Int32
   /// Set once the bridge has closed its end, after which nothing is sent to it.
   mut closed : Bool
-  asks : Map[String, @aqueue.Queue[Answer]]
+  unanswered : Map[String, @aqueue.Queue[Answer]]
   /// Events change the shared records one at a time, in the order they came.
   jobs : @aqueue.Queue[Job]
 }
@@ -80,7 +80,7 @@ fn Adapter::new(deps : Deps) -> Adapter {
     ready: false,
     next_id: 0,
     closed: false,
-    asks: Map([]),
+    unanswered: Map([]),
     jobs: @aqueue.Queue(kind=Unbounded),
   }
 }
@@ -89,44 +89,14 @@ fn Adapter::new(deps : Deps) -> Adapter {
 fn Adapter::accept(self : Adapter, raw : String) -> Handling {
   let line = match (Ok(@jsonio.parse(raw)) catch { e => Err(e) }) {
     Ok(Object(_) as parsed) => parsed
-    _ =>
-      return Later(() => {
-        (self.deps.log)([("step", Json::string("line_invalid"))])
-      })
+    _ => return self.log_later([("step", Json::string("line_invalid"))])
   }
   guard field(line, "v") is Some(Number(version, ..)) &&
     version == PROTOCOL_VERSION.to_double() else {
-    return Later(() => (self.deps.log)([("step", Json::string("line_invalid"))]))
+    return self.log_later([("step", Json::string("line_invalid"))])
   }
   match field(line, "type") {
-    Some(String("hello")) => {
-      let offered = match field(line, "versions") {
-        Some(Array(versions)) =>
-          versions
-          .iter()
-          .any(version => {
-            version is Number(number, ..) &&
-            number == PROTOCOL_VERSION.to_double()
-          })
-        _ => false
-      }
-      if !offered {
-        return Later(() => {
-          (self.deps.log)([("step", Json::string("version_refused"))])
-        })
-      }
-      // An observing bridge refuses every request that shows a review, so only a writing one is served.
-      if !(field(line, "mode") is Some(String("write"))) {
-        return Later(() => {
-          (self.deps.log)([
-            ("step", Json::string("mode_refused")),
-            ("message", Json::string(MODE_REFUSED)),
-          ])
-        })
-      }
-      self.writing = true
-      Later(() => self.greet())
-    }
+    Some(String("hello")) => self.accept_hello(line)
     Some(String("ready")) => {
       self.ready = true
       Later(() => self.take_ready(line))
@@ -160,9 +130,54 @@ fn Adapter::accept(self : Adapter, raw : String) -> Handling {
       if other is Some(kind) {
         step.push(("type", kind))
       }
-      Later(() => (self.deps.log)(step))
+      self.log_later(step)
     }
   }
+}
+
+///|
+fn Adapter::accept_hello(self : Adapter, line : Json) -> Handling {
+  let offered = match field(line, "versions") {
+    Some(Array(versions)) =>
+      versions
+      .iter()
+      .any(version => {
+        version is Number(number, ..) && number == PROTOCOL_VERSION.to_double()
+      })
+    _ => false
+  }
+  if !offered {
+    return self.log_later([("step", Json::string("version_refused"))])
+  }
+  // An observing bridge refuses every request that shows a review, so only a writing one is served.
+  if !(field(line, "mode") is Some(String("write"))) {
+    return self.log_later([
+      ("step", Json::string("mode_refused")),
+      ("message", Json::string(MODE_REFUSED)),
+    ])
+  }
+  self.writing = true
+  Later(() => self.greet())
+}
+
+///|
+fn Adapter::log_later(
+  self : Adapter,
+  entry : Array[(String, Json)],
+) -> Handling {
+  Later(() => (self.deps.log)(entry))
+}
+
+///|
+async fn Adapter::log_failure(
+  self : Adapter,
+  step : String,
+  failed : @failure.TaskFailed,
+) -> Unit noraise {
+  (self.deps.log)([
+    ("step", Json::string(step)),
+    ("message", Json::string(failed.message())),
+  ])
 }
 
 ///|
@@ -189,10 +204,7 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
   let records = objects_in(field(event, "records"))
   let known = self.deps.observations.read_position(session_id) catch {
     failed => {
-      (self.deps.log)([
-        ("step", Json::string("position_unreadable")),
-        ("message", Json::string(failed.message())),
-      ])
+      self.log_failure("position_unreadable", failed)
       return
     }
   }
@@ -227,10 +239,7 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
   if entries.length() > 0 {
     self.deps.observations.add_pending(entries) catch {
       failed => {
-        (self.deps.log)([
-          ("step", Json::string("pending_unwritable")),
-          ("message", Json::string(failed.message())),
-        ])
+        self.log_failure("pending_unwritable", failed)
         return
       }
     }
@@ -297,11 +306,9 @@ async fn Adapter::take_bound(self : Adapter, event : Json) -> Unit noraise {
     return
   }
   let session = self.read_opening_session(reviewer)
-  ignore(
-    Ok(self.deps.store.keep_chat(reviewer, { thread_id, session, })) catch {
-      e => Err(e)
-    },
-  )
+  self.deps.store.keep_chat(reviewer, { thread_id, session, }) catch {
+    _ => ()
+  }
 }
 
 ///|
@@ -329,20 +336,20 @@ async fn Adapter::answer_history(self : Adapter, line : Json) -> Unit noraise {
 fn Adapter::complete_request(self : Adapter, line : Json) -> Unit {
   guard line is Object(members) else { return }
   guard members.get("id") is Some(String(id)) else { return }
-  guard self.asks.get(id) is Some(asked) else { return }
-  self.asks.remove(id)
+  guard self.unanswered.get(id) is Some(waiting) else { return }
+  self.unanswered.remove(id)
   let outcome = text_member(line, "outcome").unwrap_or("unknown")
-  ignore(Ok(asked.try_put({ outcome, members, })) catch { e => Err(e) })
+  ignore(waiting.try_put({ outcome, members, }) catch { _ => false })
 }
 
 ///|
 fn Adapter::close_input(self : Adapter) -> Unit {
   // An unanswered request may have acted, so block later sends and settle pending answers as unknown.
   self.closed = true
-  for _, asked in self.asks {
-    ignore(Ok(asked.try_put(answer_of("unknown"))) catch { e => Err(e) })
+  for _, waiting in self.unanswered {
+    ignore(waiting.try_put(answer_of("unknown")) catch { _ => false })
   }
-  self.asks.clear()
+  self.unanswered.clear()
 }
 
 ///|
@@ -354,7 +361,7 @@ async fn Adapter::run_jobs(self : Adapter) -> Unit noraise {
     }
     (job.run)()
     if job.done is Some(done) {
-      ignore(Ok(done.try_put(())) catch { e => Err(e) })
+      ignore(done.try_put(()) catch { _ => false })
     }
   }
 }
@@ -372,20 +379,18 @@ async fn Adapter::run_in_order(
 ) -> Unit noraise {
   let done : @aqueue.Queue[Unit] = @aqueue.Queue(kind=Unbounded)
   ignore(
-    Ok(self.jobs.try_put({ run: work, done: Some(done), })) catch {
-      e => Err(e)
+    self.jobs.try_put({ run: work, done: Some(done), }) catch {
+      _ => false
     },
   )
-  ignore(Ok(done.get()) catch { e => Err(e) })
+  done.get() catch {
+    _ => ()
+  }
 }
 
 ///|
 fn Adapter::enqueue(self : Adapter, work : async () -> Unit noraise) -> Unit {
-  ignore(
-    Ok(self.jobs.try_put({ run: work, done: None, })) catch {
-      e => Err(e)
-    },
-  )
+  ignore(self.jobs.try_put({ run: work, done: None, }) catch { _ => false })
 }
 
 ///|
@@ -414,11 +419,7 @@ async fn Adapter::adopt_bridge_bindings(
     }
     let session = self.read_opening_session(reviewer)
     self.deps.store.keep_chat(reviewer, { thread_id, session, }) catch {
-      failed =>
-        (self.deps.log)([
-          ("step", Json::string("chat_unwritable")),
-          ("message", Json::string(failed.message())),
-        ])
+      failed => self.log_failure("chat_unwritable", failed)
     }
   }
 }
@@ -455,37 +456,39 @@ async fn Adapter::show_opening(
 ) -> Bool noraise {
   @store.with_lock(self.deps.locks, "opening-\{lock_name(reviewer)}", () => {
     let observations = self.deps.observations
-    let asked = match
+    let record = match
       (Ok(observations.read_opening(reviewer)) catch { e => Err(e) }) {
-      Ok(Some(asked)) => asked
+      Ok(Some(found)) => found
       _ => return false
     }
     // The previous connection may have ended after showing the review, so never show one already marked as showing again.
-    if asked.showing {
+    if record.showing {
       (self.deps.log)([
         ("step", Json::string("opening_maybe_shown")),
         ("reviewer", Json::string(reviewer)),
-        ("key", Json::string(asked.key)),
+        ("key", Json::string(record.key)),
       ])
-      ignore(Ok(observations.drop_opening(reviewer)) catch { e => Err(e) })
+      observations.drop_opening(reviewer) catch {
+        _ => ()
+      }
       return false
     }
-    if (Ok(observations.keep_opening(reviewer, { ..asked, showing: true, })) catch {
+    if (Ok(observations.keep_opening(reviewer, { ..record, showing: true, })) catch {
         e => Err(e)
       })
       is Err(_) {
       return false
     }
-    let shown = show(asked.text)
+    let shown = show(record.text)
     // A post surely not carried out leaves the record as it was, for the next connection.
     if shown {
-      ignore(Ok(observations.drop_opening(reviewer)) catch { e => Err(e) })
+      observations.drop_opening(reviewer) catch {
+        _ => ()
+      }
     } else {
-      ignore(
-        Ok(observations.keep_opening(reviewer, asked)) catch {
-          e => Err(e)
-        },
-      )
+      observations.keep_opening(reviewer, record) catch {
+        _ => ()
+      }
     }
     shown
   }) catch {
@@ -498,8 +501,9 @@ fn Adapter::read_opening_session(
   self : Adapter,
   reviewer : String,
 ) -> String? noraise {
-  match (Ok(self.deps.observations.read_opening(reviewer)) catch { e => Err(e) }) {
-    Ok(Some(asked)) => asked.session_id
+  match
+    (Ok(self.deps.observations.read_opening(reviewer)) catch { e => Err(e) }) {
+    Ok(Some(record)) => record.session_id
     _ => None
   }
 }
@@ -559,7 +563,9 @@ async fn Adapter::ask_reviewer(
     ("text", Json::string(@host.reviewer_ask(reviewer, text))),
   ])
   if sent.outcome == "done" {
-    ignore(Ok(self.deps.store.note_ask(thread_id, text)) catch { e => Err(e) })
+    self.deps.store.note_ask(thread_id, text) catch {
+      _ => ()
+    }
     self.end_turn(turn_id, Some(@host.REVIEW_ASK_SENT))
   } else if sent.outcome == "rejected" && sent.reason() == Some("not_linked") {
     self.end_turn(turn_id, Some(@host.REVIEW_ASK_UNROUTED))
@@ -586,10 +592,7 @@ async fn Adapter::drain(self : Adapter) -> Unit noraise {
   }
   let waiting = self.deps.observations.read_pending() catch {
     failed => {
-      (self.deps.log)([
-        ("step", Json::string("pending_unreadable")),
-        ("message", Json::string(failed.message())),
-      ])
+      self.log_failure("pending_unreadable", failed)
       return
     }
   }
@@ -601,11 +604,7 @@ async fn Adapter::drain(self : Adapter) -> Unit noraise {
   }
   // Only the reviews settled here leave the list, so one another adapter added meanwhile stays.
   self.deps.observations.remove_pending(settled) catch {
-    failed =>
-      (self.deps.log)([
-        ("step", Json::string("pending_unwritable")),
-        ("message", Json::string(failed.message())),
-      ])
+    failed => self.log_failure("pending_unwritable", failed)
   }
 }
 
@@ -656,13 +655,13 @@ async fn Adapter::deliver_locked(
   }
   let text = @host.review_text(review)
   // While a chat's first review waits for its first turn, a later review of the same reviewer waits too, so it is neither shown first nor opens another chat.
-  let asked = self.deps.observations.read_opening(review.reviewer) catch {
+  let recorded = self.deps.observations.read_opening(review.reviewer) catch {
     _ => {
       store.unclaim(review.key)
       return "awaiting_chat"
     }
   }
-  if asked is Some(opening) && opening.key != review.key {
+  if recorded is Some(opening) && opening.key != review.key {
     store.unclaim(review.key)
     return "awaiting_chat"
   }
@@ -684,11 +683,7 @@ async fn Adapter::deliver_locked(
         thread_id: chat.thread_id,
         session: entry.session_id,
       }) catch {
-        failed =>
-          (self.deps.log)([
-            ("step", Json::string("chat_unwritable")),
-            ("message", Json::string(failed.message())),
-          ])
+        failed => self.log_failure("chat_unwritable", failed)
       }
     }
   }
@@ -763,31 +758,23 @@ async fn Adapter::open_chat(
   let thread_id = text_or_none(created.field("threadId"))
   // Only a create surely not carried out lets the record go; an unknown one may still bind the chat and open its first turn later.
   if created.outcome != "done" && created.outcome != "unknown" {
-    ignore(
-      Ok(self.deps.observations.drop_opening(review.reviewer)) catch {
-        e => Err(e)
-      },
-    )
+    self.deps.observations.drop_opening(review.reviewer) catch {
+      _ => ()
+    }
   }
   if thread_id is Some(thread_id) {
-    ignore(
-      Ok(
-        self.deps.store.keep_chat(review.reviewer, {
-          thread_id,
-          session: entry.session_id,
-        }),
-      ) catch {
-        e => Err(e)
-      },
-    )
+    self.deps.store.keep_chat(review.reviewer, {
+      thread_id,
+      session: entry.session_id,
+    }) catch {
+      _ => ()
+    }
   }
   // A conversation the bridge already binds opens no turn, so the review is posted to its chat instead.
   if created.outcome == "done" && created.field("existing") is Some(True) {
-    ignore(
-      Ok(self.deps.observations.drop_opening(review.reviewer)) catch {
-        e => Err(e)
-      },
-    )
+    self.deps.observations.drop_opening(review.reviewer) catch {
+      _ => ()
+    }
     let posted = self.request("post", [
       ("conversationId", Json::string(review.reviewer)),
       ("text", Json::string(text)),
@@ -816,10 +803,7 @@ async fn Adapter::greet(self : Adapter) -> Unit noraise {
 async fn Adapter::read_declared_bindings(self : Adapter) -> Array[Json] noraise {
   let chats = self.deps.store.read_chats() catch {
     failed => {
-      (self.deps.log)([
-        ("step", Json::string("chats_unreadable")),
-        ("message", Json::string(failed.message())),
-      ])
+      self.log_failure("chats_unreadable", failed)
       return []
     }
   }
@@ -847,7 +831,7 @@ async fn Adapter::request(
   self.next_id += 1
   let id = "harnexus-crew-\{self.next_id}"
   let answered : @aqueue.Queue[Answer] = @aqueue.Queue(kind=Unbounded)
-  self.asks[id] = answered
+  self.unanswered[id] = answered
   self.send_line(
     [
       ("type", Json::string("request")),

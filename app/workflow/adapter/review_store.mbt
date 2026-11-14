@@ -139,7 +139,9 @@ fn ReviewStore::claim(self : ReviewStore, key : String) -> Claim {
     Ok(false) => Taken
     // The reservation may be visible while its folder entry is lost in a crash, so it cannot allow a send; it was made here, so it is dropped.
     Err(@store.FileFailed(action=Sync, ..)) => {
-      ignore(Ok(@store.remove_file(path)) catch { e => Err(e) })
+      @store.remove_file(path) catch {
+        _ => ()
+      }
       Failed
     }
     Err(_) => Failed
@@ -148,11 +150,9 @@ fn ReviewStore::claim(self : ReviewStore, key : String) -> Claim {
 
 ///|
 fn ReviewStore::unclaim(self : ReviewStore, key : String) -> Unit {
-  ignore(
-    Ok(@store.remove_file(self.reservation_path(key))) catch {
-      e => Err(e)
-    },
-  )
+  @store.remove_file(self.reservation_path(key)) catch {
+    _ => ()
+  }
 }
 
 ///|

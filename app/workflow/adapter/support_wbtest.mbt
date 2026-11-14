@@ -400,7 +400,7 @@ fn turn_line(
 }
 
 ///|
-fn names_in(directory : String) -> Array[String] {
+fn list_names(directory : String) -> Array[String] {
   let listed = @store.list_directory_if_exists(directory) catch { _ => None }
   let names = listed.unwrap_or([])
   names.sort_by(String::lexical_compare)
@@ -408,7 +408,7 @@ fn names_in(directory : String) -> Array[String] {
 }
 
 ///|
-fn pending_keys(link : Link) -> Array[String] {
+fn read_pending_keys(link : Link) -> Array[String] {
   let waiting = link.adapter.deps.observations.read_pending() catch {
     failed => abort(failed.message())
   }

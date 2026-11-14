@@ -1,5 +1,5 @@
 ///|
-fn position_file(at : Place) -> Json {
+fn read_position_file(at : Place) -> Json {
   read_json_file("\{at.observe}/sessions/\{session}.json")
 }
 
@@ -19,7 +19,7 @@ async test "only the reviews after the link are taken, and each event is confirm
       assert_eq(link.lines_of_type("observed").map(text_of), [
         "{\"v\":1,\"type\":\"observed\",\"eventId\":\"e1\"}", "{\"v\":1,\"type\":\"observed\",\"eventId\":\"e2\"}",
       ])
-      assert_eq(pending_keys(link), [review_of_head("bbb2222").key])
+      assert_eq(read_pending_keys(link), [review_of_head("bbb2222").key])
     })
   })
 }
@@ -31,8 +31,8 @@ async test "a session first seen continuing is measured from what the app was la
       let link = connect(at, group)
       link.start("write")
       link.records("continued", two_reviews(), shown_before="u-t-aaa1111-R1")
-      assert_eq(pending_keys(link), [review_of_head("bbb2222").key])
-      let baseline = field(position_file(at), "baseline").unwrap()
+      assert_eq(read_pending_keys(link), [review_of_head("bbb2222").key])
+      let baseline = field(read_position_file(at), "baseline").unwrap()
       assert_eq(text_member(baseline, "uuid"), Some("u-t-aaa1111-R1"))
       assert_eq(field(baseline, "estimated"), Some(Json::boolean(true)))
     })
@@ -46,8 +46,8 @@ async test "a base the records no longer hold leaves every review in them out" {
       let link = connect(at, group)
       link.start("write")
       link.records("continued", judged("aaa1111"), shown_before="u-gone")
-      assert_eq(pending_keys(link), [])
-      let position = position_file(at)
+      assert_eq(read_pending_keys(link), [])
+      let position = read_position_file(at)
       assert_eq(field(position, "cursor"), Some(str("u-t-aaa1111-R1")))
       assert_eq(
         field(position, "excluded"),
@@ -77,11 +77,11 @@ async test "a review made while the adapter was stopped is taken once after it r
         ..judged("ccc3333"),
       ]
       second.records("continued", newest[2:].to_owned())
-      assert_eq(pending_keys(second), [
+      assert_eq(read_pending_keys(second), [
         review_of_head("bbb2222").key,
         review_of_head("ccc3333").key,
       ])
-      let position = position_file(at)
+      let position = read_position_file(at)
       assert_eq(field(position, "cursor"), Some(str("u-t-ccc3333-R1")))
     })
   })
@@ -110,7 +110,7 @@ async test "a cursor whose record is gone reads the records again, and no review
         ),
       )
       link.records("continued", [..reread, prompt("p2", "y")])
-      assert_eq(pending_keys(link), [review_of_head("aaa1111").key])
+      assert_eq(read_pending_keys(link), [review_of_head("aaa1111").key])
     })
   })
 }
@@ -134,7 +134,7 @@ async test "the position moves only once a review is queued, so a review that co
         link.lines_of_type("observed").map(line => text_member(line, "eventId")),
         [Some("e1"), Some("e3")],
       )
-      assert_eq(pending_keys(link), [review_of_head("aaa1111").key])
+      assert_eq(read_pending_keys(link), [review_of_head("aaa1111").key])
       assert_eq(
         link.logs
         .filter(entry => {
@@ -158,7 +158,7 @@ async test "a session id that is not an id is logged and nothing is confirmed" {
       assert_eq(link.logs.map(entry => text_member(entry, "step")), [
         Some("position_unreadable"),
       ])
-      assert_eq(names_in("\{at.observe}/sessions"), [])
+      assert_eq(list_names("\{at.observe}/sessions"), [])
     })
   })
 }
