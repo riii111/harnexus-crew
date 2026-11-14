@@ -22,17 +22,33 @@ test "offsets are UTF-16 positions of the target in the template" {
 ///|
 test "comments are blanked with the newlines kept" {
   inspect(blank_comments("a<!--x\ny-->b"), content="a     \n    b")
+}
+
+///|
+test "an unterminated comment is left as text" {
   inspect(blank_comments("a<!--x"), content="a<!--x")
+}
+
+///|
+test "a comment closes at the first closing dashes after its opener" {
   inspect(blank_comments("<!-->x-->"), content="         ")
 }
 
 ///|
-test "a parser failure is never read as a template with no links" {
+test "a parse failure status fails instead of reporting no links" {
   inspect(refusal(b"\x01"), content="the Markdown parser (md4c) failed")
+}
+
+///|
+test "an out-of-memory status fails instead of reporting no links" {
   inspect(
     refusal(b"\x02"),
     content="the Markdown parser (md4c) ran out of memory",
   )
+}
+
+///|
+test "a truncated record fails instead of reporting no links" {
   inspect(
     refusal(b"\x00A\x05\x00\x00\x00ab"),
     content="the Markdown parser (md4c) returned a truncated record",
@@ -44,6 +60,7 @@ test "records carry their length, so a destination may hold any byte" {
   let found = read_destinations(
     b"\x00A\x03\x00\x00\x00a\x00bI\x01\x00\x00\x00c",
   )
+
   assert_eq(found.length(), 2)
   assert_true(found.contains("a\u{0}b"))
   assert_true(found.contains("c"))
