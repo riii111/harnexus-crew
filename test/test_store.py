@@ -1,7 +1,6 @@
 """The state store runs as separate processes here, because locks and atomic writes are promises about other processes."""
 
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -12,6 +11,7 @@ from pathlib import Path
 from harness import jsonvalue
 from harness.binaries import require_binary
 from harness.cases import REPO
+from harness.processes import make_dead_pid
 
 EXPECTATIONS = jsonvalue.loads((REPO / "test" / "native" / "store-expectations.json").read_text(encoding="utf-8"))
 
@@ -40,12 +40,6 @@ def run_together(count, arguments):
 def shared_start_time():
     """Processes started one by one begin together at a time a little ahead."""
     return str(int(time.time() * 1000) + 1500)
-
-
-def make_dead_pid():
-    finished = subprocess.Popen(["true"])
-    finished.wait()
-    return finished.pid
 
 
 def leave_lock(lock, pid):
@@ -97,11 +91,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         self.assertFalse(lock.exists())
 
     def test_runs_racing_for_a_dead_holders_lock_never_hold_it_together(self):
-        lock = self.make_case_directory() / "lock.json"
-        leave_lock(lock, make_dead_pid())
-        at = shared_start_time()
-
-        replies = run_together(12, lambda _: ("acquire", str(lock), "review", "150", at))
+        replies, _ = self.race_for_a_dead_holders_lock()
 
         spans = sorted(
             ([int(answer["from"]), int(answer["to"])] for answer in replies if answer["ok"] is True),
@@ -110,10 +100,15 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         self.assertGreaterEqual(len(spans), 1)
         for index in range(1, len(spans)):
             self.assertGreaterEqual(spans[index][0], spans[index - 1][1])
+
+    def test_runs_racing_for_a_dead_holders_lock_leave_it_free_and_leave_no_takeover_marker(self):
+        replies, lock = self.race_for_a_dead_holders_lock()
+
+        self.assertGreaterEqual(len([answer for answer in replies if answer["ok"] is True]), 1)
         self.assertFalse(Path(f"{lock}.reap").exists())
         self.assertIs(True, run("acquire", str(lock), "review", "0", "0")["ok"])
 
-    def test_a_killed_holders_lock_is_taken_over_and_the_new_holders_token_differs(self):
+    def test_a_killed_holders_lock_is_taken_over_with_a_new_token(self):
         lock = self.make_case_directory() / "lock.json"
         holder, held = hold(lock, "review")
         self.assertIs(True, held["ok"])
@@ -142,16 +137,17 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         self.assertIs(True, run("acquire", str(lock), "review", "0", "0")["ok"])
 
     def test_work_under_the_lock_loses_no_update_across_processes(self):
-        directory = self.make_case_directory()
-        locks = directory / "locks"
-        counter = directory / "counter"
-        at = shared_start_time()
-
-        replies = run_together(6, lambda _: ("with-lock", str(locks), "chats", str(counter), "15", at, "20000"))
+        replies, _, counter = self.work_under_the_lock()
 
         for answer in replies:
             self.assertIs(True, answer["ok"])
         self.assertEqual("90", counter.read_text(encoding="utf-8"))
+
+    def test_work_under_the_lock_leaves_no_lock_file_behind(self):
+        replies, locks, _ = self.work_under_the_lock()
+
+        for answer in replies:
+            self.assertIs(True, answer["ok"])
         self.assertEqual([], list(locks.iterdir()))
 
     def test_a_run_that_waits_longer_than_allowed_fails_and_names_the_holder(self):
@@ -168,6 +164,23 @@ class LockBetweenProcesses(StoreBetweenProcesses):
             waited["message"],
             r"chats\.lock stayed locked: another harnexus-crew adapter \(pid \d+\) is using this session$",
         )
+
+    def race_for_a_dead_holders_lock(self):
+        lock = self.make_case_directory() / "lock.json"
+        leave_lock(lock, make_dead_pid())
+        at = shared_start_time()
+
+        replies = run_together(12, lambda _: ("acquire", str(lock), "review", "150", at))
+        return replies, lock
+
+    def work_under_the_lock(self):
+        directory = self.make_case_directory()
+        locks = directory / "locks"
+        counter = directory / "counter"
+        at = shared_start_time()
+
+        replies = run_together(6, lambda _: ("with-lock", str(locks), "chats", str(counter), "15", at, "20000"))
+        return replies, locks, counter
 
 
 class FilesWrittenByProcesses(StoreBetweenProcesses):
@@ -233,27 +246,37 @@ class ReadingAndWritingFiles(StoreBetweenProcesses):
                 path.write_bytes(bytes(sample["bytes"]))
                 text = sample["text"]
 
-            self.assertEqual(text, run("read", str(path))["text"], sample["name"])
+            with self.subTest(sample["name"]):
+                self.assertEqual(text, run("read", str(path))["text"])
 
-    def test_a_missing_file_reads_as_null_and_a_fifo_is_refused_without_waiting(self):
+    def test_a_missing_file_reads_as_null(self):
         directory = self.make_case_directory()
-        fifo = directory / "fifo"
+        (directory / "present").write_text("kept", encoding="utf-8")
+
+        self.assertEqual("kept", run("read", str(directory / "present"))["text"])
+        self.assertIsNone(run("read", str(directory / "missing"))["text"])
+
+    def test_a_fifo_is_refused_without_waiting(self):
+        fifo = self.make_case_directory() / "fifo"
         os.mkfifo(fifo)
 
-        self.assertIsNone(run("read", str(directory / "missing"))["text"])
         refused = run("read-regular", str(fifo))
 
         self.assertEqual(f"cannot read {fifo}", refused["message"])
 
-    def test_a_record_file_is_owner_only_and_so_is_the_directory_made_for_it(self):
-        directory = self.make_case_directory()
-        path = directory / "made" / "deeper" / "state.json"
+    def test_a_record_file_is_owner_only(self):
+        path = self.make_case_directory() / "made" / "deeper" / "state.json"
 
         run("save-json", str(path), '{"a":1}', "replace")
 
         self.assertEqual(0o600, path.stat().st_mode & 0o777)
-        self.assertEqual(0o700, path.parent.stat().st_mode & 0o777)
-        self.assertEqual(0o700, path.parent.parent.stat().st_mode & 0o777)
+
+    def test_the_directories_made_for_a_record_file_are_owner_only(self):
+        path = self.make_case_directory() / "made" / "deeper" / "state.json"
+
+        run("save-json", str(path), '{"a":1}', "replace")
+
+        self.assertEqual((0o700, 0o700), (path.parent.stat().st_mode & 0o777, path.parent.parent.stat().st_mode & 0o777))
 
     def test_an_exclusive_record_is_refused_when_one_exists(self):
         path = self.make_case_directory() / "pending.json"

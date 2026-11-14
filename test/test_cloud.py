@@ -1,7 +1,6 @@
 """Cloud reviews (Codex CLI in a Claude Code cloud session) run as processes against a stand-in Codex CLI."""
 
 import os
-import subprocess
 import time
 import unittest
 from pathlib import Path
@@ -9,7 +8,8 @@ from pathlib import Path
 from harness import jsonvalue
 from harness.asserts import ScenarioAsserts
 from harness.cases import REPO
-from harness.rig import observed, parsed_or_text, read_recorded, with_rig
+from harness.processes import make_dead_pid
+from harness.rig import candidate_repository, codes, observed, parsed_or_text, read_recorded, with_rig
 
 REVIEWER = "01a18d52-e03a-74c1-a50e-4e697b47172b"
 OTHER = "01a18d52-e03a-74c1-a50e-4e697b47172c"
@@ -25,12 +25,7 @@ REQUEST = {
     "documentRefs": ["https://example.com/task"],
     "prUrl": None,
 }
-REPOSITORY = [
-    ["init", "-q", REPO_PATH],
-    ["-C", REPO_PATH, "commit", "--allow-empty", "-qm", "test: initial"],
-    ["-C", REPO_PATH, "branch", "base"],
-    ["-C", REPO_PATH, "commit", "--allow-empty", "-qm", "test: candidate 1"],
-]
+REPOSITORY = candidate_repository(REPO_PATH)
 FAKE = str(REPO / "test" / "native" / "mocks" / "fake-cli.sh")
 REVIEW = ["review", "--request", "review.json"]
 ASK = [*REVIEW, "--ask", "ask.md"]
@@ -90,21 +85,6 @@ def scenario_fields(runs, env=None, files=None, request=None):
     }
 
 
-def make_dead_pid():
-    """A process that has ended, whose ID no run is using."""
-    finished = subprocess.Popen(["true"])
-    finished.wait()
-    return finished.pid
-
-
-def commit_candidate(rig, message):
-    rig.commit(message, REPO_PATH)
-
-
-def codes(steps):
-    return [step["code"] for step in steps]
-
-
 def list_state_directories(rig):
     base = Path(rig.sandbox.root) / "state" / "harnexus-crew" / "cloud-review"
     return sorted(base.iterdir()) if base.is_dir() else []
@@ -151,11 +131,11 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
     def setUp(self):
         self.dead = make_dead_pid()
 
-    def test_review_the_first_head_resume_the_reviewer_on_a_new_one_and_refuse_a_head_already_judged(self):
+    def test_review_sends_the_first_head_resumes_the_reviewer_on_a_new_head_and_refuses_a_head_already_judged(self):
         def body(rig):
             first = rig.run(REVIEW)
             again = rig.run(REVIEW)
-            commit_candidate(rig, "test: candidate 2")
+            rig.commit("test: candidate 2", REPO_PATH)
             second = rig.run(REVIEW)
             third = rig.run(REVIEW)
             return [first, again, second, third]
@@ -181,7 +161,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertIn(f"resume\n{REVIEWER}", files["fake/args.2"])
         self.assertEqual("2\n", files["fake/count"])
 
-    def test_send_a_head_again_when_the_reviewer_could_not_judge_it_or_gave_no_verdict(self):
+    def test_review_sends_a_head_again_when_the_reviewer_could_not_judge_it_or_gave_no_verdict(self):
         native = self.run_scenario(
             "cloud-review-unjudged",
             [
@@ -194,10 +174,10 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertEqual([0, 0, 0, 1], codes(native["result"]))
         self.assertEqual("3\n", native["files"]["fake/count"])
 
-    def test_leave_nothing_pending_after_a_run_that_reviewed_nothing_and_keep_the_reviewer(self):
+    def test_review_leaves_nothing_pending_and_keeps_the_reviewer_after_a_run_that_reviewed_nothing(self):
         def body(rig):
             first = rig.run(REVIEW)
-            commit_candidate(rig, "test: candidate 2")
+            rig.commit("test: candidate 2", REPO_PATH)
             failed = rig.run(REVIEW)
             retried = rig.run(REVIEW)
             return [first, failed, retried]
@@ -217,12 +197,13 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         # The third run resumes the kept reviewer and takes the thread its events name.
         self.assertMatches(steps[2]["stdout"], {"reviewer": OTHER})
         self.assertIn(f"resume\n{REVIEWER}", native["files"]["fake/args.3"])
-        self.assertFalse(any(path.endswith("pending.json") for path in native["files"]))
+        recorded_state = sorted(path.rsplit("/", 1)[-1] for path in native["files"] if path.startswith("state/"))
+        self.assertEqual(["state.json"], recorded_state)
 
-    def test_start_a_new_reviewer_once_the_old_one_is_gone_from_the_machine(self):
+    def test_review_starts_a_new_reviewer_once_the_old_one_is_gone_from_the_machine(self):
         def body(rig):
             first = rig.run(REVIEW)
-            commit_candidate(rig, "test: candidate 2")
+            rig.commit("test: candidate 2", REPO_PATH)
             gone = rig.run(REVIEW)
             started = rig.run(REVIEW)
             return [first, gone, started]
@@ -243,9 +224,10 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             steps[1]["stderr"],
         )
         self.assertMatches(steps[2]["stdout"], {"reviewer": OTHER})
+        self.assertIn("--sandbox\nread-only", native["files"]["fake/args.3"])
         self.assertNotIn("resume", native["files"]["fake/args.3"])
 
-    def test_hold_a_review_that_was_stopped_until_it_is_discarded_and_send_it_again(self):
+    def test_review_holds_a_stopped_review_until_it_is_discarded_sends_it_again_and_refuses_a_second_discard(self):
         native = self.run_scenario(
             "cloud-review-stopped",
             [{"out": events(REVIEWER, "判定: LGTM"), "sleep": "5"}, {"out": events(REVIEWER, "判定: LGTM")}],
@@ -264,7 +246,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertIn("--recover applies only when a review is pending", steps[3]["stderr"])
         self.assertEqual("2\n", native["files"]["fake/count"])
 
-    def test_stop_a_run_whose_output_passes_the_limit(self):
+    def test_review_stops_a_run_whose_output_passes_the_limit_and_holds_its_review(self):
         def body(rig):
             os.chmod(os.path.join(rig.sandbox.root, "loud.sh"), 0o755)
             return [rig.run(REVIEW), rig.run(REVIEW)]
@@ -279,8 +261,9 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         steps = native["result"]
         self.assertEqual([1, 1], codes(steps))
         self.assertIn("codex was stopped (output over the limit)", steps[0]["stderr"])
+        self.assertIn(f"the review of head {HEAD_1} did not report back", steps[1]["stderr"])
 
-    def test_pass_a_question_to_the_reviewer_and_answer_with_its_reply_leaving_the_state_as_it_was(self):
+    def test_ask_is_refused_before_a_review_then_returns_the_reviewers_reply_and_leaves_the_state_unchanged(self):
         def body(rig):
             before = rig.run(ASK)
             first = rig.run(REVIEW)
@@ -313,7 +296,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         )
         self.assertEqual("B1 はまだ残っていますか", native["files"]["fake/stdin.2"])
 
-    def test_refuse_a_question_with_no_text_with_a_missing_file_and_for_a_stopped_run(self):
+    def test_ask_is_refused_for_an_empty_file_a_missing_file_a_stopped_run_and_a_failed_run(self):
         def body(rig):
             rig.run(REVIEW)
             return [
@@ -341,7 +324,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertIn(f"codex was stopped (timeout) in reviewer {REVIEWER}; it may have answered", steps[2]["stderr"])
         self.assertIn(f"reviewer {REVIEWER} did not answer (exit 2): no model", steps[3]["stderr"])
 
-    def test_refuse_a_second_run_while_one_holds_the_session_and_take_over_a_dead_runs_session(self):
+    def test_review_refuses_a_second_run_while_one_holds_the_session_and_takes_over_a_dead_runs_session(self):
         def body(rig):
             holder = rig.start(REVIEW)
             directory = wait_for_lock(rig)
@@ -350,7 +333,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             finished = holder.wait_for_end()
             # A run that died leaves its lock, which the next run takes over.
             write_json(directory / "lock.json", {"pid": self.dead, "token": "gone", "startedAt": "x"})
-            commit_candidate(rig, "test: candidate 2")
+            rig.commit("test: candidate 2", REPO_PATH)
             taken = rig.run(REVIEW)
             lock = (directory / "lock.json").exists()
             return [refused, refused_ask, finished, taken, {"lock": lock}]
@@ -365,13 +348,13 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertIn("another review (pid <PID>) is using this session", steps[0]["stderr"])
         self.assertEqual({"lock": False}, steps[4])
 
-    def test_refuse_to_take_over_a_session_while_a_takeover_died_half_way(self):
+    def test_review_refuses_to_take_over_a_session_while_a_takeover_died_half_way(self):
         def body(rig):
             first = rig.run(REVIEW)
             directory = list_state_directories(rig)[0]
             write_json(directory / "lock.json", {"pid": self.dead, "token": "gone", "startedAt": "x"})
             write_json(directory / "lock.json.reap", {"pid": self.dead})
-            commit_candidate(rig, "test: candidate 2")
+            rig.commit("test: candidate 2", REPO_PATH)
             return [first, rig.run(REVIEW)]
 
         native = self.run_scenario(

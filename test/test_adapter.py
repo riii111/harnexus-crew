@@ -193,36 +193,44 @@ class NativeAdapterProcess(unittest.TestCase):
         self.addCleanup(adapter.dispose)
         return adapter
 
-    def test_writes_each_of_many_answers_given_at_once_as_one_whole_line_and_ends_after_the_last_when_the_bridge_closes_its_end(self):
-        adapter = self.spawn()
-        requests = [frame({"type": "request", "id": f"h{index}", "op": "history", "threadId": "x"}) for index in range(400)]
-        adapter.send(HELLO + "".join(requests))
-        adapter.close_input()
-        code, errors, rest, unreadable_line = adapter.finish()
+    def test_writes_each_of_many_answers_given_at_once_as_one_whole_line(self):
+        adapter, (_, _, rest, unreadable_line) = self.close_after_many_requests()
 
-        self.assertEqual((0, "", b"", None), (code, errors, rest, unreadable_line))
+        self.assertEqual((b"", None), (rest, unreadable_line))
         answered = [line["id"] for line in adapter.snapshot() if line.get("type") == "response"]
-        self.assertEqual(sorted(f"h{index}" for index in range(400)), sorted(answered))
+        self.assertEqual(sorted(f"h{index}" for index in range(MANY_REQUESTS)), sorted(answered))
+
+    def test_ends_with_exit_code_0_and_no_error_output_when_the_bridge_closes_its_end_after_many_requests(self):
+        _, (code, errors, _, _) = self.close_after_many_requests()
+
+        self.assertEqual((0, ""), (code, errors))
+
+    def test_sends_its_hello_before_the_answers_to_many_requests(self):
+        adapter, _ = self.close_after_many_requests()
+
         self.assertEqual({"v": 1, "type": "hello", "adapterId": "test", "bindings": []}, adapter.snapshot()[0])
 
-    def test_ends_with_exit_code_0_when_the_bridge_closes_its_end_with_a_request_unanswered_and_keeps_the_review_for_the_next_connection(self):
-        adapter = self.spawn()
-        adapter.send(HELLO + READY + records_frame("e1", "linked", []) + records_frame("e2", "continued", review_records("aaa1111")))
-        adapter.wait_for(4)
-        self.assertEqual("list_projects", adapter.snapshot()[-1].get("op"))
-        adapter.close_input()
-        code = adapter.wait_exit_code(15)
-        if code is None:
-            adapter.kill()
+    def test_ends_with_exit_code_0_when_the_bridge_closes_its_end_with_a_request_unanswered(self):
+        _, code = self.close_with_a_request_unanswered()
+
         self.assertEqual(0, code)
-        observe = Path(self.root) / "state" / "harnexus-crew" / "cloud-observe"
-        waiting = jsonvalue.loads((observe / "pending.json").read_text(encoding="utf-8"))
+
+    def test_keeps_the_review_for_the_next_connection_when_the_bridge_closes_its_end_with_a_request_unanswered(self):
+        self.close_with_a_request_unanswered()
+
+        waiting = jsonvalue.loads((self.observe_directory() / "pending.json").read_text(encoding="utf-8"))
         self.assertEqual(["aaa1111"], [entry["review"]["head"] for entry in waiting])
-        locks = observe / "locks"
+
+    def test_releases_its_locks_when_the_bridge_closes_its_end_with_a_request_unanswered(self):
+        self.close_with_a_request_unanswered()
+
+        pending = self.observe_directory() / "pending.json"
+        locks = self.observe_directory() / "locks"
         names = [path.name for path in locks.iterdir()] if locks.is_dir() else []
+        self.assertTrue(pending.is_file())
         self.assertEqual([], [name for name in names if name.endswith(".lock")])
 
-    def test_keeps_its_descriptors_and_the_memory_of_requests_flat_over_many_round_trips(self):
+    def test_keeps_its_open_descriptors_flat_over_many_round_trips(self):
         reviews = Path(self.root) / "home" / ".local" / "state" / "harnexus" / "cloud-reviews"
         reviews.mkdir(parents=True)
         (reviews / "chats.json").write_text('{"R1":"chat-r1"}', encoding="utf-8")
@@ -247,11 +255,35 @@ class NativeAdapterProcess(unittest.TestCase):
         for index in range(11, 161):
             round_trip(index)
         after = count_open_fds(adapter.process.pid)
-        adapter.close_input()
-        code, _, _, _ = adapter.finish()
 
-        self.assertEqual((0, before), (code, after))
         self.assertEqual(160, len([line for line in adapter.snapshot() if line.get("op") == "post"]))
+        self.assertEqual(before, after)
+
+    def close_after_many_requests(self):
+        adapter = self.spawn()
+        requests = [
+            frame({"type": "request", "id": f"h{index}", "op": "history", "threadId": "x"}) for index in range(MANY_REQUESTS)
+        ]
+        adapter.send(HELLO + "".join(requests))
+        adapter.close_input()
+        return adapter, adapter.finish()
+
+    def close_with_a_request_unanswered(self):
+        adapter = self.spawn()
+        adapter.send(HELLO + READY + records_frame("e1", "linked", []) + records_frame("e2", "continued", review_records("aaa1111")))
+        adapter.wait_for(4)
+        self.assertEqual("list_projects", adapter.snapshot()[-1].get("op"))
+        adapter.close_input()
+        code = adapter.wait_exit_code(15)
+        if code is None:
+            adapter.kill()
+        return adapter, code
+
+    def observe_directory(self):
+        return Path(self.root) / "state" / "harnexus-crew" / "cloud-observe"
+
+
+MANY_REQUESTS = 400
 
 
 if __name__ == "__main__":

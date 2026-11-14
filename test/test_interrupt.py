@@ -29,16 +29,14 @@ def read_pid(path):
 
 def wait_until_gone(pid):
     for _ in range(300):
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
+        if not is_running(pid):
             return True
         time.sleep(0.01)
     return False
 
 
 class InterruptTest(unittest.TestCase):
-    def test_sigint_to_the_cli_alone_ends_the_command_and_its_descendants(self):
+    def test_sigint_to_the_cli_alone_leaves_no_process_of_the_command_it_was_waiting_for(self):
         with tempfile.TemporaryDirectory() as root:
             pr_wake = os.path.join(root, "pr-wake")
             Path(pr_wake).write_text(PR_WAKE)
@@ -69,11 +67,14 @@ class InterruptTest(unittest.TestCase):
                 )
                 leader = read_pid(os.path.join(root, "leader"))
                 grandchild = read_pid(os.path.join(root, "grandchild"))
+                self.assertEqual([True, True], [is_running(leader), is_running(grandchild)])
+
                 os.kill(cli.pid, signal.SIGINT)
                 cli.communicate(timeout=30)
-                self.assertEqual(cli.returncode, -signal.SIGINT)
-                self.assertTrue(wait_until_gone(leader), "the command is still running")
-                self.assertTrue(wait_until_gone(grandchild), "the descendant is still running")
+
+                self.assertEqual(-signal.SIGINT, cli.returncode)
+                survivors = [name for name, pid in (("command", leader), ("descendant", grandchild)) if not wait_until_gone(pid)]
+                self.assertEqual([], survivors)
             finally:
                 if cli.poll() is None:
                     cli.kill()
@@ -84,6 +85,14 @@ class InterruptTest(unittest.TestCase):
                             os.kill(pid, signal.SIGKILL)
                         except ProcessLookupError:
                             pass
+
+
+def is_running(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
 
 
 if __name__ == "__main__":
