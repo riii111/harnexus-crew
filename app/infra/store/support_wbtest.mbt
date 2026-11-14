@@ -21,7 +21,7 @@ fn remove_tree(path : String) -> Unit {
     if is_directory(child) {
       remove_tree(child)
     } else {
-      ignore(unlink_at(child))
+      ignore(unlink_path(child))
     }
   }
   match @sys.c_string(path) {
@@ -66,7 +66,7 @@ fn read_text(path : String) -> String raise {
 }
 
 ///|
-fn names_in(path : String) -> Array[String] raise {
+fn list_names(path : String) -> Array[String] raise {
   let names = list_directory_if_exists(path).unwrap()
   names.sort_by(String::lexical_compare)
   names

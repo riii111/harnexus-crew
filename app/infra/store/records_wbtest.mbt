@@ -6,7 +6,7 @@ fn json(text : String) -> Json {
 }
 
 ///|
-test "save_json writes one space of indent and load reads it back" {
+test "save_json writes one space of indent and read_json_or_null reads it back" {
   in_scratch(directory => {
     let path = "\{directory}/session/state.json"
     save_json(path, json("{\"a\":[1,{\"b\":null}],\"c\":{}}"), exclusive=false)
@@ -14,8 +14,11 @@ test "save_json writes one space of indent and load reads it back" {
       read_text(path),
       "{\n \"a\": [\n  1,\n  {\n   \"b\": null\n  }\n ],\n \"c\": {}\n}",
     )
-    assert_eq(load(path).stringify(), "{\"a\":[1,{\"b\":null}],\"c\":{}}")
-    assert_eq(names_in("\{directory}/session"), ["state.json"])
+    assert_eq(
+      read_json_or_null(path).stringify(),
+      "{\"a\":[1,{\"b\":null}],\"c\":{}}",
+    )
+    assert_eq(list_names("\{directory}/session"), ["state.json"])
   })
 }
 
@@ -25,26 +28,29 @@ test "save_json replaces an existing record unless it is exclusive" {
     let path = "\{directory}/state.json"
     save_json(path, json("{\"v\":1}"), exclusive=false)
     save_json(path, json("{\"v\":2}"), exclusive=false)
-    assert_eq(load(path).stringify(), "{\"v\":2}")
+    assert_eq(read_json_or_null(path).stringify(), "{\"v\":2}")
     assert_eq(
       task_failure(() => save_json(path, json("{\"v\":3}"), exclusive=true)),
       "another harnexus-crew run is sending; inspect \{path}",
     )
-    assert_eq(load(path).stringify(), "{\"v\":2}")
+    assert_eq(read_json_or_null(path).stringify(), "{\"v\":2}")
   })
 }
 
 ///|
-test "load reads a missing file as null and refuses text that is not JSON" {
+test "read_json_or_null reads a missing file as null and refuses text that is not JSON" {
   in_scratch(directory => {
-    assert_eq(load("\{directory}/missing.json").stringify(), "null")
+    assert_eq(
+      read_json_or_null("\{directory}/missing.json").stringify(),
+      "null",
+    )
     write_atomic("\{directory}/broken.json", "{\"a\":")
     assert_eq(
-      task_failure(() => ignore(load("\{directory}/broken.json"))),
+      task_failure(() => ignore(read_json_or_null("\{directory}/broken.json"))),
       "\{directory}/broken.json is not valid JSON",
     )
     assert_eq(
-      task_failure(() => ignore(load(directory))),
+      task_failure(() => ignore(read_json_or_null(directory))),
       "cannot read \{directory} (EISDIR)",
     )
   })

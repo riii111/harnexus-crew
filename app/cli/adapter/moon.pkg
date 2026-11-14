@@ -8,6 +8,7 @@ import {
   "riii111/harnexus-crew/app/workflow/adapter" @delivery,
   "riii111/harnexus-crew/share/failure",
   "riii111/harnexus-crew/share/run",
+  "riii111/harnexus-crew/share/text",
 }
 
 options(

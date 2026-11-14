@@ -41,7 +41,7 @@ pub fn parse_command(
   if options.flag("help") {
     return Help
   }
-  Run(command_of(command, options))
+  Run(build_command(command, options))
 }
 
 ///|
@@ -94,30 +94,30 @@ fn specs_of(command : String) -> Array[OptionSpec] {
 }
 
 ///|
-fn command_of(
+fn build_command(
   command : String,
   options : ParsedOptions,
 ) -> Command raise UsageError {
   match command {
     "launch" =>
       Launch({
-        request: required(options, "request"),
+        request: require_text(options, "request"),
         model: options.text("model"),
         thinking: options.text("thinking"),
       })
-    "review" => Review(review_args(options))
+    "review" => Review(parse_review_input(options))
     "state" => State({ request: options.text("request"), })
-    "resolve" => Resolve(resolve_args(options))
-    "name" => Name({ pr: required(options, "pr"), })
-    "watch" => Watch(watch_args(options))
-    "cloud" => Cloud(cloud_args(options))
+    "resolve" => Resolve(parse_resolve_input(options))
+    "name" => Name({ pr: require_text(options, "pr"), })
+    "watch" => Watch(parse_watch_input(options))
+    "cloud" => Cloud(parse_cloud_input(options))
     "environment" => Environment
     _ => Check
   }
 }
 
 ///|
-fn review_args(
+fn parse_review_input(
   options : ParsedOptions,
 ) -> @workflow.ReviewInput raise UsageError {
   let ask = options.text("ask")
@@ -133,7 +133,7 @@ fn review_args(
       "--ask takes none of --update-base, --recover, --model and --thinking",
     )
   }
-  let request = required(options, "request")
+  let request = require_text(options, "request")
   let discard_pending = match options.text("recover") {
     None => false
     Some("discard") => true
@@ -150,10 +150,10 @@ fn review_args(
 }
 
 ///|
-fn resolve_args(
+fn parse_resolve_input(
   options : ParsedOptions,
 ) -> @workflow.ResolveInput raise UsageError {
-  let request = required(options, "request")
+  let request = require_text(options, "request")
   if options.flag("sent") == options.flag("not-sent") {
     raise UsageError("exactly one of --sent and --not-sent is required")
   }
@@ -161,7 +161,9 @@ fn resolve_args(
 }
 
 ///|
-fn watch_args(options : ParsedOptions) -> @workflow.WatchInput raise UsageError {
+fn parse_watch_input(
+  options : ParsedOptions,
+) -> @workflow.WatchInput raise UsageError {
   let args : @workflow.WatchInput = {
     dry_run: options.flag("dry-run"),
     prs: options.list("pr"),
@@ -189,7 +191,9 @@ fn watch_args(options : ParsedOptions) -> @workflow.WatchInput raise UsageError 
 }
 
 ///|
-fn cloud_args(options : ParsedOptions) -> @workflow.CloudInput raise UsageError {
+fn parse_cloud_input(
+  options : ParsedOptions,
+) -> @workflow.CloudInput raise UsageError {
   let link = options.text("link")
   let prompt_file = options.text("prompt-file")
   if (link is None) == (prompt_file is None) {
@@ -206,7 +210,10 @@ fn cloud_args(options : ParsedOptions) -> @workflow.CloudInput raise UsageError 
 }
 
 ///|
-fn required(options : ParsedOptions, name : String) -> String raise UsageError {
+fn require_text(
+  options : ParsedOptions,
+  name : String,
+) -> String raise UsageError {
   match options.text(name) {
     Some(value) => value
     None => raise UsageError("--\{name} is required")

@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 
 from . import expected, jsonvalue
-from .binaries import binary
+from .binaries import require_binary
 from .cases import REPO, make_case
 from .execute import Running, RUN_TIMEOUT_SECONDS, start_bridge
 from .normalize import ROOT_MARK
@@ -26,7 +26,7 @@ class Started:
     def kill(self):
         self.running.kill()
 
-    def ended(self):
+    def wait_for_end(self):
         code, _, stdout, stderr = self.running.end()
         return {"code": code, "stdout": stdout, "stderr": stderr}
 
@@ -44,13 +44,13 @@ class Rig:
         return Started(running)
 
     def run(self, argv):
-        return self.start(argv).ended()
+        return self.start(argv).wait_for_end()
 
-    def git(self, *argv):
+    def run_git(self, *argv):
         return run_git(self.sandbox.root, list(argv))
 
     def commit(self, message, repository):
-        self.git("-C", self.sandbox.expand(repository), "commit", "--allow-empty", "-qm", message)
+        self.run_git("-C", self.sandbox.expand(repository), "commit", "--allow-empty", "-qm", message)
 
     def write_work(self, name, text):
         with open(os.path.join(self.sandbox.cwd, name), "wb") as written:
@@ -70,7 +70,7 @@ class Done:
 
 
 @contextmanager
-def _rig(fields):
+def _open_sandbox(fields):
     case = make_case(**fields)
     sandbox = create_sandbox(case)
     bridge = start_bridge(case, sandbox)
@@ -84,13 +84,13 @@ def _rig(fields):
 
 def with_rig(fields, body, timeout=RUN_TIMEOUT_SECONDS):
     """Runs `body(rig)` in a fresh sandbox and returns what the scenario did."""
-    with _rig(fields) as (case, sandbox, bridge):
-        rig = Rig(sandbox, bridge, [binary("HARNEXUS_CREW_NATIVE")], timeout)
+    with _open_sandbox(fields) as (case, sandbox, bridge):
+        rig = Rig(sandbox, bridge, [require_binary("HARNEXUS_CREW_NATIVE")], timeout)
         result = body(rig)
         return Done(
             result=result,
             root=sandbox.root,
-            requests=bridge.finished_requests() if bridge else [],
+            requests=bridge.collect_finished_requests() if bridge else [],
             commands=read_commands(sandbox.root),
             files=snapshot_files(sandbox.root, case.snapshot),
         )
@@ -110,11 +110,11 @@ def _replace_root(node, root):
     return node
 
 
-def _readable(node, name=""):
+def _parse_stdout_json(node, name=""):
     if isinstance(node, list):
-        return [_readable(item, name) for item in node]
+        return [_parse_stdout_json(item, name) for item in node]
     if isinstance(node, dict):
-        return {key: _readable(item, key) for key, item in node.items()}
+        return {key: _parse_stdout_json(item, key) for key, item in node.items()}
     if isinstance(node, str) and name == "stdout":
         return parsed_or_text(node)
     return node
@@ -124,14 +124,14 @@ _TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", re.ASCII)
 _PID = re.compile(r"\(pid \d+\)", re.ASCII)
 
 
-def _steady(node):
+def _mask_time_and_pid(node):
     """Times and process IDs differ from run to run, and nothing else is replaced."""
     if isinstance(node, str):
         return _PID.sub("(pid <PID>)", _TIME.sub("<TIME>", node))
     if isinstance(node, list):
-        return [_steady(item) for item in node]
+        return [_mask_time_and_pid(item) for item in node]
     if isinstance(node, dict):
-        return {_steady(name): _steady(item) for name, item in node.items()}
+        return {_mask_time_and_pid(name): _mask_time_and_pid(item) for name, item in node.items()}
     return node
 
 
@@ -147,9 +147,9 @@ def observed(done, steady=False):
         done.root,
     )
     if steady:
-        plain = _steady(plain)
+        plain = _mask_time_and_pid(plain)
     return {
-        "result": _readable(plain["result"]),
+        "result": _parse_stdout_json(plain["result"]),
         "requests": [parsed_or_text(line) for line in plain["requests"]],
         "commands": plain["commands"],
         "files": {
@@ -159,9 +159,9 @@ def observed(done, steady=False):
     }
 
 
-def recorded(name, done):
+def read_recorded(name, done):
     """The expectation recorded for scenario `name`, with its state keys made from this run's root."""
-    return expected.expected_for("scenarios", name, done.root)
+    return expected.load_expanded("scenarios", name, done.root)
 
 
 def wait_for(ready, what):

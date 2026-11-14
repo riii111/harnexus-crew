@@ -19,7 +19,7 @@ pub async fn resolve(@workflow.ResolveInput, @environment.Env, which~ : (String)
 
 pub async fn review(@workflow.ReviewInput, @environment.Env, which~ : (String) -> String?, cloud~ : async (@workflow.ReviewInput) -> @json.Json raise @failure.TaskFailed) -> @json.Json raise @failure.TaskFailed
 
-pub async fn state_request(String, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+pub async fn show_request_state(String, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
 
 // Errors
 

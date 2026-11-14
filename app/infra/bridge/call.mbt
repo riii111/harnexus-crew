@@ -16,7 +16,7 @@ pub async fn call_app(
   args : Map[String, Json],
   timeout_ms~ : Int32 = ANSWER_TIMEOUT_MS,
 ) -> CallAnswer noraise {
-  let socket = @environment.caller_socket(env) catch {
+  let socket = @environment.resolve_caller_socket(env) catch {
     @failure.TaskFailed(message) => return not_sent(message)
   }
   let path = match socket {

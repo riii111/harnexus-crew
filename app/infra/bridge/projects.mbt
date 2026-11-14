@@ -1,12 +1,12 @@
 ///|
 /// The ID of the listed project whose real path is `directory`'s.
-pub fn project_at(result : Json?, directory : String) -> String? {
-  let real = @store.real_path_or_self(directory)
+pub fn find_project_id(result : Json?, directory : String) -> String? {
+  let real = @store.resolve_real_path_or_self(directory)
   for project in projects_in(result) {
     if project is Object(members) &&
       members.get("projectId") is Some(String(project_id)) &&
       members.get("path") is Some(String(path)) &&
-      @store.real_path_or_self(path) == real {
+      @store.resolve_real_path_or_self(path) == real {
       return Some(project_id)
     }
   }

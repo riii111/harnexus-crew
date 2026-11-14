@@ -15,8 +15,6 @@ pub fn is_file(String) -> Bool
 
 pub fn list_directory_if_exists(String) -> Array[String]? raise FileFailed
 
-pub fn load(String) -> @json.Json raise @failure.TaskFailed
-
 pub fn new_uuid() -> String
 
 pub fn now_iso() -> String
@@ -25,21 +23,23 @@ pub fn path_exists(String) -> Bool
 
 pub fn prepare_directory(String) -> Unit raise FileFailed
 
-pub fn read_json(String) -> @json.Json raise @failure.TaskFailed
+pub fn read_json_or_null(String) -> @json.Json raise @failure.TaskFailed
 
 pub fn read_records(String) -> Records raise @failure.TaskFailed
+
+pub fn read_regular_json(String) -> @json.Json raise @failure.TaskFailed
 
 pub fn read_regular_text(String) -> String raise FileFailed
 
 pub fn read_text_if_exists(String) -> String? raise FileFailed
-
-pub fn real_path_or_self(String) -> String
 
 pub fn release(String, String) -> Unit
 
 pub fn remove_file(String) -> Unit raise FileFailed
 
 pub fn remove_record(String) -> Unit raise @failure.TaskFailed
+
+pub fn resolve_real_path_or_self(String) -> String
 
 pub fn save_json(String, @json.Json, exclusive~ : Bool) -> Unit raise @failure.TaskFailed
 

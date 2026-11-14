@@ -32,27 +32,27 @@ def run(args, env=None):
     return ran.returncode, ran.stdout.decode("utf-8", errors="replace"), ran.stderr.decode("utf-8", errors="replace")
 
 
-def usage_line(program):
+def read_usage_line(program):
     ran = subprocess.run([program, "launch"], capture_output=True)
     return ran.stderr.decode("utf-8", errors="replace").split("\n")[-2]
 
 
-def head():
+def read_head():
     return subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, check=True).stdout.decode().strip()
 
 
 @functools.cache
-def real_install():
+def install_real_build():
     """The one real build of the committed HEAD, installed into a prefix that does not exist yet."""
     directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
     unittest.addModuleCleanup(shutil.rmtree, directory, ignore_errors=True)
     prefix = directory / "made" / "bin"
-    return prefix, run(["--prefix", str(prefix), "--repo", str(REPO), "--rev", head()])
+    return prefix, run(["--prefix", str(prefix), "--repo", str(REPO), "--rev", read_head()])
 
 
-def moon_that_places_the_real_binary(directory):
+def write_moon_with_real_binary(directory):
     """A moon whose build result is the binary the real build made, so install.sh runs its own checks against a real harnexus-crew."""
-    prefix, installed = real_install()
+    prefix, installed = install_real_build()
     binary = prefix / "harnexus-crew"
     if not binary.is_file():
         raise FileNotFoundError(f"the real build left no {binary}: {installed}")
@@ -68,14 +68,14 @@ def moon_that_places_the_real_binary(directory):
 
 
 class InstallScript(unittest.TestCase):
-    def scratch(self):
+    def make_scratch_directory(self):
         directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
         self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
         return directory
 
     def install_the_real_binary(self, root):
         prefix = root / "bin"
-        moon = moon_that_places_the_real_binary(root)
+        moon = write_moon_with_real_binary(root)
         installed = run(["--prefix", str(prefix), "--moon", str(moon)])
         self.assertEqual((0, ""), (installed[0], installed[2]))
         return prefix, moon
@@ -94,11 +94,11 @@ class InstallScript(unittest.TestCase):
                 self.assertIn(message, stderr)
 
     def test_installs_the_requested_commit_into_a_prefix_that_does_not_exist_yet(self):
-        prefix, (status, stdout, stderr) = real_install()
+        prefix, (status, stdout, stderr) = install_real_build()
 
         self.assertEqual((0, ""), (status, stderr))
-        self.assertIn(f"installed {prefix}/harnexus-crew from {head()}", stdout)
-        self.assertEqual("harnexus-crew: --request is required", usage_line(str(prefix / "harnexus-crew")))
+        self.assertIn(f"installed {prefix}/harnexus-crew from {read_head()}", stdout)
+        self.assertEqual("harnexus-crew: --request is required", read_usage_line(str(prefix / "harnexus-crew")))
         ran = subprocess.run([str(prefix / "harnexus-crew"), "--help"], capture_output=True)
         self.assertEqual(0, ran.returncode)
         self.assertTrue(ran.stdout.decode().startswith("usage:\n"))
@@ -106,7 +106,7 @@ class InstallScript(unittest.TestCase):
         self.assertEqual(["harnexus-crew"], sorted(path.name for path in prefix.iterdir()))
 
     def test_keeps_the_installed_binary_when_the_requested_commit_is_missing(self):
-        prefix, _ = self.install_the_real_binary(self.scratch())
+        prefix, _ = self.install_the_real_binary(self.make_scratch_directory())
         before = (prefix / "harnexus-crew").stat()
 
         failed = run(["--prefix", str(prefix), "--rev", "0000000"])
@@ -117,7 +117,7 @@ class InstallScript(unittest.TestCase):
         self.assertEqual((before.st_ino, before.st_mtime_ns), (after.st_ino, after.st_mtime_ns))
 
     def test_keeps_the_installed_binary_when_the_build_fails(self):
-        root = self.scratch()
+        root = self.make_scratch_directory()
         prefix, _ = self.install_the_real_binary(root)
         before = (prefix / "harnexus-crew").stat()
         asked = root / "asked"
@@ -136,7 +136,7 @@ class InstallScript(unittest.TestCase):
         self.assertEqual(["harnexus-crew"], sorted(path.name for path in prefix.iterdir()))
 
     def test_keeps_the_installed_binary_when_configured_templates_cannot_be_filled(self):
-        root = self.scratch()
+        root = self.make_scratch_directory()
         prefix, moon = self.install_the_real_binary(root)
         before = (prefix / "harnexus-crew").stat()
         config = root / "config"

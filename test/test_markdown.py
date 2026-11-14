@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from harness import jsonvalue
-from harness.binaries import binary
+from harness.binaries import require_binary
 from harness.cases import REPO
 
 JUDGEMENT = jsonvalue.loads((REPO / "test" / "native" / "markdown-link-judgement.json").read_text(encoding="utf-8"))
@@ -21,7 +21,7 @@ class MarkdownLinkJudgement(unittest.TestCase):
     def judge(self, template):
         path = self.directory / "template.md"
         path.write_bytes(jsonvalue.lossy_bytes(template))
-        ran = subprocess.run([binary("HARNEXUS_MARKDOWN_PROBE"), str(path)], capture_output=True)
+        ran = subprocess.run([require_binary("HARNEXUS_MARKDOWN_PROBE"), str(path)], capture_output=True)
         if ran.returncode != 0:
             raise RuntimeError(f"probe exited {ran.returncode}: {ran.stderr.decode('utf-8', errors='replace')}")
         return jsonvalue.loads(ran.stdout.decode("utf-8"))

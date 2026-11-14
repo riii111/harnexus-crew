@@ -41,7 +41,7 @@ fn parse_options(
     if arg == "--" {
       // No command takes a positional argument, so anything after a lone `--` is a stray one.
       if at < args.length() {
-        raise unexpected(args[at])
+        raise unexpected_argument(args[at])
       }
       break
     }
@@ -54,7 +54,7 @@ fn parse_options(
     } else if arg.has_prefix("-") && arg.length() > 1 {
       raise UsageError("Unknown option '\{arg}'")
     } else {
-      raise unexpected(arg)
+      raise unexpected_argument(arg)
     }
   }
   { values, }
@@ -127,7 +127,7 @@ fn split_long(arg : String) -> (String, String?) {
 }
 
 ///|
-fn unexpected(arg : String) -> UsageError {
+fn unexpected_argument(arg : String) -> UsageError {
   UsageError(
     "Unexpected argument '\{arg}'. This command does not take positional arguments",
   )

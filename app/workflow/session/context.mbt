@@ -24,7 +24,7 @@ fn Context::of_env(
     review_project: host.review_project,
     probe: @request.FileProbe::of_machine(),
     git: @git.Git::of_env(env),
-    prompt: (kind, fields) => @prompt.task_prompt(env, kind, fields),
+    prompt: (kind, fields) => @prompt.render_task_prompt(env, kind, fields),
     pr_wake: args => @prwake.call(env, args),
   }
 }

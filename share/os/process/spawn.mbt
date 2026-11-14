@@ -70,12 +70,12 @@ fn spawn(
   let flags = (if new_session { SPAWN_NEW_SESSION } else { 0 }) |
     (if piped { SPAWN_PIPED } else { 0 })
   let errno = spawn_raw(
-    c_string(file),
-    pack(argv),
+    encode_c_string(file),
+    pack_c_strings(argv),
     argv.length(),
-    pack(entries),
+    pack_c_strings(entries),
     entries.length(),
-    c_string(cwd),
+    encode_c_string(cwd),
     flags,
     out,
   )
@@ -180,7 +180,7 @@ fn Fd::new(fd : Int32) -> Fd {
 }
 
 ///|
-async fn Fd::stream(self : Fd) -> @raw_fd.RawFdStream {
+async fn Fd::into_stream(self : Fd) -> @raw_fd.RawFdStream {
   // Creating the stream takes ownership even on failure, so release the descriptor from its old owner before the call.
   self.taken = true
   @raw_fd.RawFdStream(self.fd)
@@ -195,17 +195,17 @@ fn Fd::close_unless_taken(self : Fd) -> Unit {
 }
 
 ///|
-fn c_string(text : String) -> Bytes raise SpawnFailed {
+fn encode_c_string(text : String) -> Bytes raise SpawnFailed {
   // A NUL could truncate the string and run a different command, so reject it before passing the string to C.
   guard @sys.c_string(text) is Some(bytes) else { raise InvalidArgument }
   bytes
 }
 
 ///|
-fn pack(items : ArrayView[String]) -> Bytes raise SpawnFailed {
+fn pack_c_strings(items : ArrayView[String]) -> Bytes raise SpawnFailed {
   let buffer = @buffer.Buffer()
   for item in items {
-    buffer.write_bytes(c_string(item))
+    buffer.write_bytes(encode_c_string(item))
   }
   buffer.to_bytes()
 }

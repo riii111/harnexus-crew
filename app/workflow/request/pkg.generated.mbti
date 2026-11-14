@@ -9,15 +9,15 @@ import {
 }
 
 // Values
-pub fn caller_id(@environment.Env) -> String raise @failure.TaskFailed
+pub fn check_chat_id(String, String) -> String raise @failure.TaskFailed
 
-pub fn chat_id(String, String) -> String raise @failure.TaskFailed
+pub fn check_single_line(String, String) -> String raise @failure.TaskFailed
+
+pub fn read_caller_id(@environment.Env) -> String raise @failure.TaskFailed
 
 pub fn sample_reviewer_fields(String) -> Map[String, String]
 
 pub fn sample_worker_fields() -> Map[String, String]
-
-pub fn single_line(String, String) -> String raise @failure.TaskFailed
 
 // Errors
 
@@ -25,7 +25,7 @@ pub fn single_line(String, String) -> String raise @failure.TaskFailed
 pub(all) struct FileProbe {
   path_exists : async (String) -> Bool noraise
   is_directory : async (String) -> Bool noraise
-  real_path_or_self : async (String) -> String noraise
+  resolve_real_path_or_self : async (String) -> String noraise
 }
 pub fn FileProbe::of_machine() -> Self
 
@@ -35,10 +35,10 @@ pub struct LaunchRequest {
   starting_branch : OptionalText
   // private fields
 }
+pub async fn LaunchRequest::build_worker_fields(Self, FileProbe) -> Map[String, String] raise @failure.TaskFailed
 pub async fn LaunchRequest::from_json(@json.Json, FileProbe) -> Self raise @failure.TaskFailed
 pub fn LaunchRequest::session_key(Self) -> String
 pub fn LaunchRequest::to_json(Self) -> @json.Json
-pub async fn LaunchRequest::worker_fields(Self, FileProbe) -> Map[String, String] raise @failure.TaskFailed
 
 pub enum OptionalText {
   Absent
@@ -51,7 +51,7 @@ pub struct ReviewCandidate {
   base : String
   // private fields
 }
-pub async fn ReviewCandidate::reviewer_fields(Self, String, FileProbe) -> Map[String, String] raise @failure.TaskFailed
+pub async fn ReviewCandidate::build_reviewer_fields(Self, String, FileProbe) -> Map[String, String] raise @failure.TaskFailed
 pub fn ReviewCandidate::to_json(Self) -> @json.Json
 
 pub struct ReviewRequest {
@@ -61,8 +61,8 @@ pub struct ReviewRequest {
   worker_chat_id : String?
   // private fields
 }
-pub async fn ReviewRequest::candidate(Self, Map[String, @json.Json]?, Bool, @git.Git) -> ReviewCandidate raise @failure.TaskFailed
 pub async fn ReviewRequest::from_json(@json.Json, ReviewScope, FileProbe, @git.Git) -> Self raise @failure.TaskFailed
+pub async fn ReviewRequest::resolve_candidate(Self, Map[String, @json.Json]?, Bool, @git.Git) -> ReviewCandidate raise @failure.TaskFailed
 pub fn ReviewRequest::session_key(Self, String) -> String
 pub fn ReviewRequest::with_worker_chat_id(Self, String) -> Self
 

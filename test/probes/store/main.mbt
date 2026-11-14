@@ -29,9 +29,9 @@ async fn acquire_and_hold(args : Array[String]) -> Json {
   wait_until(number_arg(args, 5))
   try {
     let token = @storage.acquire(arg(args, 2), arg(args, 3))
-    let from = now_ms()
+    let from = now_millis_json()
     @async.sleep(number_arg(args, 4).to_int())
-    let to = now_ms()
+    let to = now_millis_json()
     @storage.release(arg(args, 2), token)
     object([
       ("ok", Json::boolean(true)),
@@ -98,10 +98,10 @@ async fn create_exclusive(args : Array[String]) -> Json {
 /// args[5]: Run time in milliseconds.
 async fn write_in_loop(args : Array[String]) -> Json {
   let content = arg(args, 3).repeat(number_arg(args, 4).to_int())
-  let until = now_number() + number_arg(args, 5)
+  let until = now_millis() + number_arg(args, 5)
   let mut writes = 0
   try {
-    while now_number() < until {
+    while now_millis() < until {
       @storage.write_atomic(arg(args, 2), content)
       writes += 1
       @async.pause()
@@ -128,24 +128,26 @@ async fn count_under_lock(args : Array[String]) -> Json {
       @storage.with_lock(
         arg(args, 2),
         arg(args, 3),
-        () => {
-          try {
-            let current = match @storage.read_text_if_exists(counter) {
-              Some(text) => number_of(text)
-              None => 0L
-            }
-            // Reading and writing are far enough apart for an unguarded run to be overtaken.
-            @storage.write_atomic(counter, (current + 1L).to_string())
-          } catch {
-            failed => @failure.fail(failed.user_message())
-          }
-        },
+        () => increment_counter(counter),
         wait_ms=number_arg(args, 7).to_int(),
       )
     }
     object([("ok", Json::boolean(true))])
   } catch {
     failed => refused(failed.message())
+  }
+}
+
+///|
+fn increment_counter(counter : String) -> Unit raise @failure.TaskFailed {
+  try {
+    let current = @storage.read_text_if_exists(counter)
+      .map(number_of)
+      .unwrap_or(0L)
+    // Reading and writing are far enough apart for an unguarded run to be overtaken.
+    @storage.write_atomic(counter, (current + 1L).to_string())
+  } catch {
+    failed => @failure.fail(failed.user_message())
   }
 }
 
@@ -212,13 +214,13 @@ fn number_arg(args : Array[String], index : Int32) -> Int64 {
 }
 
 ///|
-fn now_number() -> Int64 {
+fn now_millis() -> Int64 {
   @env.now().reinterpret_as_int64()
 }
 
 ///|
-fn now_ms() -> Json {
-  Json::number(now_number().to_double())
+fn now_millis_json() -> Json {
+  Json::number(now_millis().to_double())
 }
 
 ///|
@@ -241,7 +243,7 @@ fn emit(line : Json) -> Unit {
 ///|
 /// Waits for a shared start time so that processes started one by one begin together.
 async fn wait_until(at : Int64) -> Unit {
-  while now_number() < at {
+  while now_millis() < at {
     @async.sleep(1)
   }
 }

@@ -29,13 +29,13 @@ priv struct Launch {
 ///|
 fn Launch::of_env(env : @environment.Env) -> Launch raise @failure.TaskFailed {
   {
-    bin: configured_binary(env, "HARNEXUS_CODEX_BIN", "codex"),
-    timeout_ms: milliseconds(
+    bin: read_binary_path(env, "HARNEXUS_CODEX_BIN", "codex"),
+    timeout_ms: read_milliseconds(
       env,
       "HARNEXUS_REVIEW_TIMEOUT_MS",
       DEFAULT_TIMEOUT_MS,
     ),
-    kill_grace_ms: milliseconds(
+    kill_grace_ms: read_milliseconds(
       env,
       "HARNEXUS_REVIEW_KILL_GRACE_MS",
       DEFAULT_KILL_GRACE_MS,
@@ -158,7 +158,7 @@ fn verdict_of(answer : String) -> String? {
 }
 
 ///|
-fn configured_binary(
+fn read_binary_path(
   env : @environment.Env,
   name : String,
   fallback : String,
@@ -175,7 +175,7 @@ fn configured_binary(
 }
 
 ///|
-fn milliseconds(
+fn read_milliseconds(
   env : @environment.Env,
   name : String,
   fallback : Int32,
@@ -190,7 +190,7 @@ fn milliseconds(
   }
   let mut total : Int64 = 0
   for unit in digits {
-    total = total * 10L + (unit.to_int() - 48).to_int64()
+    total = total * 10L + (unit - '0').to_int64()
     if total > MAX_TIMER_MS {
       @failure.fail("\{name} must be at most \{MAX_TIMER_MS} milliseconds")
     }
@@ -240,7 +240,7 @@ fn skip_whitespace(units : ArrayView[UInt16], from : Int32) -> Int32 {
 
 ///|
 fn is_line_end(unit : UInt16) -> Bool {
-  unit == '\n' || unit == '\r' || unit == 0x2028 || unit == 0x2029
+  unit == '\n' || unit == '\r' || unit == '\u{2028}' || unit == '\u{2029}'
 }
 
 ///|

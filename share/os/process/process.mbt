@@ -116,7 +116,7 @@ async fn supervise(
 /// The input goes through stdin so it never shows in the process list.
 /// A command that exits without reading closes its end, which does not fail the run.
 async fn feed_input(slot : Fd, input : String) -> Unit {
-  let stream = slot.stream()
+  let stream = slot.into_stream()
   defer stream.close()
   if input != "" {
     stream.write(@utf8.encode(input)) catch {

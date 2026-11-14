@@ -45,12 +45,9 @@ fn is_adapter_id(text : String) -> Bool {
   units
   .iter()
   .all(unit => {
-    let code = unit.to_int()
-    (code >= 48 && code <= 57) ||
-    (code >= 65 && code <= 90) ||
-    (code >= 97 && code <= 122) ||
-    code == 95 ||
-    code == 46 ||
-    code == 45
+    @text.is_ascii_alphanumeric(unit.to_int()) ||
+    unit == '_' ||
+    unit == '.' ||
+    unit == '-'
   })
 }

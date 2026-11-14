@@ -21,11 +21,11 @@ pub async fn call(
 }
 
 ///|
-pub async fn hand_over(
+pub async fn run_watch_engine(
   env : @environment.Env,
   which~ : (String) -> String?,
 ) -> Json raise @failure.TaskFailed {
-  let engine = engine_of(env, which~)
+  let engine = resolve_engine(env, which~)
   let exited = @process.run_inherited(engine, ["watch"], env.to_map()) catch {
     @boundary.CommandFailed(message~, ..) => @failure.fail(message)
   }
@@ -41,7 +41,7 @@ async fn call_within(
   args : Array[String],
   timeout_ms : Int32,
 ) -> Map[String, Json] raise @failure.TaskFailed {
-  let command = command_of(env)
+  let command = resolve_command(env)
   let argv = ["watch"]
   argv.append(args)
   let ran = @process.run_command(command, argv, env.to_map(), timeout_ms~) catch {
@@ -50,9 +50,9 @@ async fn call_within(
         "\{message}; install pr-wake, or set \{PR_WAKE_VARIABLE} to its absolute path",
       )
   }
-  let said = @text.js_trim(ran.stderr)
+  let stderr_text = @text.js_trim(ran.stderr)
   if ran.status != 0 {
-    let detail = if said == "" { "" } else { ": \{said}" }
+    let detail = if stderr_text == "" { "" } else { ": \{stderr_text}" }
     @failure.fail(
       "pr-wake watch \{args.join(" ")} failed with exit \{ran.status}\{detail}",
     )
@@ -76,11 +76,11 @@ fn timeout_of(args : Array[String]) -> Int32 {
 
 ///|
 /// The engine pr-wake installs beside itself, which its LaunchAgent runs; the long-running watch is handed to it.
-fn engine_of(
+fn resolve_engine(
   env : @environment.Env,
   which~ : (String) -> String?,
 ) -> String raise @failure.TaskFailed {
-  let command = command_of(env)
+  let command = resolve_command(env)
   let found = if @path.is_absolute(command) {
     Some(command)
   } else {
@@ -91,12 +91,12 @@ fn engine_of(
       "pr-wake is not on PATH; install pr-wake, or set \{PR_WAKE_VARIABLE} to its absolute path",
     )
   }
-  @path.join([@path.dirname(@store.real_path_or_self(found)), ENGINE])
+  @path.join([@path.dirname(@store.resolve_real_path_or_self(found)), ENGINE])
 }
 
 ///|
 /// The pr-wake command, found on PATH unless an absolute path is set, so the watch is owned and updated by pr-wake alone.
-fn command_of(env : @environment.Env) -> String raise @failure.TaskFailed {
+fn resolve_command(env : @environment.Env) -> String raise @failure.TaskFailed {
   match env.get_nonempty(PR_WAKE_VARIABLE) {
     None => "pr-wake"
     Some(set) =>

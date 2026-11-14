@@ -9,9 +9,9 @@ import {
 // Values
 pub async fn call_app(@environment.Env, String, String, Map[String, @json.Json], timeout_ms? : Int32) -> CallAnswer noraise
 
-pub async fn call_t3_in(@environment.Env, String, Map[String, @json.Json], which~ : (String) -> String?) -> CallAnswer noraise
+pub async fn call_t3(@environment.Env, String, Map[String, @json.Json], which~ : (String) -> String?) -> CallAnswer noraise
 
-pub fn project_at(@json.Json?, String) -> String?
+pub fn find_project_id(@json.Json?, String) -> String?
 
 // Errors
 

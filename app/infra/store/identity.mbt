@@ -52,7 +52,7 @@ pub fn sha256_hex(text : String) -> String {
 }
 
 ///|
-fn process_alive(pid : Double) -> Bool {
+fn is_process_alive(pid : Double) -> Bool {
   // To accept the same PID range as Node, treat values outside signed 32-bit integers as dead.
   if pid != pid.floor() || pid < -2147483648.0 || pid > 2147483647.0 {
     return false

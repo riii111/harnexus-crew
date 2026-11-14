@@ -155,18 +155,20 @@ test "the call socket sits beside the harnexus state unless a path is given" {
     ("HOME", "/h"),
     ("HARNEXUS_STATE_PATH", "/a/../b/threads.json"),
   ])
-  inspect(harnexus_state_path(state), content="/a/../b/threads.json")
-  inspect(call_socket_path(state), content="/b/call.sock")
+  inspect(resolve_harnexus_state_path(state), content="/a/../b/threads.json")
+  inspect(resolve_call_socket_path(state), content="/b/call.sock")
   inspect(
-    call_socket_path(env_of([("HARNEXUS_CALL_SOCKET", "/s/c.sock")])),
+    resolve_call_socket_path(env_of([("HARNEXUS_CALL_SOCKET", "/s/c.sock")])),
     content="/s/c.sock",
   )
   inspect(
-    caller_socket(env_of([("HARNEXUS_CALL_SOCKET", "off")])) is None,
+    resolve_caller_socket(env_of([("HARNEXUS_CALL_SOCKET", "off")])) is None,
     content="true",
   )
   inspect(
-    call_socket_path(env_of([("HARNEXUS_CALL_SOCKET", "off"), ("HOME", "/h")])),
+    resolve_call_socket_path(
+      env_of([("HARNEXUS_CALL_SOCKET", "off"), ("HOME", "/h")]),
+    ),
     content="/h/.local/state/harnexus/call.sock",
   )
 }
@@ -174,7 +176,8 @@ test "the call socket sits beside the harnexus state unless a path is given" {
 ///|
 test "a relative socket or state path is refused" {
   let socket = try {
-    call_socket_path(env_of([("HARNEXUS_CALL_SOCKET", "rel")])) |> ignore
+    resolve_call_socket_path(env_of([("HARNEXUS_CALL_SOCKET", "rel")]))
+    |> ignore
     "accepted"
   } catch {
     @failure.TaskFailed(message) => message
@@ -184,7 +187,8 @@ test "a relative socket or state path is refused" {
     content="HARNEXUS_CALL_SOCKET must be on, off or an absolute path",
   )
   let state = try {
-    harnexus_state_path(env_of([("HARNEXUS_STATE_PATH", "rel")])) |> ignore
+    resolve_harnexus_state_path(env_of([("HARNEXUS_STATE_PATH", "rel")]))
+    |> ignore
     "accepted"
   } catch {
     @failure.TaskFailed(message) => message

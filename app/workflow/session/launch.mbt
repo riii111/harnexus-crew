@@ -15,11 +15,11 @@ async fn launch_in(
 ) -> Json raise @failure.TaskFailed {
   @workflow.refuse_in_cloud(ctx.env, "launch")
   let request = @request.LaunchRequest::from_json(
-    @store.read_json(args.request),
+    @store.read_regular_json(args.request),
     ctx.probe,
   )
   let data = request.to_json()
-  let session = launch_session(ctx.env, ctx.ports, request)
+  let session = open_launch_session(ctx.env, ctx.ports, request)
   if session.state is Some(state) {
     if !same_task(value_of(state, "request"), data) {
       @failure.fail(
@@ -43,7 +43,7 @@ async fn launch_in(
       "branchName": Json::string(branch),
     })
   }
-  let fields = request.worker_fields(ctx.probe)
+  let fields = request.build_worker_fields(ctx.probe)
   let prompt = (ctx.prompt)(Worker, fields)
   let thinking = match @text.nonempty(args.thinking) {
     Some(thinking) => Some(thinking)
@@ -60,7 +60,7 @@ async fn launch_in(
   if thinking is Some(thinking) {
     sent["thinking"] = Json::string(thinking)
   }
-  let caller = @request.caller_id(ctx.env)
+  let caller = @request.read_caller_id(ctx.env)
   session.send(caller, "create_thread", sent, [
     ("request", data),
     ("workspace", Json::object(target)),
@@ -68,7 +68,7 @@ async fn launch_in(
 }
 
 ///|
-fn launch_session(
+fn open_launch_session(
   env : @environment.Env,
   ports : Ports,
   request : @request.LaunchRequest,

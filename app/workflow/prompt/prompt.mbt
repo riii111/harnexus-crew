@@ -14,7 +14,7 @@ const T3_REPLY : String = "T3"
 
 ///|
 /// The prompt a new chat receives: the configured template of `kind`, with its links resolved and `fields` filled in.
-pub fn task_prompt(
+pub fn render_task_prompt(
   env : @environment.Env,
   kind : TemplateKind,
   fields : Map[String, String],
@@ -56,7 +56,7 @@ pub fn check_templates(
     for reply in replies {
       ignore(render_as(Reviewer, path, @request.sample_reviewer_fields(reply)))
     }
-    t3 = t3_readiness(path)
+    t3 = check_t3_readiness(path)
   }
   checked(config.worker, config.reviewer, t3)
 }
@@ -101,7 +101,7 @@ fn read_text(path : String) -> String raise @failure.TaskFailed {
 }
 
 ///|
-fn t3_readiness(path : String) -> Json {
+fn check_t3_readiness(path : String) -> Json {
   try {
     ignore(render_as(Reviewer, path, @request.sample_reviewer_fields(T3_REPLY)))
     object([("ready", Json::boolean(true))])

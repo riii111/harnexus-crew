@@ -2,36 +2,36 @@
 let einval : Int32 = 22
 
 ///|
-fn open_at(path : String, how : Int32) -> Int32 {
-  at_path(path, bytes => open_raw(bytes, how))
+fn open_path(path : String, how : Int32) -> Int32 {
+  with_c_path(path, bytes => open_raw(bytes, how))
 }
 
 ///|
-fn kind_at(path : String) -> Int32 {
-  at_path(path, path_kind_raw)
+fn stat_kind(path : String) -> Int32 {
+  with_c_path(path, path_kind_raw)
 }
 
 ///|
-fn unlink_at(path : String) -> Int32 {
-  at_path(path, unlink_raw)
+fn unlink_path(path : String) -> Int32 {
+  with_c_path(path, unlink_raw)
 }
 
 ///|
-fn mkdir_at(path : String, mode : Int32) -> Int32 {
-  at_path(path, bytes => mkdir_raw(bytes, mode))
+fn mkdir_path(path : String, mode : Int32) -> Int32 {
+  with_c_path(path, bytes => mkdir_raw(bytes, mode))
 }
 
 ///|
-fn rename_at(from : String, to : String) -> Int32 {
-  at_path(from, from_bytes => {
-    at_path(to, to_bytes => rename_raw(from_bytes, to_bytes))
+fn rename_path(from : String, to : String) -> Int32 {
+  with_c_path(from, from_bytes => {
+    with_c_path(to, to_bytes => rename_raw(from_bytes, to_bytes))
   })
 }
 
 ///|
-fn link_at(from : String, to : String) -> Int32 {
-  at_path(from, from_bytes => {
-    at_path(to, to_bytes => link_raw(from_bytes, to_bytes))
+fn link_path(from : String, to : String) -> Int32 {
+  with_c_path(from, from_bytes => {
+    with_c_path(to, to_bytes => link_raw(from_bytes, to_bytes))
   })
 }
 
@@ -61,7 +61,7 @@ fn read_to_end(fd : Int32) -> Result[Bytes, Int32] {
 }
 
 ///|
-fn at_path(path : String, call : (Bytes) -> Int32) -> Int32 {
+fn with_c_path(path : String, call : (Bytes) -> Int32) -> Int32 {
   match @sys.c_string(path) {
     Some(bytes) => call(bytes)
     None => -einval

@@ -168,8 +168,11 @@ fn strip_line_numbers(text : String) -> String {
       }
     }
     // The line terminators of JS's multiline `^`.
-    let unit = units[at].to_int()
-    line_start = unit == 10 || unit == 13 || unit == 0x2028 || unit == 0x2029
+    let unit = units[at]
+    line_start = unit == '\n' ||
+      unit == '\r' ||
+      unit == '\u{2028}' ||
+      unit == '\u{2029}'
     at += 1
   }
   out.write_string(text[copied_from:].to_owned())
@@ -179,16 +182,14 @@ fn strip_line_numbers(text : String) -> String {
 ///|
 fn line_number_width(units : ArrayView[UInt16], at : Int32) -> Int32 {
   let mut end = at
-  while end < units.length() && units[end].to_int() == 32 {
+  while end < units.length() && units[end] == ' ' {
     end += 1
   }
   let digits_from = end
-  while end < units.length() &&
-        units[end].to_int() >= 48 &&
-        units[end].to_int() <= 57 {
+  while end < units.length() && units[end] >= '0' && units[end] <= '9' {
     end += 1
   }
-  if end == digits_from || end >= units.length() || units[end].to_int() != 9 {
+  if end == digits_from || end >= units.length() || units[end] != '\t' {
     0
   } else {
     end + 1 - at

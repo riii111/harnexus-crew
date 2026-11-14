@@ -56,7 +56,7 @@ BASE = {
 }
 
 
-def spec(**overrides):
+def stub_case(**overrides):
     fields = {
         "name": "stub-case",
         "env": {"HARNEXUS_CALL_SOCKET": "{{bridge}}"},
@@ -76,7 +76,7 @@ class Harness(unittest.TestCase):
     def stub(self, options):
         return [sys.executable, "-I", str(self.stub_path), json.dumps(options)]
 
-    def differences(self, case, expected_options, actual_options):
+    def observe_differences(self, case, expected_options, actual_options):
         first, first_root = observe(self.stub(expected_options), case)
         second, second_root = observe(self.stub(actual_options), case)
         return compare(case, normalize(first, first_root), normalize(second, second_root))
@@ -86,11 +86,11 @@ class Harness(unittest.TestCase):
 
     def test_json_compares_by_meaning_not_by_member_order(self):
         reordered = {**BASE, "stdout": '{"b":[1,2],"a":1}\n'}
-        self.assertEqual([], self.differences(spec(), BASE, BASE))
-        self.assertEqual([], self.differences(spec(), BASE, reordered))
+        self.assertEqual([], self.observe_differences(stub_case(), BASE, BASE))
+        self.assertEqual([], self.observe_differences(stub_case(), BASE, reordered))
 
     def test_a_boolean_is_not_a_number(self):
-        self.assertNotEqual([], self.differences(spec(), {**BASE, "stdout": '{"a":1}\n'}, {**BASE, "stdout": '{"a":true}\n'}))
+        self.assertNotEqual([], self.observe_differences(stub_case(), {**BASE, "stdout": '{"a":1}\n'}, {**BASE, "stdout": '{"a":true}\n'}))
 
     def test_detects_a_different_result(self):
         for name, change, field in (
@@ -103,21 +103,21 @@ class Harness(unittest.TestCase):
             ("command arguments", {"command": ["codex", "resume"]}, "commands[0]"),
         ):
             with self.subTest(name):
-                found = self.differences(spec(), BASE, {**BASE, **change})
+                found = self.observe_differences(stub_case(), BASE, {**BASE, **change})
                 self.assertIn(field, self.fields(found))
 
     def test_detects_a_request_sent_twice(self):
         twice = {**BASE, "requests": [*BASE["requests"], *BASE["requests"]]}
-        found = self.differences(spec(), BASE, twice)
+        found = self.observe_differences(stub_case(), BASE, twice)
         self.assertIn({"field": "requests.count", "expected": 1, "actual": 2}, found)
 
     def test_lines_keep_their_boundaries_in_a_session(self):
-        session = spec(kind="session", bridge=None, commands={}, env={})
-        found = self.differences(session, {"stdout": '{"id":1}\n{"id":2}\n'}, {"stdout": '{"id":1}{"id":2}\n'})
+        session = stub_case(kind="session", bridge=None, commands={}, env={})
+        found = self.observe_differences(session, {"stdout": '{"id":1}\n{"id":2}\n'}, {"stdout": '{"id":1}{"id":2}\n'})
         self.assertIn("stdout.lines", self.fields(found))
 
     def test_a_session_passes_each_stdin_line_to_stdout_in_order(self):
-        session = spec(
+        session = stub_case(
             kind="session",
             bridge=None,
             commands={},
@@ -163,7 +163,7 @@ class BridgeSynchronization(unittest.TestCase):
 
                     def collect():
                         try:
-                            result.append(bridge.finished_requests(timeout=5))
+                            result.append(bridge.collect_finished_requests(timeout=5))
                         finally:
                             snapshot_done.set()
 
@@ -177,7 +177,7 @@ class BridgeSynchronization(unittest.TestCase):
                     collector.join(5)
                     self.assertFalse(collector.is_alive())
                     self.assertEqual(["", "partial"], sorted(result[0]))
-                    self.assertEqual(["", "partial"], sorted(bridge.finished_requests()))
+                    self.assertEqual(["", "partial"], sorted(bridge.collect_finished_requests()))
                 finally:
                     accept_gate.set()
                     serve_gate.set()
@@ -187,7 +187,7 @@ class BridgeSynchronization(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="hxc-bridge-") as directory:
             bridge = Bridge(os.path.join(directory, "bridge.sock"), [])
             try:
-                self.assertEqual([], bridge.finished_requests())
+                self.assertEqual([], bridge.collect_finished_requests())
             finally:
                 bridge.stop()
 

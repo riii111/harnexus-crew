@@ -12,7 +12,7 @@ Unixソケットでの1行の往復と、子プロセスの実行。
 | `unix`     | `errno_name`、`close_fd`                                                  |
 
 `env` は子の環境の全体であり、親の環境を暗黙には引き継がない。
-プロセスの生存確認は `store` の `process_alive` にあり、ここでは公開しない。
+プロセスの生存確認は `store` の `is_process_alive` にあり、ここでは公開しない。
 
 ## 契約
 

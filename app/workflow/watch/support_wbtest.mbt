@@ -37,7 +37,7 @@ async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
     failed => abort(failed.user_message())
   }
   // The engine is looked up beside the resolved pr-wake, so the root is resolved first.
-  let root = @store.real_path_or_self(made)
+  let root = @store.resolve_real_path_or_self(made)
   let rig = { root, fake: "\{root}/fake", bin: "\{root}/bin", }
   errdefer @async.protect_from_cancel(() => shell("rm", ["-rf", root]))
   for directory in [rig.fake, rig.bin] {

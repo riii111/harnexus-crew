@@ -1,10 +1,10 @@
 ///|
-fn chats_file(at : Place, chats : Json) -> Unit {
+fn write_chats_file(at : Place, chats : Json) -> Unit {
   write_file("\{at.reviews}/chats.json", text_of(chats))
 }
 
 ///|
-fn sent_file(
+fn write_sent_file(
   at : Place,
   review : @host.CloudReview,
   thread_id : String,
@@ -48,14 +48,14 @@ fn bound_line(reviewer : String, thread_id : String) -> Array[(String, Json)] {
 }
 
 ///|
-fn opening_file(at : Place, reviewer : String) -> String {
+fn opening_path(at : Place, reviewer : String) -> String {
   "\{at.observe}/opening/\{short_hash(reviewer)}.json"
 }
 
 ///|
 fn save_opening(at : Place, showing : Bool) -> Unit {
   write_file(
-    opening_file(at, "R1"),
+    opening_path(at, "R1"),
     text_of(
       object([
         ("key", str("k1")),
@@ -77,7 +77,7 @@ async fn reconnect(link : Link) -> Unit {
 async test "a review is shown once when two adapters take it at the same time" {
   with_place("write-race", at => {
     @async.with_task_group(group => {
-      chats_file(at, object([("R1", str("chat-r1"))]))
+      write_chats_file(at, object([("R1", str("chat-r1"))]))
       let one = connect(at, group)
       let two = connect(at, group)
       one.start("write")
@@ -106,12 +106,12 @@ async test "a review is shown once when two adapters take it at the same time" {
 async test "a message in a reviewer's chat goes to the session that ran the reviewer and is kept for the chat's history" {
   with_place("write-ask", at => {
     @async.with_task_group(group => {
-      chats_file(
+      write_chats_file(
         at,
         object([("R1", bound_chat("chat-r1")), ("R2", str("chat-r2"))]),
       )
       let review = review_of_head("aaa1111")
-      sent_file(at, review, "chat-r1")
+      write_sent_file(at, review, "chat-r1")
       let link = connect(at, group)
       link.start("write")
       link.say(turn_line("t1", "chat-r1", "R1", "input", text="B1 は？"))
@@ -160,11 +160,11 @@ async test "a message in a reviewer's chat goes to the session that ran the revi
 async test "the session that ran a review shown in a chat kept from before is recorded, so a message from the chat reaches it" {
   with_place("write-session", at => {
     @async.with_task_group(group => {
-      chats_file(at, object([("R1", str("chat-r1"))]))
+      write_chats_file(at, object([("R1", str("chat-r1"))]))
       let link = connect(at, group)
       link.start("write")
-      link.records("linked", [])
-      link.records("continued", judged("aaa1111"))
+      link.say_records("linked", [])
+      link.say_records("continued", judged("aaa1111"))
       link.say(turn_line("t1", "chat-r1", "R1", "input", text="B1 は？"))
       assert_eq(
         text_of(read_json_file("\{at.reviews}/chats.json")),
@@ -181,18 +181,21 @@ async test "the session that ran a review shown in a chat kept from before is re
 async test "the reviews two adapters queue at once are kept, and each is shown" {
   with_place("write-queue", at => {
     @async.with_task_group(group => {
-      chats_file(at, object([("R1", str("chat-r1")), ("R2", str("chat-r2"))]))
+      write_chats_file(
+        at,
+        object([("R1", str("chat-r1")), ("R2", str("chat-r2"))]),
+      )
       let one = connect(at, group)
       let two = connect(at, group)
       one.start("write")
       two.start("write")
-      one.records("linked", [], session_id="session_A")
-      two.records("linked", [], session_id="session_B")
+      one.say_records("linked", [], session_id="session_A")
+      two.say_records("linked", [], session_id="session_B")
       let first = group.spawn(() => {
-        one.records("continued", judged("aaa1111"), session_id="session_A")
+        one.say_records("continued", judged("aaa1111"), session_id="session_A")
       })
       let second = group.spawn(() => {
-        two.records(
+        two.say_records(
           "continued",
           judged("bbb2222", reviewer="R2"),
           session_id="session_B",
@@ -206,7 +209,7 @@ async test "the reviews two adapters queue at once are kept, and each is shown" 
       })
       posted.sort_by(String::lexical_compare)
       assert_eq(posted, ["R1", "R2"])
-      assert_eq(pending_keys(one), [])
+      assert_eq(read_pending_keys(one), [])
     })
   })
 }
@@ -218,8 +221,8 @@ async test "a binding only the bridge kept is recorded, and the next review is p
       let link = connect(at, group)
       link.say(hello_line("write"))
       link.say(ready_line([binding("R1", "chat-r1")]))
-      link.records("linked", [])
-      link.records("continued", judged("aaa1111"))
+      link.say_records("linked", [])
+      link.say_records("continued", judged("aaa1111"))
       assert_eq(
         text_of(read_json_file("\{at.reviews}/chats.json")),
         "{\"R1\":{\"threadId\":\"chat-r1\",\"session\":\"session_01AbC\"}}",
@@ -245,8 +248,8 @@ async test "while a chat's first review waits for its first turn, a later review
       link.start("write")
       let first = review_of_head("aaa1111")
       let second = review_of_head("bbb2222")
-      link.records("linked", [])
-      link.records("continued", two_reviews())
+      link.say_records("linked", [])
+      link.say_records("continued", two_reviews())
       let posts_before_turn = link.requests(op="post").length()
       link.say(bound_line("R1", "chat-r1"))
       link.say(turn_line("t1", "chat-r1", "R1", "opened"))
@@ -258,7 +261,7 @@ async test "while a chat's first review waits for its first turn, a later review
         Some(@host.review_text(first)),
       )
       assert_eq(link.texts("post"), [@host.review_text(second)])
-      assert_eq(pending_keys(link), [])
+      assert_eq(read_pending_keys(link), [])
     })
   })
 }
@@ -277,8 +280,8 @@ async test "the first review is posted after a restart when the bridge bound its
       before.start("write")
       let first = review_of_head("aaa1111")
       let second = review_of_head("bbb2222")
-      before.records("linked", [])
-      before.records("continued", two_reviews())
+      before.say_records("linked", [])
+      before.say_records("continued", two_reviews())
       let after = connect(at, group, answer=_ => done_with_chat("chat-r1"))
       after.say(hello_line("write"))
       after.say(ready_line([binding("R1", "chat-r1")]))
@@ -287,7 +290,7 @@ async test "the first review is posted after a restart when the bridge bound its
         @host.review_text(first),
         @host.review_text(second),
       ])
-      assert_eq(pending_keys(after), [])
+      assert_eq(read_pending_keys(after), [])
     })
   })
 }
@@ -304,7 +307,7 @@ async test "a chat's first review is posted by one of two adapters reconnecting 
       first.wait()
       second.wait()
       assert_eq([..one.texts("post"), ..two.texts("post")], ["first review"])
-      assert_eq(@store.path_exists(opening_file(at, "R1")), false)
+      assert_eq(@store.path_exists(opening_path(at, "R1")), false)
     })
   })
 }
@@ -323,7 +326,7 @@ async test "a chat's first review is never posted again when an earlier adapter 
       assert_eq(noted.length(), 1)
       assert_eq(text_member(noted[0], "reviewer"), Some("R1"))
       assert_eq(text_member(noted[0], "key"), Some("k1"))
-      assert_eq(@store.path_exists(opening_file(at, "R1")), false)
+      assert_eq(@store.path_exists(opening_path(at, "R1")), false)
     })
   })
 }
@@ -338,7 +341,7 @@ async test "a chat's first review stays for the next connection when the bridge 
       })
       reconnect(link)
       assert_eq(link.requests(op="post").length(), 1)
-      let kept = read_json_file(opening_file(at, "R1"))
+      let kept = read_json_file(opening_path(at, "R1"))
       assert_eq(field(kept, "showing"), Some(Json::boolean(false)))
     })
   })

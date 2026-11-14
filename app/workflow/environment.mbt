@@ -3,7 +3,7 @@ pub fn refuse_in_cloud(
   env : @environment.Env,
   command : String,
 ) -> Unit raise @failure.TaskFailed {
-  match @environment.declared_environment(env) {
+  match @environment.parse_declared_environment(env) {
     Some({ environment: Cloud, runner, }) => {
       let alternative = match runner {
         InCloud(Some(ClaudeCloud)) =>

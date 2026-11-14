@@ -17,9 +17,9 @@ pub struct Records {
 pub fn read_records(directory : String) -> Records raise @failure.TaskFailed {
   let state_path = "\{directory}/state.json"
   let pending_path = "\{directory}/pending.json"
-  let loaded = load(state_path)
-  let state = as_record(loaded, state_path)
-  let pending = as_record(load(pending_path), pending_path)
+  let loaded = read_json_or_null(state_path)
+  let state = check_record(loaded, state_path)
+  let pending = check_record(read_json_or_null(pending_path), pending_path)
   { state_path, pending_path, loaded, state, pending, }
 }
 
@@ -31,13 +31,13 @@ pub fn save_json(
   data : Json,
   exclusive~ : Bool,
 ) -> Unit raise @failure.TaskFailed {
-  io(() => prepare_directory(@path.dirname(path)))
+  lift_file_failure(() => prepare_directory(@path.dirname(path)))
   let content = data.stringify(indent=1)
   if !exclusive {
-    io(() => write_atomic(path, content))
+    lift_file_failure(() => write_atomic(path, content))
     return
   }
-  let created = io(() => write_exclusive(path, content))
+  let created = lift_file_failure(() => write_exclusive(path, content))
   if !created {
     @failure.fail("another harnexus-crew run is sending; inspect \{path}")
   }
@@ -45,8 +45,8 @@ pub fn save_json(
 
 ///|
 /// Reads a JSON file; a missing file reads as Null.
-pub fn load(path : String) -> Json raise @failure.TaskFailed {
-  match io(() => read_text_if_exists(path)) {
+pub fn read_json_or_null(path : String) -> Json raise @failure.TaskFailed {
+  match lift_file_failure(() => read_text_if_exists(path)) {
     None => Json::null()
     Some(text) =>
       @jsonio.parse(text) catch {
@@ -57,8 +57,8 @@ pub fn load(path : String) -> Json raise @failure.TaskFailed {
 
 ///|
 /// Reads a regular JSON file, such as a request the user wrote.
-pub fn read_json(path : String) -> Json raise @failure.TaskFailed {
-  let text = io(() => read_regular_text(path))
+pub fn read_regular_json(path : String) -> Json raise @failure.TaskFailed {
+  let text = lift_file_failure(() => read_regular_text(path))
   @jsonio.parse(text) catch {
     _ => @failure.fail("\{path} is not valid JSON")
   }
@@ -66,18 +66,20 @@ pub fn read_json(path : String) -> Json raise @failure.TaskFailed {
 
 ///|
 pub fn remove_record(path : String) -> Unit raise @failure.TaskFailed {
-  io(() => remove_file(path))
+  lift_file_failure(() => remove_file(path))
 }
 
 ///|
-fn[T] io(work : () -> T raise FileFailed) -> T raise @failure.TaskFailed {
+fn[T] lift_file_failure(
+  work : () -> T raise FileFailed,
+) -> T raise @failure.TaskFailed {
   work() catch {
     failed => @failure.fail(failed.user_message())
   }
 }
 
 ///|
-fn as_record(value : Json, path : String) -> Json? raise @failure.TaskFailed {
+fn check_record(value : Json, path : String) -> Json? raise @failure.TaskFailed {
   match value {
     Null => None
     Object(members) if members.is_empty() => None

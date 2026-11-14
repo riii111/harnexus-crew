@@ -61,7 +61,7 @@ pub fn FileFailed::user_message(self : FileFailed) -> String {
 /// Reads a file as text; None when it does not exist.
 pub fn read_text_if_exists(path : String) -> String? raise FileFailed {
   let message = "cannot read \{path}"
-  let fd = open_at(path, open_read)
+  let fd = open_path(path, open_read)
   if fd == -enoent {
     return None
   }
@@ -73,7 +73,7 @@ pub fn read_text_if_exists(path : String) -> String? raise FileFailed {
 /// A FIFO or device is refused, since reading it could wait forever.
 pub fn read_regular_text(path : String) -> String raise FileFailed {
   let message = "cannot read \{path}"
-  let fd = check(open_at(path, open_read), Read, path, message)
+  let fd = check(open_path(path, open_read), Read, path, message)
   let kind = fd_kind_raw(fd)
   if kind != kind_file {
     ignore(close_raw(fd))
@@ -103,8 +103,8 @@ pub fn write_exclusive(
   let message = "cannot write \{path}"
   let temporary = write_temporary(path, content)
   // Linking fails when a file already exists at the path, which is what lets exactly one writer create it.
-  let linked = link_at(temporary, path)
-  let removed = unlink_at(temporary)
+  let linked = link_path(temporary, path)
+  let removed = unlink_path(temporary)
   if linked < 0 && linked != -eexist {
     raise failure(Write, path, -linked, message)
   }
@@ -122,7 +122,7 @@ pub fn write_exclusive(
 /// Removes the file; a file that is already missing counts as removed.
 /// A `Sync` failure means the file is gone but may come back after a crash.
 pub fn remove_file(path : String) -> Unit raise FileFailed {
-  let removed = unlink_at(path)
+  let removed = unlink_path(path)
   if removed < 0 && removed != -enoent {
     raise failure(Remove, path, -removed, "cannot remove \{path}")
   }
@@ -154,22 +154,22 @@ pub fn list_directory_if_exists(
 
 ///|
 pub fn is_file(path : String) -> Bool {
-  kind_at(path) == kind_file
+  stat_kind(path) == kind_file
 }
 
 ///|
 pub fn is_directory(path : String) -> Bool {
-  kind_at(path) == kind_directory
+  stat_kind(path) == kind_directory
 }
 
 ///|
 pub fn path_exists(path : String) -> Bool {
-  kind_at(path) > 0
+  stat_kind(path) > 0
 }
 
 ///|
 /// The absolute path with symbolic links resolved, or the absolute path as written when it cannot be resolved.
-pub fn real_path_or_self(path : String) -> String {
+pub fn resolve_real_path_or_self(path : String) -> String {
   let absolute = @path.resolve(cwd=@env.current_dir().unwrap_or("/"), [path])
   let out : FixedArray[Byte] = FixedArray::make(4096, b'\x00')
   let len = match @sys.c_string(absolute) {
@@ -186,9 +186,9 @@ pub fn real_path_or_self(path : String) -> String {
 fn replace_file(path : String, content : String) -> Unit raise FileFailed {
   let temporary = write_temporary(path, content)
   // The rename happens only after the temporary file is flushed to disk, so a reader never sees a half-written file.
-  let renamed = rename_at(temporary, path)
+  let renamed = rename_path(temporary, path)
   if renamed < 0 {
-    ignore(unlink_at(temporary))
+    ignore(unlink_path(temporary))
     raise failure(Write, path, -renamed, "cannot write \{path}")
   }
 }
@@ -197,8 +197,8 @@ fn replace_file(path : String, content : String) -> Unit raise FileFailed {
 /// Writes `content` to a new owner-only file beside `path` and flushes it; the file is removed again when that fails.
 fn write_temporary(path : String, content : String) -> String raise FileFailed {
   let message = "cannot write \{path}"
-  let temporary = temporary_path(path)
-  let fd = check(open_at(temporary, open_exclusive), Write, path, message)
+  let temporary = new_temporary_path(path)
+  let fd = check(open_path(temporary, open_exclusive), Write, path, message)
   let written = write_all_text(fd, content)
   let synced = if written < 0 { written } else { fsync_raw(fd) }
   let closed = close_raw(fd)
@@ -210,14 +210,14 @@ fn write_temporary(path : String, content : String) -> String raise FileFailed {
     closed
   }
   if errno < 0 {
-    ignore(unlink_at(temporary))
+    ignore(unlink_path(temporary))
     raise failure(Write, path, -errno, message)
   }
   temporary
 }
 
 ///|
-fn temporary_path(path : String) -> String {
+fn new_temporary_path(path : String) -> String {
   let name = ".\{@path.basename(path)}.\{new_uuid()}.tmp"
   let directory = @path.dirname(path)
   if directory == "." {
@@ -244,7 +244,7 @@ fn sync_parent(path : String, done : String) -> Unit raise FileFailed {
 
 ///|
 fn sync_directory(path : String) -> Int32 {
-  let fd = open_at(path, open_directory)
+  let fd = open_path(path, open_directory)
   if fd < 0 {
     return fd
   }
@@ -259,9 +259,9 @@ fn sync_directory(path : String) -> Int32 {
 
 ///|
 fn make_directories(path : String) -> Int32 {
-  let made = mkdir_at(path, owner_only_directory)
+  let made = mkdir_path(path, owner_only_directory)
   if made == -eexist {
-    return if kind_at(path) == kind_directory { 0 } else { made }
+    return if stat_kind(path) == kind_directory { 0 } else { made }
   }
   if made != -enoent {
     return made
@@ -274,8 +274,8 @@ fn make_directories(path : String) -> Int32 {
   if parent_made < 0 {
     return parent_made
   }
-  let again = mkdir_at(path, owner_only_directory)
-  if again == -eexist && kind_at(path) == kind_directory {
+  let again = mkdir_path(path, owner_only_directory)
+  if again == -eexist && stat_kind(path) == kind_directory {
     0
   } else {
     again

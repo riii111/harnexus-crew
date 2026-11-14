@@ -23,15 +23,15 @@ fn failure_text(work : () -> Unit raise @failure.TaskFailed) -> String {
 
 ///|
 test "the Codex binary is codex unless an absolute path is set" {
-  assert_eq(configured_binary(env_of([]), "BIN", "codex"), "codex")
-  assert_eq(configured_binary(env_of([("BIN", "")]), "BIN", "codex"), "codex")
+  assert_eq(read_binary_path(env_of([]), "BIN", "codex"), "codex")
+  assert_eq(read_binary_path(env_of([("BIN", "")]), "BIN", "codex"), "codex")
   assert_eq(
-    configured_binary(env_of([("BIN", "/opt/codex")]), "BIN", "codex"),
+    read_binary_path(env_of([("BIN", "/opt/codex")]), "BIN", "codex"),
     "/opt/codex",
   )
   inspect(
     failure_text(() => {
-      ignore(configured_binary(env_of([("BIN", "codex")]), "BIN", "codex"))
+      ignore(read_binary_path(env_of([("BIN", "codex")]), "BIN", "codex"))
     }),
     content="BIN must be an absolute path",
   )
@@ -39,20 +39,27 @@ test "the Codex binary is codex unless an absolute path is set" {
 
 ///|
 test "a duration is a positive whole number a 32-bit timer can hold" {
-  assert_eq(milliseconds(env_of([]), "T", 7), 7)
-  assert_eq(milliseconds(env_of([("T", "")]), "T", 7), 7)
-  assert_eq(milliseconds(env_of([("T", "1")]), "T", 7), 1)
-  assert_eq(milliseconds(env_of([("T", "30000")]), "T", 7), 30000)
-  assert_eq(milliseconds(env_of([("T", "2147483647")]), "T", 7), 2147483647)
+  assert_eq(read_milliseconds(env_of([]), "T", 7), 7)
+  assert_eq(read_milliseconds(env_of([("T", "")]), "T", 7), 7)
+  assert_eq(read_milliseconds(env_of([("T", "1")]), "T", 7), 1)
+  assert_eq(read_milliseconds(env_of([("T", "30000")]), "T", 7), 30000)
+  assert_eq(
+    read_milliseconds(env_of([("T", "2147483647")]), "T", 7),
+    2147483647,
+  )
   for value in ["2147483648", "99999999999999999999999"] {
     inspect(
-      failure_text(() => ignore(milliseconds(env_of([("T", value)]), "T", 7))),
+      failure_text(() => {
+        ignore(read_milliseconds(env_of([("T", value)]), "T", 7))
+      }),
       content="T must be at most 2147483647 milliseconds",
     )
   }
   for value in ["0", "05", "-1", "1.5", "1e3", "soon", " 5", "5 ", "٣", "+5"] {
     inspect(
-      failure_text(() => ignore(milliseconds(env_of([("T", value)]), "T", 7))),
+      failure_text(() => {
+        ignore(read_milliseconds(env_of([("T", value)]), "T", 7))
+      }),
       content="T must be a positive number of milliseconds",
     )
   }
@@ -60,7 +67,7 @@ test "a duration is a positive whole number a 32-bit timer can hold" {
 
 ///|
 test "the reply is the thread, the last agent message and the failure the events name" {
-  let events = [
+  let event_lines = [
     "not json",
     "{\"type\":\"thread.started\",\"thread_id\":\"\{REVIEWER}\"}",
     "[1]",
@@ -72,7 +79,7 @@ test "the reply is the thread, the last agent message and the failure the events
     "{\"type\":\"turn.completed\"}",
     "{\"truncated\":",
   ]
-  let reply = reply_of(events.join("\n"))
+  let reply = reply_of(event_lines.join("\n"))
   assert_eq(reply.thread_id, Some(REVIEWER))
   assert_eq(reply.answer, Some("last"))
   assert_eq(reply.failure, Some("late"))

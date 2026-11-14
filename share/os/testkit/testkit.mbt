@@ -6,7 +6,7 @@ pub suberror Errno {
 ///|
 /// A listening socket at `path`; the caller owns the descriptor.
 pub fn listen(path : String, backlog~ : Int32 = 16) -> Int32 raise Errno {
-  let fd = listen_raw(c_string(path), backlog)
+  let fd = listen_raw(encode_c_string(path), backlog)
   if fd < 0 {
     raise Errno(-fd)
   }
@@ -30,7 +30,7 @@ pub fn accept(listener : Int32) -> Int32? raise Errno {
 ///|
 /// A client connection that stays open, queued on the listener; the errno when the queue refuses it.
 pub fn connect_and_hold(path : String) -> Int32 raise Errno {
-  let fd = connect_raw(c_string(path))
+  let fd = connect_raw(encode_c_string(path))
   if fd < 0 {
     raise Errno(-fd)
   }
@@ -44,7 +44,7 @@ pub fn close_fd(fd : Int32) -> Unit {
 
 ///|
 pub fn remove_file(path : String) -> Unit {
-  unlink_raw(c_string(path))
+  unlink_raw(encode_c_string(path))
 }
 
 ///|
@@ -95,7 +95,7 @@ pub fn restore_stdio(saved : FixedArray[Int32]) -> Unit {
 }
 
 ///|
-fn c_string(text : String) -> Bytes {
+fn encode_c_string(text : String) -> Bytes {
   @sys.c_string(text).unwrap()
 }
 

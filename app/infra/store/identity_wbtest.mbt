@@ -83,13 +83,13 @@ test "now_iso is a current UTC time" {
 }
 
 ///|
-test "process_alive counts this process and refuses what kill would" {
-  assert_true(process_alive(current_pid().to_double()))
-  assert_false(process_alive(dead_pid))
-  assert_false(process_alive(1.5))
-  assert_false(process_alive(2147483648.0))
-  assert_false(process_alive(-2147483649.0))
+test "is_process_alive counts this process and refuses what kill would" {
+  assert_true(is_process_alive(current_pid().to_double()))
+  assert_false(is_process_alive(dead_pid))
+  assert_false(is_process_alive(1.5))
+  assert_false(is_process_alive(2147483648.0))
+  assert_false(is_process_alive(-2147483649.0))
   // 0 and -1 name process groups, which Node's process.kill also reports as alive.
-  assert_true(process_alive(0.0))
-  assert_true(process_alive(-1.0))
+  assert_true(is_process_alive(0.0))
+  assert_true(is_process_alive(-1.0))
 }

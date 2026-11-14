@@ -35,7 +35,7 @@ test "write_atomic replaces the content and leaves no temporary file" {
     write_atomic(target, "old")
     write_atomic(target, "new")
     assert_eq(read_text(target), "new")
-    assert_eq(names_in(directory), ["state.json"])
+    assert_eq(list_names(directory), ["state.json"])
   })
 }
 
@@ -65,8 +65,8 @@ test "write_atomic keeps the target and removes the temporary file when the rena
     prepare_directory("\{target}/occupied")
     let message = file_failure(() => write_atomic(target, "new"))
     assert_true(message.has_prefix("cannot write \{target} ("))
-    assert_eq(names_in(directory), ["state.json"])
-    assert_eq(names_in(target), ["occupied"])
+    assert_eq(list_names(directory), ["state.json"])
+    assert_eq(list_names(target), ["occupied"])
   })
 }
 
@@ -86,7 +86,7 @@ test "remove_file treats a missing file as removed and reports one that cannot b
     write_atomic("\{directory}/gone", "x")
     remove_file("\{directory}/gone")
     remove_file("\{directory}/never-created")
-    assert_eq(names_in(directory), [])
+    assert_eq(list_names(directory), [])
     prepare_directory("\{directory}/busy/inner")
     let failed = try {
       remove_file("\{directory}/busy")
@@ -143,7 +143,7 @@ test "list_directory_if_exists lists names, and None for a missing path or a fil
     write_atomic("\{directory}/b.json", "x")
     write_atomic("\{directory}/a.json", "x")
     prepare_directory("\{directory}/sub")
-    assert_eq(names_in(directory), ["a.json", "b.json", "sub"])
+    assert_eq(list_names(directory), ["a.json", "b.json", "sub"])
     assert_eq(list_directory_if_exists("\{directory}/missing"), None)
     assert_eq(list_directory_if_exists("\{directory}/a.json"), None)
   })
@@ -159,7 +159,7 @@ test "list_directory_if_exists retries with a larger buffer for a long listing" 
       expected.push(name)
     }
     expected.sort_by(String::lexical_compare)
-    assert_eq(names_in(directory), expected)
+    assert_eq(list_names(directory), expected)
   })
 }
 
@@ -178,13 +178,13 @@ test "is_file, is_directory and path_exists tell the kind of a path" {
 }
 
 ///|
-test "real_path_or_self gives an absolute path, resolved when it exists" {
+test "resolve_real_path_or_self gives an absolute path, resolved when it exists" {
   in_scratch(directory => {
-    let real = real_path_or_self(directory)
-    assert_eq(real_path_or_self(real), real)
-    assert_eq(real_path_or_self("\{directory}/./sub/../"), real)
+    let real = resolve_real_path_or_self(directory)
+    assert_eq(resolve_real_path_or_self(real), real)
+    assert_eq(resolve_real_path_or_self("\{directory}/./sub/../"), real)
     assert_eq(
-      real_path_or_self("\{directory}/missing/../x"),
+      resolve_real_path_or_self("\{directory}/missing/../x"),
       @path.join(["\{directory}/x"]),
     )
   })

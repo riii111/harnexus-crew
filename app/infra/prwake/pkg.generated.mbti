@@ -10,7 +10,7 @@ import {
 // Values
 pub async fn call(@environment.Env, Array[String]) -> Map[String, @json.Json] raise @failure.TaskFailed
 
-pub async fn hand_over(@environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
+pub async fn run_watch_engine(@environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
 
 // Errors
 

@@ -129,7 +129,7 @@ def observe(argv, case):
             "signal": signal,
             "stdout": stdout,
             "stderr": stderr,
-            "requests": bridge.finished_requests() if bridge else [],
+            "requests": bridge.collect_finished_requests() if bridge else [],
             "commands": read_commands(sandbox.root),
             "files": snapshot_files(sandbox.root, case.snapshot),
         }

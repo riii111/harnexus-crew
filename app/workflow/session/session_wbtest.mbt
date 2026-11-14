@@ -6,7 +6,7 @@ fn exists(path : String) -> Bool {
 ///|
 async test "a run that finds a pending record by another run stops before the app is called" {
   with_rig("s-5", [done("w1")], rig => {
-    let path = rig.launch_file()
+    let path = rig.write_launch_file()
     // Another run creates its record between this run's reading and its own writing.
     rig.before_save = (record, exclusive) => {
       if exclusive {
@@ -31,7 +31,7 @@ async test "a run that finds a pending record by another run stops before the ap
 ///|
 async test "a run whose state was written by another run in between releases its record and sends nothing" {
   with_rig("s-6", [done("w1")], rig => {
-    let path = rig.launch_file()
+    let path = rig.write_launch_file()
     rig.before_save = (record, exclusive) => {
       if exclusive {
         // The record is made, then the other run writes its state.
@@ -67,7 +67,7 @@ async test "outcomes after which the app surely did nothing release the record, 
         ),
       ],
       rig => {
-        let path = rig.launch_file()
+        let path = rig.write_launch_file()
         let message = failure_of(() => {
           ignore(launch_in(rig.context([]), launch_args(path)))
         })
@@ -88,7 +88,7 @@ async test "outcomes after which the app surely did nothing release the record, 
         ),
       ],
       rig => {
-        let path = rig.launch_file()
+        let path = rig.write_launch_file()
         let message = failure_of(() => {
           ignore(launch_in(rig.context([]), launch_args(path)))
         })
@@ -113,7 +113,7 @@ async test "outcomes after which the app surely did nothing release the record, 
 ///|
 async test "a confirmed answer that cannot be recorded keeps the record with the thread, for resolve" {
   with_rig("s-11", [done("w1")], rig => {
-    let path = rig.launch_file()
+    let path = rig.write_launch_file()
     rig.before_save = (record, exclusive) => {
       if !exclusive && record.has_suffix("/state.json") {
         @failure.fail("cannot write \{record} (EROFS)")
@@ -137,7 +137,7 @@ async test "a confirmed answer that cannot be recorded keeps the record with the
 ///|
 async test "a review refuses a changed base branch until the base is updated" {
   with_rig("s-16", [done("r1"), done("r1")], rig => {
-    let path = rig.review_file()
+    let path = rig.write_review_file()
     ignore(review_in(rig.context([]), review_args(path), rig.review_cloud()))
     rig.head.val = HEAD_2
     let other = "\{rig.root}/other.json"
@@ -188,7 +188,7 @@ async test "a review refuses a changed base branch until the base is updated" {
 async test "a review in T3 Code runs in its own project and answers through T3" {
   with_rig("s-16t", [done("t3-r1")], rig => {
     rig.checkout_path = "\{rig.root}/.t3/worktrees/ab12/repo"
-    let path = rig.review_file()
+    let path = rig.write_review_file()
     ignore(
       review_in(
         rig.context([("T3CODE_THREAD_ID", "t3-w")]),
@@ -205,7 +205,7 @@ async test "a review in T3 Code runs in its own project and answers through T3" 
     )
     assert_eq(rig.prompts, ["reviewer:T3"])
     // A worker that is not the thread this runs in is refused in T3 Code's own terms.
-    let other = rig.review_file(extra=",\"workerChatId\":\"other\"")
+    let other = rig.write_review_file(extra=",\"workerChatId\":\"other\"")
     assert_eq(
       failure_of(() => {
         ignore(
@@ -265,7 +265,7 @@ async test "a session keeps its task, worker, project and checkout" {
 ///|
 async test "the reviewer is the one that was recorded, and never the worker" {
   with_rig("s-17", [done("r1"), done("r2")], rig => {
-    let path = rig.review_file()
+    let path = rig.write_review_file()
     ignore(review_in(rig.context([]), review_args(path), rig.review_cloud()))
     rig.head.val = HEAD_2
     assert_eq(
@@ -287,7 +287,7 @@ async test "the reviewer is the one that was recorded, and never the worker" {
         ignore(
           review_in(
             rig.context([]),
-            review_args(rig.review_file()),
+            review_args(rig.write_review_file()),
             rig.review_cloud(),
           ),
         )

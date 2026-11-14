@@ -1,11 +1,11 @@
 ///|
 /// Shows the session a request file belongs to, as flat fields.
-pub async fn state_request(
+pub async fn show_request_state(
   path : String,
   env : @environment.Env,
   which~ : (String) -> String?,
 ) -> Json raise @failure.TaskFailed {
-  state_request_in(Context::of_env(env, which~), path)
+  show_request_state_in(Context::of_env(env, which~), path)
 }
 
 ///|
@@ -19,12 +19,12 @@ pub async fn resolve(
 }
 
 ///|
-async fn state_request_in(
+async fn show_request_state_in(
   ctx : Context,
   path : String,
 ) -> Json raise @failure.TaskFailed {
   @workflow.refuse_in_cloud(ctx.env, "state --request")
-  requested_session(ctx, path).show()
+  open_requested_session(ctx, path).show()
 }
 
 ///|
@@ -34,22 +34,22 @@ async fn resolve_in(
 ) -> Json raise @failure.TaskFailed {
   @workflow.refuse_in_cloud(ctx.env, "resolve")
   let thread = match @text.nonempty(args.thread_id) {
-    Some(id) => Some(@request.chat_id(id, "--thread-id"))
+    Some(id) => Some(@request.check_chat_id(id, "--thread-id"))
     None => None
   }
-  requested_session(ctx, args.request).resolve(args.sent, thread)
+  open_requested_session(ctx, args.request).resolve(args.sent, thread)
 }
 
 ///|
 /// The session of a request file, which is a launch or a review by what the file asks for.
-async fn requested_session(
+async fn open_requested_session(
   ctx : Context,
   path : String,
 ) -> Session raise @failure.TaskFailed {
-  let raw = @store.read_json(path)
+  let raw = @store.read_regular_json(path)
   if raw is Object(members) && members.contains("completionTarget") {
     let request = @request.LaunchRequest::from_json(raw, ctx.probe)
-    return launch_session(ctx.env, ctx.ports, request)
+    return open_launch_session(ctx.env, ctx.ports, request)
   }
   let request = @request.ReviewRequest::from_json(
     raw,
@@ -57,8 +57,8 @@ async fn requested_session(
     ctx.probe,
     ctx.git,
   )
-  let worker = @request.caller_id(ctx.env)
-  review_session(
+  let worker = @request.read_caller_id(ctx.env)
+  open_review_session(
     ctx.env,
     ctx.ports,
     request.with_worker_chat_id(worker),

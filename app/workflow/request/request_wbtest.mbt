@@ -29,19 +29,19 @@ fn probe() -> FileProbe {
       dirs.contains(real) || real == "/fx/doc.md"
     },
     is_directory: path => dirs.contains(resolved(path)),
-    real_path_or_self: path => resolved(path),
+    resolve_real_path_or_self: path => resolved(path),
   }
 }
 
 ///|
-fn parsed(text : String) -> Json raise {
+fn parse_json(text : String) -> Json raise {
   @jsonio.parse(text)
 }
 
 ///|
 async fn launch(text : String) -> String {
   try {
-    let request = LaunchRequest::from_json(parsed(text), probe())
+    let request = LaunchRequest::from_json(parse_json(text), probe())
     "ok " + request.to_json().stringify()
   } catch {
     @failure.TaskFailed(message) => "refused: " + message
@@ -84,7 +84,12 @@ const REVIEW : String = "{\"taskId\":\"T-1\",\"workerAI\":\"Codex\",\"projectId\
 async fn review(text : String, scope : ReviewScope, script : Script) -> String {
   try {
     let git = @git.Git::new(script.runner(), env_of([("HOME", "/h")]))
-    let request = ReviewRequest::from_json(parsed(text), scope, probe(), git)
+    let request = ReviewRequest::from_json(
+      parse_json(text),
+      scope,
+      probe(),
+      git,
+    )
     "ok " + Json::object(request.members()).stringify()
   } catch {
     @failure.TaskFailed(message) => "refused: " + message
@@ -98,7 +103,7 @@ fn toplevel(checkout : String) -> Script {
 }
 
 ///|
-async fn candidate_of(
+async fn run_candidate(
   script : Script,
   previous : Map[String, Json]?,
   update_base : Bool,
@@ -106,12 +111,12 @@ async fn candidate_of(
   try {
     let git = @git.Git::new(script.runner(), env_of([("HOME", "/h")]))
     let request = ReviewRequest::from_json(
-      parsed(REVIEW),
+      parse_json(REVIEW),
       Worktrees("/fx/wt"),
       probe(),
       git,
     )
-    let found = request.candidate(previous, update_base, git)
+    let found = request.resolve_candidate(previous, update_base, git)
     "ok base=\{found.base} head=\{found.head}"
   } catch {
     @failure.TaskFailed(message) => "refused: " + message
@@ -345,14 +350,14 @@ async test "the worker's chat ID is a string, and null reads as none" {
 ///|
 async test "a new review resolves its base from the branch" {
   let script = candidate_script({})
-  inspect(candidate_of(script, None, false), content="ok base=b1 head=h1")
+  inspect(run_candidate(script, None, false), content="ok base=b1 head=h1")
   inspect(script.seen.length(), content="5")
 }
 
 ///|
 async test "git runs without helpers or transports, in the checkout, and fetches nothing" {
   let script = candidate_script({})
-  let _ = candidate_of(script, None, false)
+  let _ = run_candidate(script, None, false)
   let argv = script.seen[0]
   inspect(
     argv.join(" "),
@@ -370,11 +375,11 @@ async test "a recorded base is kept until it is updated explicitly" {
   }
   let script = candidate_script({ "merge-base old h1": "old" })
   inspect(
-    candidate_of(script, Some(recorded), false),
+    run_candidate(script, Some(recorded), false),
     content="ok base=old head=h1",
   )
   inspect(
-    candidate_of(candidate_script({}), Some(recorded), true),
+    run_candidate(candidate_script({}), Some(recorded), true),
     content="ok base=b1 head=h1",
   )
 }
@@ -386,17 +391,17 @@ async test "a recorded candidate must agree with the request" {
     "base": Json::string("old"),
   }
   inspect(
-    candidate_of(candidate_script({}), Some(moved), false),
+    run_candidate(candidate_script({}), Some(moved), false),
     content="refused: baseBranch changed; use --update-base after integrating upstream",
   )
   let unbased : Map[String, Json] = { "baseBranch": Json::string("main") }
   inspect(
-    candidate_of(candidate_script({}), Some(unbased), false),
+    run_candidate(candidate_script({}), Some(unbased), false),
     content="refused: the recorded review candidate has no base",
   )
   let unnamed : Map[String, Json] = { "base": Json::string("old") }
   inspect(
-    candidate_of(
+    run_candidate(
       candidate_script({ "merge-base old h1": "old" }),
       Some(unnamed),
       false,
@@ -408,7 +413,7 @@ async test "a recorded candidate must agree with the request" {
 ///|
 async test "a base that is not a branch or not an ancestor is refused" {
   inspect(
-    candidate_of(
+    run_candidate(
       candidate_script({
         "rev-parse --symbolic-full-name --verify --end-of-options main": "refs/tags/main",
       }),
@@ -418,11 +423,15 @@ async test "a base that is not a branch or not an ancestor is refused" {
     content="refused: baseBranch must name a local or remote branch",
   )
   inspect(
-    candidate_of(candidate_script({ "merge-base b1 h1": "other" }), None, false),
+    run_candidate(
+      candidate_script({ "merge-base b1 h1": "other" }),
+      None,
+      false,
+    ),
     content="refused: review base must be an ancestor of head",
   )
   inspect(
-    candidate_of(
+    run_candidate(
       candidate_script({
         "rev-parse --symbolic-full-name --verify --end-of-options main": "refs/remotes/origin/main",
         "rev-parse --verify refs/remotes/origin/main^{commit}": "b1",
@@ -437,7 +446,7 @@ async test "a base that is not a branch or not an ancestor is refused" {
 ///|
 async test "a git failure is reported with its message and the no-fetch reminder" {
   inspect(
-    candidate_of(
+    run_candidate(
       Script::new({ "rev-parse --show-toplevel": "/fx/wt/ab12/repo" }),
       None,
       false,
@@ -450,12 +459,14 @@ async test "a git failure is reported with its message and the no-fetch reminder
 async test "the saved candidate holds the request and its commits" {
   let git = @git.Git::new(candidate_script({}).runner(), env_of([]))
   let request = ReviewRequest::from_json(
-    parsed(REVIEW),
+    parse_json(REVIEW),
     Worktrees("/fx/wt"),
     probe(),
     git,
   )
-  let found = request.with_worker_chat_id("w-1").candidate(None, false, git)
+  let found = request
+    .with_worker_chat_id("w-1")
+    .resolve_candidate(None, false, git)
   inspect(
     found.to_json().stringify(),
     content="{\"taskId\":\"T-1\",\"workerAI\":\"Codex\",\"checkout\":\"/fx/wt/ab12/repo\",\"baseBranch\":\"main\",\"documentRefs\":[\"https://example.com/t\"],\"prUrl\":null,\"projectId\":\"p\",\"workerChatId\":\"w-1\",\"head\":\"h1\",\"base\":\"b1\"}",
@@ -466,13 +477,15 @@ async test "the saved candidate holds the request and its commits" {
 async test "template fields come from the request and are checked again" {
   let git = @git.Git::new(candidate_script({}).runner(), env_of([]))
   let request = ReviewRequest::from_json(
-    parsed(REVIEW),
+    parse_json(REVIEW),
     Worktrees("/fx/wt"),
     probe(),
     git,
   )
-  let found = request.with_worker_chat_id("w-1").candidate(None, false, git)
-  let fields = found.reviewer_fields("Cloud", probe())
+  let found = request
+    .with_worker_chat_id("w-1")
+    .resolve_candidate(None, false, git)
+  let fields = found.build_reviewer_fields("Cloud", probe())
   let names = []
   for name, value in fields {
     names.push("\{name}=\{value}")
@@ -482,16 +495,16 @@ async test "template fields come from the request and are checked again" {
     content="task_id=T-1|document_refs=- https://example.com/t|worker_ai=Codex|reply_to=Cloud|worker_chat_id=w-1|checkout=/fx/wt/ab12/repo|pr_url=null|base=b1|head=h1",
   )
   let launched = LaunchRequest::from_json(
-    parsed(
+    parse_json(
       "{\"taskId\":\"T\",\"documentRefs\":[\"/fx/doc.md\"],\"completionTarget\":\"merge\",\"projectId\":\"p\"}",
     ),
     probe(),
   )
-  let worker = launched.worker_fields(probe())
+  let worker = launched.build_worker_fields(probe())
   inspect(worker["document_refs"], content="- /fx/doc.md")
   let gone : FileProbe = { ..probe(), path_exists: _ => false, }
   let refused = try {
-    launched.worker_fields(gone) |> ignore
+    launched.build_worker_fields(gone) |> ignore
     "accepted"
   } catch {
     @failure.TaskFailed(message) => message
@@ -512,14 +525,14 @@ test "the sample fields are what a check fills the templates with" {
 ///|
 async test "a saved session is named by project and task, or by checkout and worker chat" {
   let launched = LaunchRequest::from_json(
-    parsed(
+    parse_json(
       "{\"taskId\":\"T\",\"documentRefs\":[\"https://e.com/t\"],\"completionTarget\":\"merge\",\"projectId\":\"p\"}",
     ),
     probe(),
   )
   inspect(launched.session_key(), content="p\nT")
   let lone = LaunchRequest::from_json(
-    parsed(
+    parse_json(
       "{\"taskId\":\"T\",\"documentRefs\":[\"https://e.com/t\"],\"completionTarget\":\"merge\",\"projectId\":\"\\ud800x\"}",
     ),
     probe(),
@@ -527,7 +540,7 @@ async test "a saved session is named by project and task, or by checkout and wor
   inspect(lone.session_key(), content="\u{FFFD}x\nT")
   let git = @git.Git::new(candidate_script({}).runner(), env_of([]))
   let reviewed = ReviewRequest::from_json(
-    parsed(REVIEW),
+    parse_json(REVIEW),
     Worktrees("/fx/wt"),
     probe(),
     git,
@@ -541,10 +554,10 @@ async test "a saved session is named by project and task, or by checkout and wor
 
 ///|
 test "a chat ID is one confirmed token" {
-  inspect(chat_id("019a-b", "threadId"), content="019a-b")
+  inspect(check_chat_id("019a-b", "threadId"), content="019a-b")
   for bad in ["", "a b", "client-new-thread:1", "a\nb", " "] {
     let refused = try {
-      chat_id(bad, "threadId") |> ignore
+      check_chat_id(bad, "threadId") |> ignore
       "accepted"
     } catch {
       @failure.TaskFailed(message) => message
@@ -555,13 +568,15 @@ test "a chat ID is one confirmed token" {
 
 ///|
 test "the caller is the thread of the app the command runs in" {
-  inspect(caller_id(env_of([("CODEX_THREAD_ID", "c-1")])), content="c-1")
+  inspect(read_caller_id(env_of([("CODEX_THREAD_ID", "c-1")])), content="c-1")
   inspect(
-    caller_id(env_of([("CODEX_THREAD_ID", "c-1"), ("T3CODE_THREAD_ID", "t-1")])),
+    read_caller_id(
+      env_of([("CODEX_THREAD_ID", "c-1"), ("T3CODE_THREAD_ID", "t-1")]),
+    ),
     content="t-1",
   )
   let missing = try {
-    caller_id(env_of([("T3CODE_THREAD_ID", "")])) |> ignore
+    read_caller_id(env_of([("T3CODE_THREAD_ID", "")])) |> ignore
     "accepted"
   } catch {
     @failure.TaskFailed(message) => message
@@ -571,7 +586,7 @@ test "the caller is the thread of the app the command runs in" {
     content="CODEX_THREAD_ID is not set; run harnexus-crew from a thread",
   )
   let spaced = try {
-    caller_id(env_of([("CODEX_THREAD_ID", "a b")])) |> ignore
+    read_caller_id(env_of([("CODEX_THREAD_ID", "a b")])) |> ignore
     "accepted"
   } catch {
     @failure.TaskFailed(message) => message

@@ -6,7 +6,7 @@ fn resolve_links(
   fields : Map[String, String],
 ) -> String raise @failure.TaskFailed {
   // The layout is the one the templates were written in, so a symlinked template resolves beside its real file.
-  let folder = @path.dirname(@store.real_path_or_self(path))
+  let folder = @path.dirname(@store.resolve_real_path_or_self(path))
   let nonce = @store.new_uuid().replace_all(old="-", new="")
   let out = StringBuilder()
   let mut last = 0
@@ -35,7 +35,7 @@ fn resolve_links(
     if !@store.is_file(file) {
       @failure.fail("links to \{file}, which is not a file")
     }
-    let real = @store.real_path_or_self(file)
+    let real = @store.resolve_real_path_or_self(file)
     // A link target ends at a space or parenthesis, and Markdown reads a # as an anchor and a backslash as an escape.
     if has_unsafe_character(real) {
       @failure.fail(
@@ -74,7 +74,7 @@ fn has_unsafe_character(path : String) -> Bool {
   path
   .code_units()
   .iter()
-  .any(fn(unit) { unit == 0x28 || unit == 0x29 || unit == 0x23 || unit == 0x5C })
+  .any(fn(unit) { unit == '(' || unit == ')' || unit == '#' || unit == '\\' })
 }
 
 ///|
@@ -93,14 +93,13 @@ fn has_scheme(path : String) -> Bool {
   }
   for index in 1..<units.length() {
     let unit = units[index]
-    if unit == 0x3A {
+    if unit == ':' {
       return true
     }
-    if !(is_ascii_letter(unit) ||
-      (unit >= 0x30 && unit <= 0x39) ||
-      unit == 0x2B ||
-      unit == 0x2E ||
-      unit == 0x2D) {
+    if !(@text.is_ascii_alphanumeric(unit.to_int()) ||
+      unit == '+' ||
+      unit == '.' ||
+      unit == '-') {
       return false
     }
   }
@@ -109,5 +108,5 @@ fn has_scheme(path : String) -> Bool {
 
 ///|
 fn is_ascii_letter(unit : UInt16) -> Bool {
-  (unit >= 0x41 && unit <= 0x5A) || (unit >= 0x61 && unit <= 0x7A)
+  (unit >= 'A' && unit <= 'Z') || (unit >= 'a' && unit <= 'z')
 }

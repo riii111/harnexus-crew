@@ -9,7 +9,7 @@ from pathlib import Path
 from harness import jsonvalue
 from harness.asserts import ScenarioAsserts
 from harness.cases import REPO
-from harness.rig import observed, parsed_or_text, recorded, with_rig
+from harness.rig import observed, parsed_or_text, read_recorded, with_rig
 
 REVIEWER = "01a18d52-e03a-74c1-a50e-4e697b47172b"
 OTHER = "01a18d52-e03a-74c1-a50e-4e697b47172c"
@@ -90,14 +90,14 @@ def scenario_fields(runs, env=None, files=None, request=None):
     }
 
 
-def dead_pid():
+def make_dead_pid():
     """A process that has ended, whose ID no run is using."""
     finished = subprocess.Popen(["true"])
     finished.wait()
     return finished.pid
 
 
-def candidate(rig, message):
+def commit_candidate(rig, message):
     rig.commit(message, REPO_PATH)
 
 
@@ -105,22 +105,22 @@ def codes(steps):
     return [step["code"] for step in steps]
 
 
-def state_directories(rig):
+def list_state_directories(rig):
     base = Path(rig.sandbox.root) / "state" / "harnexus-crew" / "cloud-review"
     return sorted(base.iterdir()) if base.is_dir() else []
 
 
-def lock_held(rig):
+def wait_for_lock(rig):
     """Waits until a run holds the session's lock."""
     for _ in range(400):
-        for directory in state_directories(rig):
+        for directory in list_state_directories(rig):
             if (directory / "lock.json").exists():
                 return directory
         time.sleep(0.025)
     raise AssertionError("no run took the lock")
 
 
-def state_of(stdout):
+def read_state(stdout):
     path = Path(stdout["state"])
     return path, jsonvalue.loads(path.read_text(encoding="utf-8"))
 
@@ -141,26 +141,26 @@ def write_json(path, value):
 
 
 class CloudReviews(ScenarioAsserts, unittest.TestCase):
-    def scenario(self, name, runs, body, **options):
+    def run_scenario(self, name, runs, body, **options):
         """Runs the scenario on the Native build and checks it against what the TypeScript build did."""
         done = with_rig({"name": name, **scenario_fields(runs, **options)}, body, timeout=RUN_TIMEOUT_SECONDS)
         native = observed(done, steady=True)
-        self.assertSameJson(recorded(name, done), without_pid(native, self.dead))
+        self.assertSameJson(read_recorded(name, done), without_pid(native, self.dead))
         return native
 
     def setUp(self):
-        self.dead = dead_pid()
+        self.dead = make_dead_pid()
 
     def test_review_the_first_head_resume_the_reviewer_on_a_new_one_and_refuse_a_head_already_judged(self):
         def body(rig):
             first = rig.run(REVIEW)
             again = rig.run(REVIEW)
-            candidate(rig, "test: candidate 2")
+            commit_candidate(rig, "test: candidate 2")
             second = rig.run(REVIEW)
             third = rig.run(REVIEW)
             return [first, again, second, third]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-flow",
             [{"out": events(REVIEWER, "判定: 修正必要\n対象: …")}, {"out": events(REVIEWER, "判定: LGTM")}],
             body,
@@ -182,14 +182,14 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertEqual("2\n", files["fake/count"])
 
     def test_send_a_head_again_when_the_reviewer_could_not_judge_it_or_gave_no_verdict(self):
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-unjudged",
             [
                 {"out": events(REVIEWER, "判定: 判定保留")},
                 {"out": events(REVIEWER, "指摘は以上です")},
                 {"out": events(REVIEWER, "判定: LGTM")},
             ],
-            lambda rig: [rig.run(REVIEW), rig.run(REVIEW), rig.run(REVIEW), rig.run(REVIEW)],
+            lambda rig: [rig.run(REVIEW) for _ in range(4)],
         )
         self.assertEqual([0, 0, 0, 1], codes(native["result"]))
         self.assertEqual("3\n", native["files"]["fake/count"])
@@ -197,12 +197,12 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
     def test_leave_nothing_pending_after_a_run_that_reviewed_nothing_and_keep_the_reviewer(self):
         def body(rig):
             first = rig.run(REVIEW)
-            candidate(rig, "test: candidate 2")
+            commit_candidate(rig, "test: candidate 2")
             failed = rig.run(REVIEW)
             retried = rig.run(REVIEW)
             return [first, failed, retried]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-failed-run",
             [
                 {"out": events(REVIEWER, "判定: 修正必要")},
@@ -222,12 +222,12 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
     def test_start_a_new_reviewer_once_the_old_one_is_gone_from_the_machine(self):
         def body(rig):
             first = rig.run(REVIEW)
-            candidate(rig, "test: candidate 2")
+            commit_candidate(rig, "test: candidate 2")
             gone = rig.run(REVIEW)
             started = rig.run(REVIEW)
             return [first, gone, started]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-reviewer-gone",
             [
                 {"out": events(REVIEWER, "判定: 修正必要")},
@@ -246,7 +246,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertNotIn("resume", native["files"]["fake/args.3"])
 
     def test_hold_a_review_that_was_stopped_until_it_is_discarded_and_send_it_again(self):
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-stopped",
             [{"out": events(REVIEWER, "判定: LGTM"), "sleep": "5"}, {"out": events(REVIEWER, "判定: LGTM")}],
             lambda rig: [
@@ -269,7 +269,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             os.chmod(os.path.join(rig.sandbox.root, "loud.sh"), 0o755)
             return [rig.run(REVIEW), rig.run(REVIEW)]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-output-limit",
             [],
             body,
@@ -284,12 +284,12 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         def body(rig):
             before = rig.run(ASK)
             first = rig.run(REVIEW)
-            path, kept = state_of(parsed_or_text(first["stdout"]))
+            path, kept = read_state(parsed_or_text(first["stdout"]))
             asked = rig.run(ASK)
             self.assertEqual(kept, jsonvalue.loads(path.read_text(encoding="utf-8")))
             return [before, first, asked]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-ask",
             [
                 {"out": events(REVIEWER, "判定: 修正必要")},
@@ -323,7 +323,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
                 rig.run(ASK),
             ]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-ask-refused",
             [
                 {"out": events(REVIEWER, "判定: 修正必要")},
@@ -344,18 +344,18 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
     def test_refuse_a_second_run_while_one_holds_the_session_and_take_over_a_dead_runs_session(self):
         def body(rig):
             holder = rig.start(REVIEW)
-            directory = lock_held(rig)
+            directory = wait_for_lock(rig)
             refused = rig.run(REVIEW)
             refused_ask = rig.run(ASK)
-            finished = holder.ended()
+            finished = holder.wait_for_end()
             # A run that died leaves its lock, which the next run takes over.
             write_json(directory / "lock.json", {"pid": self.dead, "token": "gone", "startedAt": "x"})
-            candidate(rig, "test: candidate 2")
+            commit_candidate(rig, "test: candidate 2")
             taken = rig.run(REVIEW)
             lock = (directory / "lock.json").exists()
             return [refused, refused_ask, finished, taken, {"lock": lock}]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-lock",
             [{"out": events(REVIEWER, "判定: LGTM"), "sleep": "2"}, {"out": events(REVIEWER, "判定: 修正必要")}],
             body,
@@ -368,13 +368,13 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
     def test_refuse_to_take_over_a_session_while_a_takeover_died_half_way(self):
         def body(rig):
             first = rig.run(REVIEW)
-            directory = state_directories(rig)[0]
+            directory = list_state_directories(rig)[0]
             write_json(directory / "lock.json", {"pid": self.dead, "token": "gone", "startedAt": "x"})
             write_json(directory / "lock.json.reap", {"pid": self.dead})
-            candidate(rig, "test: candidate 2")
+            commit_candidate(rig, "test: candidate 2")
             return [first, rig.run(REVIEW)]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "cloud-review-takeover-died", [{"out": events(REVIEWER, "判定: LGTM")}], body
         )
         steps = native["result"]

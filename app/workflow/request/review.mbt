@@ -49,18 +49,18 @@ pub async fn ReviewRequest::from_json(
     ["prUrl", "workerChatId", "displayName"] +
     (if cloud { project } else { [] }),
   )
-  let task_id = task_id_of(members.get("taskId"))
-  let display_name = display_name_of(members.get("displayName"))
-  let document_refs = document_refs_of(members.get("documentRefs"), probe)
+  let task_id = parse_task_id(members.get("taskId"))
+  let display_name = parse_display_name(members.get("displayName"))
+  let document_refs = parse_document_refs(members.get("documentRefs"), probe)
   let project_id = match members.get("projectId") {
     None if cloud => None
-    value => Some(project_of(value, "projectId"))
+    value => Some(parse_project_id(value))
   }
-  let requested = json_single_line(members.get("checkout"), "checkout")
-  let base_branch = json_single_line(members.get("baseBranch"), "baseBranch")
-  let worker_ai = worker_ai_of(members.get("workerAI"))
-  let pr_url = pr_url_of(members.get("prUrl"))
-  let checkout = checkout_of(requested, scope, probe, git)
+  let requested = parse_single_line(members.get("checkout"), "checkout")
+  let base_branch = parse_single_line(members.get("baseBranch"), "baseBranch")
+  let worker_ai = parse_worker_ai(members.get("workerAI"))
+  let pr_url = parse_pr_url(members.get("prUrl"))
+  let checkout = resolve_checkout(requested, scope, probe, git)
   {
     task_id,
     worker_ai,
@@ -70,7 +70,7 @@ pub async fn ReviewRequest::from_json(
     document_refs,
     display_name,
     pr_url,
-    worker_chat_id: worker_chat_id_of(members.get("workerChatId")),
+    worker_chat_id: parse_worker_chat_id(members.get("workerChatId")),
   }
 }
 
@@ -94,7 +94,7 @@ pub fn ReviewRequest::session_key(
 ///|
 /// Resolves the commits of a review.
 /// `previous` is the candidate recorded for the session, if any: its base is kept unless `update_base` asks for a new one, and a changed base branch is refused then.
-pub async fn ReviewRequest::candidate(
+pub async fn ReviewRequest::resolve_candidate(
   self : ReviewRequest,
   previous : Map[String, Json]?,
   update_base : Bool,
@@ -103,7 +103,7 @@ pub async fn ReviewRequest::candidate(
   let head = git.run(self.checkout, ["rev-parse", "HEAD"])
   let base = match previous {
     Some(recorded) if !recorded.is_empty() && !update_base =>
-      recorded_base(recorded, self.base_branch)
+      read_recorded_base(recorded, self.base_branch)
     _ => resolve_base(self, git)
   }
   let merged = git.run(self.checkout, ["merge-base", base, head])
@@ -150,7 +150,7 @@ pub fn ReviewCandidate::to_json(self : ReviewCandidate) -> Json {
 }
 
 ///|
-fn worker_ai_of(value : Json?) -> WorkerAi raise @failure.TaskFailed {
+fn parse_worker_ai(value : Json?) -> WorkerAi raise @failure.TaskFailed {
   match value {
     Some(String("Claude")) => Claude
     Some(String("Codex")) => Codex
@@ -159,7 +159,7 @@ fn worker_ai_of(value : Json?) -> WorkerAi raise @failure.TaskFailed {
 }
 
 ///|
-fn worker_chat_id_of(value : Json?) -> String? raise @failure.TaskFailed {
+fn parse_worker_chat_id(value : Json?) -> String? raise @failure.TaskFailed {
   match value {
     None | Some(Null) => None
     Some(String(id)) => Some(id)
@@ -168,7 +168,7 @@ fn worker_chat_id_of(value : Json?) -> String? raise @failure.TaskFailed {
 }
 
 ///|
-fn pr_url_of(value : Json?) -> String? raise @failure.TaskFailed {
+fn parse_pr_url(value : Json?) -> String? raise @failure.TaskFailed {
   match value {
     None | Some(Null) => None
     Some(String(url)) if is_pull_request_url(url) => Some(url)
@@ -177,18 +177,18 @@ fn pr_url_of(value : Json?) -> String? raise @failure.TaskFailed {
 }
 
 ///|
-async fn checkout_of(
+async fn resolve_checkout(
   requested : String,
   scope : ReviewScope,
   probe : FileProbe,
   git : @git.Git,
 ) -> String raise @failure.TaskFailed {
-  let checkout = (probe.real_path_or_self)(requested)
+  let checkout = (probe.resolve_real_path_or_self)(requested)
   let (refused, in_place) = match scope {
     Cloud =>
       ("checkout must be the absolute path of a repository's top level", true)
     Worktrees(folder) => {
-      let root = (probe.real_path_or_self)(folder)
+      let root = (probe.resolve_real_path_or_self)(folder)
       (
         "checkout must be the top level of a worker worktree \{root}/<id>/<name>",
         @path.dirname(@path.dirname(checkout)) == root,
@@ -206,7 +206,7 @@ async fn checkout_of(
 }
 
 ///|
-fn recorded_base(
+fn read_recorded_base(
   recorded : Map[String, Json],
   base_branch : String,
 ) -> String raise @failure.TaskFailed {

@@ -1,8 +1,8 @@
 ///|
-const OPEN : UInt16 = 0x7B
+const OPEN : UInt16 = '{'
 
 ///|
-const CLOSE : UInt16 = 0x7D
+const CLOSE : UInt16 = '}'
 
 ///|
 /// An unknown name or a single brace fails.

@@ -9,9 +9,9 @@ pub async fn open_chat(
     env, "cloud", "Open a Cloud session from the Codex App instead",
   )
   if args.project is Some(project) {
-    ignore(@request.single_line(project, "--project"))
+    ignore(@request.check_single_line(project, "--project"))
   }
-  let caller = @request.caller_id(env)
+  let caller = @request.read_caller_id(env)
   let prompt = match args.prompt_file {
     None => None
     Some(path) => {
