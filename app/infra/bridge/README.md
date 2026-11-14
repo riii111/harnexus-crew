@@ -7,13 +7,13 @@ Codex AppのブリッジとT3 Codeの `t3` CLIへ、タスクの操作を送る�
 | 公開する関数・型                                                |
 | --------------------------------------------------------------- |
 | `call_app(env, caller, tool, args, timeout_ms?)`                |
-| `call_t3_in(env, tool, args, which~)`                            |
-| `project_at(result, directory)`                                 |
+| `call_t3(env, tool, args, which~)`                              |
+| `find_project_id(result, directory)`                            |
 | `CallAnswer`、`CallOutcome`                                    |
 
 ソケットのパスとApp/T3の判定は `infra/environment` を使う。
 呼び出し元のチャットIDはworkflowが渡す。
-`call_app` と `call_t3_in` は失敗を例外にせず、結果の種類を `CallAnswer` に入れて返す。
+`call_app` と `call_t3` は失敗を例外にせず、結果の種類を `CallAnswer` に入れて返す。
 
 ## 契約
 

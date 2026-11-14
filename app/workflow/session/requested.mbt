@@ -46,7 +46,7 @@ async fn requested_session(
   ctx : Context,
   path : String,
 ) -> Session raise @failure.TaskFailed {
-  let raw = @store.read_json(path)
+  let raw = @store.read_regular_json(path)
   if raw is Object(members) && members.contains("completionTarget") {
     let request = @request.LaunchRequest::from_json(raw, ctx.probe)
     return launch_session(ctx.env, ctx.ports, request)

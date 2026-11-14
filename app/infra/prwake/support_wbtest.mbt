@@ -40,7 +40,7 @@ fn write_file(path : String, text : String) -> Unit {
 /// A directory holding stand-ins for pr-wake and its engine, and the files they record into.
 struct Rig {
   root : String
-  fake : String
+  fake_dir : String
   bin : String
 }
 
@@ -57,9 +57,9 @@ async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
   }
   // The engine is looked up beside the resolved pr-wake, so the root is resolved first.
   let root = @store.real_path_or_self(made)
-  let rig = { root, fake: "\{root}/fake", bin: "\{root}/bin", }
+  let rig = { root, fake_dir: "\{root}/fake", bin: "\{root}/bin", }
   errdefer @async.protect_from_cancel(() => shell("rm", ["-rf", root]))
-  for directory in [rig.fake, rig.bin] {
+  for directory in [rig.fake_dir, rig.bin] {
     @store.prepare_directory(directory) catch {
       failed => abort(failed.user_message())
     }
@@ -82,13 +82,13 @@ fn Rig::plan(
   stderr? : String,
   sleep? : String,
 ) -> Unit {
-  write_file("\{self.fake}/\{name}.out.\{run}", out)
-  write_file("\{self.fake}/\{name}.exit.\{run}", exit.to_string())
+  write_file("\{self.fake_dir}/\{name}.out.\{run}", out)
+  write_file("\{self.fake_dir}/\{name}.exit.\{run}", exit.to_string())
   if stderr is Some(text) {
-    write_file("\{self.fake}/\{name}.stderr.\{run}", text)
+    write_file("\{self.fake_dir}/\{name}.stderr.\{run}", text)
   }
   if sleep is Some(seconds) {
-    write_file("\{self.fake}/\{name}.sleep.\{run}", seconds)
+    write_file("\{self.fake_dir}/\{name}.sleep.\{run}", seconds)
   }
 }
 
@@ -99,7 +99,9 @@ fn Rig::recorded(
   what : String,
   run : Int32,
 ) -> String {
-  let found = @store.read_text_if_exists("\{self.fake}/\{name}.\{what}.\{run}") catch {
+  let found = @store.read_text_if_exists(
+    "\{self.fake_dir}/\{name}.\{what}.\{run}",
+  ) catch {
     failed => abort(failed.user_message())
   }
   found.unwrap_or("")
@@ -119,7 +121,7 @@ fn Rig::args(self : Rig, name : String, run : Int32) -> String {
 fn Rig::env(self : Rig, extra : Array[(String, String)]) -> @environment.Env {
   let vars = Map([])
   vars["PATH"] = "\{self.bin}:/usr/bin:/bin"
-  vars["FAKE_DIR"] = self.fake
+  vars["FAKE_DIR"] = self.fake_dir
   vars["HOME"] = self.root
   for pair in extra {
     let (name, value) = pair

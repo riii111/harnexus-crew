@@ -266,7 +266,7 @@ fn Rig::runs(self : Rig) -> Int32 {
 
 ///|
 fn read_state(path : String) -> Json {
-  @store.load(path) catch {
+  @store.read_json_or_null(path) catch {
     failed => abort(failed.message())
   }
 }

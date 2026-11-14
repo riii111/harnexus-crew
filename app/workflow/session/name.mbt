@@ -97,7 +97,7 @@ fn launch_of_thread(
       continue
     }
     // Another task's unreadable state is skipped, so it cannot stop every worker from finding its own.
-    let state = @store.load(@path.join([directory, "state.json"])) catch {
+    let state = @store.read_json_or_null(@path.join([directory, "state.json"])) catch {
       _ => Json::null()
     }
     if state is Object(members) &&

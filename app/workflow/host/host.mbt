@@ -55,7 +55,7 @@ fn t3_host(
 ) -> Host {
   {
     thread_variable: @environment.thread_variable(app),
-    call: (_, tool, args) => @bridge.call_t3_in(env, tool, args, which~),
+    call: (_, tool, args) => @bridge.call_t3(env, tool, args, which~),
     // The t3 CLI takes a folder for its project, and says so when no project holds it.
     review_project: _ => review_home(env),
     // T3 Code keeps a worktree at <repository name>/<branch> under its own folder.
@@ -78,7 +78,8 @@ async fn codex_review_project(
   if answer.outcome != "done" {
     @failure.fail("list_projects failed: \{answer.to_json().stringify()}")
   }
-  if @bridge.project_at(answer.fields.get("result"), home) is Some(project_id) {
+  if @bridge.find_project_id(answer.fields.get("result"), home)
+    is Some(project_id) {
     return project_id
   }
   @failure.fail(

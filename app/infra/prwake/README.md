@@ -3,7 +3,7 @@
 PRの監視をpr-wakeへ渡す層。
 監視の常駐処理、LaunchAgent、pr-wakeの保存状態には触れない。
 
-公開する関数は `call(env, args)` と `hand_over(env, which~)`。
+公開する関数は `call(env, args)` と `run_watch_engine(env, which~)`。
 `watch` の操作選択とPR URLの判定は `app/workflow/watch` が持つ。
 
 `call` は `session` の `name` が `["link", pr, "--take-over"]` で使う。

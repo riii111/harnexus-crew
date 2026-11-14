@@ -123,7 +123,9 @@ pub fn Detected::undetermined() -> Detected {
 
 ///|
 /// None when the variables declare nothing.
-pub fn declared_environment(env : Env) -> Detected? raise @failure.TaskFailed {
+pub fn parse_declared_environment(
+  env : Env,
+) -> Detected? raise @failure.TaskFailed {
   match env.get_nonempty(EXECUTION_VARIABLE) {
     Some("cloud") =>
       Some({
@@ -175,7 +177,7 @@ pub enum Detection {
 /// AskSocket   : Carries the call socket whose acceptance of a connection makes the answer local.
 /// NothingToAsk: The socket setting names no usable path.
 pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
-  match declared_environment(env) {
+  match parse_declared_environment(env) {
     Some(declared) => return Settled(declared)
     None => ()
   }
@@ -188,7 +190,7 @@ pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
     })
   }
   // A missing variable proves nothing, so local is claimed only once the socket answers.
-  AskSocket(call_socket_path(env)) catch {
+  AskSocket(resolve_call_socket_path(env)) catch {
     @failure.TaskFailed(_) => NothingToAsk
   }
 }

@@ -246,7 +246,7 @@ async fn read_request(
   ctx : Context,
   path : String,
 ) -> @request.ReviewRequest raise @failure.TaskFailed {
-  let json = @store.read_json(path)
+  let json = @store.read_regular_json(path)
   @request.ReviewRequest::from_json(json, Cloud, ctx.probe, ctx.git)
 }
 

@@ -15,7 +15,7 @@ async fn launch_in(
 ) -> Json raise @failure.TaskFailed {
   @workflow.refuse_in_cloud(ctx.env, "launch")
   let request = @request.LaunchRequest::from_json(
-    @store.read_json(args.request),
+    @store.read_regular_json(args.request),
     ctx.probe,
   )
   let data = request.to_json()

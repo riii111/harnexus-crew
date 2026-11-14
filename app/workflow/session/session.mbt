@@ -78,7 +78,7 @@ async fn Session::send(
   }
   // To prevent resending an operation whose answer was lost, create its pending record exclusively before sending.
   (self.ports.save)(self.pending_path, Json::object(record), true)
-  if @store.load(self.state_path) != self.loaded {
+  if @store.read_json_or_null(self.state_path) != self.loaded {
     @store.remove_record(self.pending_path)
     @failure.fail(
       "another \{@environment.NAME} run changed the state; rerun to check it",
@@ -156,7 +156,7 @@ fn Session::resolve(
   }
   if !sent {
     if value_of(pending, "status") is String("refused") {
-      let history = @store.load(self.history_path)
+      let history = @store.read_json_or_null(self.history_path)
       let kept = match history {
         Array(items) => items.copy()
         _ => []
@@ -248,7 +248,7 @@ fn Session::confirm(
 ///|
 /// The session as flat fields, with null for anything unknown, so a reader never has to guess where a value is nested.
 fn Session::show(self : Session) -> Json raise @failure.TaskFailed {
-  let refused = @store.load(self.history_path)
+  let refused = @store.read_json_or_null(self.history_path)
   let state = state_json(self.state)
   let sent = @jsonio.field(state, "sent")
   // A state saved before settings were kept still holds them in its create.

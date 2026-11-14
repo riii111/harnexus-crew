@@ -31,5 +31,5 @@ pub async fn watch(
     }
     return Json::object(@prwake.call(env, argv))
   }
-  @prwake.hand_over(env, which~)
+  @prwake.run_watch_engine(env, which~)
 }

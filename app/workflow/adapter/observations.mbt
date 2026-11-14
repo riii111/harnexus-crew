@@ -58,7 +58,7 @@ fn Observations::position(
     @failure.fail("\{session_id} is not a Cloud session id")
   }
   let path = self.session_path(session_id)
-  let loaded = @store.load(path)
+  let loaded = @store.read_json_or_null(path)
   if loaded is Null {
     return None
   }
@@ -86,7 +86,7 @@ fn Observations::opening(
   reviewer : String,
 ) -> Opening? raise @failure.TaskFailed {
   let path = self.opening_path(reviewer)
-  let loaded = @store.load(path)
+  let loaded = @store.read_json_or_null(path)
   if loaded is Null {
     return None
   }
@@ -129,7 +129,7 @@ fn Observations::pending(
   self : Observations,
 ) -> Array[PendingReview] raise @failure.TaskFailed {
   let path = self.pending_path()
-  let loaded = @store.load(path)
+  let loaded = @store.read_json_or_null(path)
   if loaded is Null {
     return []
   }

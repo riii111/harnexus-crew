@@ -11,15 +11,15 @@ pub const NAME : String = "harnexus-crew"
 
 pub fn app_of(Env) -> App
 
-pub fn caller_socket(Env) -> String? raise @failure.TaskFailed
-
-pub fn declared_environment(Env) -> Detected? raise @failure.TaskFailed
-
 pub fn detect(Env) -> Detection raise @failure.TaskFailed
 
-pub fn harnexus_state_path(Env) -> String raise @failure.TaskFailed
+pub fn parse_declared_environment(Env) -> Detected? raise @failure.TaskFailed
 
-pub fn process_env() -> Env
+pub fn read_process_env() -> Env
+
+pub fn resolve_caller_socket(Env) -> String? raise @failure.TaskFailed
+
+pub fn resolve_harnexus_state_path(Env) -> String raise @failure.TaskFailed
 
 pub fn thread_variable(App) -> String
 

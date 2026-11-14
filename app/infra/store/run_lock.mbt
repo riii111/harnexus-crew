@@ -18,14 +18,14 @@ pub fn acquire(
       ("token", Json::string(token)),
       ("startedAt", Json::string(now_iso())),
     ])
-    let created = io(() => {
+    let created = lift_file_failure(() => {
       write_exclusive(lock, Json::object(content).stringify())
     })
     if created {
       return token
     }
-    let held = held_by(lock)
-    guard held is Some(current) && dead(current) else {
+    let held = read_holder(lock)
+    guard held is Some(current) && is_dead_holder(current) else {
       let pid = match held {
         Some({ "pid": Number(pid, ..), .. }) =>
           " (pid \{Json::number(pid).stringify()})"
@@ -44,7 +44,7 @@ pub fn acquire(
 /// Releases the lock only if it is still the one `token` took, so a lock another run holds now stays.
 /// A lock that cannot be removed is left; the caller has nothing to do about it.
 pub fn release(lock : String, token : String) -> Unit {
-  guard held_by(lock) is Some(current) else { return }
+  guard read_holder(lock) is Some(current) else { return }
   guard current.get("token") is Some(String(held)) && held == token else {
     return
   }
@@ -63,7 +63,7 @@ pub async fn[T] with_lock(
   work : async () -> T raise @failure.TaskFailed,
   wait_ms~ : Int32 = WAIT_MS,
 ) -> T raise @failure.TaskFailed {
-  io(() => prepare_directory(directory))
+  lift_file_failure(() => prepare_directory(directory))
   let path = "\{directory}/\{name}.lock"
   let until = @async.now() + wait_ms.to_int64()
   while true {
@@ -89,46 +89,44 @@ fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
   let takeover = "\{lock}.reap"
   let pid = Json::number(current_pid().to_double())
   let marker = Json::object({ "pid": pid }).stringify()
-  let made = io(() => write_exclusive(takeover, marker))
+  let made = lift_file_failure(() => write_exclusive(takeover, marker))
   if !made {
     // Only the run that made the marker removes it: a second run deleting a dead marker could delete one made since, and two runs would then hold the lock.
-    if held_by(takeover) is Some(owner) && dead(owner) {
+    if read_holder(takeover) is Some(owner) && is_dead_holder(owner) {
       @failure.fail(abandoned_takeover(lock, takeover))
     }
     return false
   }
-  let same = match held_by(lock) {
-    Some(now) => now.get("token") == observed && dead(now)
+  let reclaimable = match read_holder(lock) {
+    Some(now) => now.get("token") == observed && is_dead_holder(now)
     None => false
   }
-  let removal = try {
-    if same {
-      io(() => remove_file(lock))
-    }
+  let lock_failure = if reclaimable { removal_failure(lock) } else { None }
+  let takeover_failure = removal_failure(takeover)
+  if lock_failure is Some(failed) {
+    raise failed
+  }
+  if takeover_failure is Some(failed) {
+    raise failed
+  }
+  reclaimable
+}
+
+///|
+fn removal_failure(path : String) -> @failure.TaskFailed? {
+  try {
+    lift_file_failure(() => remove_file(path))
     None
   } catch {
     failed => Some(failed)
   }
-  let release_failure = try {
-    io(() => remove_file(takeover))
-    None
-  } catch {
-    failed => Some(failed)
-  }
-  if removal is Some(failed) {
-    raise failed
-  }
-  if release_failure is Some(failed) {
-    raise failed
-  }
-  same
 }
 
 ///|
 /// Read the lock holder, returning None when its record cannot be read.
-fn held_by(path : String) -> Map[String, Json]? {
+fn read_holder(path : String) -> Map[String, Json]? {
   try {
-    match load(path) {
+    match read_json_or_null(path) {
       Object(members) => Some(members)
       _ => None
     }
@@ -138,9 +136,9 @@ fn held_by(path : String) -> Map[String, Json]? {
 }
 
 ///|
-fn dead(holder : Map[String, Json]) -> Bool {
+fn is_dead_holder(holder : Map[String, Json]) -> Bool {
   match holder.get("pid") {
-    Some(Number(pid, ..)) => !process_alive(pid)
+    Some(Number(pid, ..)) => !is_process_alive(pid)
     _ => false
   }
 }

@@ -1,7 +1,7 @@
 ///|
 struct Fake {
   root : String
-  fake : String
+  fake_dir : String
   bin : String
 }
 
@@ -13,12 +13,12 @@ fn mock_bin() -> String {
 ///|
 async fn with_fake(name : String, body : async (Fake) -> Unit) -> Unit {
   let root = scratch(name)
-  let fake = "\{root}/fake"
-  @store.prepare_directory(fake) catch {
+  let fake_dir = "\{root}/fake"
+  @store.prepare_directory(fake_dir) catch {
     failed => abort(failed.user_message())
   }
   errdefer @async.protect_from_cancel(() => remove_tree(root))
-  body({ root, fake, bin: mock_bin(), })
+  body({ root, fake_dir, bin: mock_bin(), })
   remove_tree(root)
 }
 
@@ -31,13 +31,13 @@ fn Fake::plan(
   stderr? : String,
   sleep? : String,
 ) -> Unit {
-  write_file("\{self.fake}/out.\{run}", out)
-  write_file("\{self.fake}/exit.\{run}", exit.to_string())
+  write_file("\{self.fake_dir}/out.\{run}", out)
+  write_file("\{self.fake_dir}/exit.\{run}", exit.to_string())
   if stderr is Some(text) {
-    write_file("\{self.fake}/stderr.\{run}", text)
+    write_file("\{self.fake_dir}/stderr.\{run}", text)
   }
   if sleep is Some(seconds) {
-    write_file("\{self.fake}/sleep.\{run}", seconds)
+    write_file("\{self.fake_dir}/sleep.\{run}", seconds)
   }
 }
 
@@ -50,7 +50,7 @@ fn write_file(path : String, text : String) -> Unit {
 
 ///|
 fn Fake::recorded(self : Fake, name : String, run : Int32) -> String {
-  let found = @store.read_text_if_exists("\{self.fake}/\{name}.\{run}") catch {
+  let found = @store.read_text_if_exists("\{self.fake_dir}/\{name}.\{run}") catch {
     failed => abort(failed.user_message())
   }
   found.unwrap_or("")
@@ -68,7 +68,7 @@ fn Fake::args(self : Fake, run : Int32) -> Array[String] {
 ///|
 /// Whether t3 was run at all.
 fn Fake::ran(self : Fake) -> Bool {
-  @store.path_exists("\{self.fake}/count")
+  @store.path_exists("\{self.fake_dir}/count")
 }
 
 ///|
@@ -76,7 +76,7 @@ fn Fake::deps(self : Fake) -> T3Deps {
   {
     env: env_of([
       ("HARNEXUS_T3_BIN", self.bin),
-      ("FAKE_DIR", self.fake),
+      ("FAKE_DIR", self.fake_dir),
       ("HOME", self.root),
       ("PATH", "/usr/bin:/bin"),
     ]),
@@ -90,7 +90,7 @@ async fn t3_json(
   tool : String,
   args : Map[String, Json],
 ) -> String {
-  json_text(call_t3(deps, tool, args).to_json())
+  json_text(dispatch_tool(deps, tool, args).to_json())
 }
 
 ///|
@@ -385,7 +385,7 @@ async test "the t3 CLI is found on PATH first and then in T3 Code's own folder" 
       let on_path = {
         env: env_of([
           ("HARNEXUS_T3_BIN", ""),
-          ("FAKE_DIR", fake.fake),
+          ("FAKE_DIR", fake.fake_dir),
           ("HOME", fake.root),
           ("PATH", "/usr/bin:/bin"),
         ]),

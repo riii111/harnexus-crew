@@ -7,7 +7,7 @@ let owned_kinds : Array[String] = ["cloud-review", "launch", "review"]
 pub fn state_command(env : @environment.Env) -> Json raise @failure.TaskFailed {
   let listed : Array[(String, Json)] = []
   for path in state_paths(env.state_root()) {
-    listed.push((path, @store.load(path)))
+    listed.push((path, @store.read_json_or_null(path)))
   }
   Json::object(Map::from_array(listed))
 }

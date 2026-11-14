@@ -35,17 +35,17 @@ const NO_THINKING : String = "T3 Code's t3 CLI cannot set a thinking level; leav
 const DEFAULT_WORKTREE_BASE : String = "HEAD"
 
 ///|
-pub async fn call_t3_in(
+pub async fn call_t3(
   env : @environment.Env,
   tool : String,
   args : Map[String, Json],
   which~ : (String) -> String?,
 ) -> CallAnswer noraise {
-  call_t3({ env, which, }, tool, args)
+  dispatch_tool({ env, which, }, tool, args)
 }
 
 ///|
-async fn call_t3(
+async fn dispatch_tool(
   deps : T3Deps,
   tool : String,
   args : Map[String, Json],
@@ -93,7 +93,7 @@ async fn start_thread(
     Ran(stdout) => stdout
     Refused(answer) => return answer
   }
-  guard printed(stdout) is Some(started) &&
+  guard printed_object_of(stdout) is Some(started) &&
     started.get("threadId") is Some(String(thread_id)) else {
     return unknown(
       "t3 thread start answered without a thread: \{@text.excerpt(stdout)}",
@@ -101,7 +101,7 @@ async fn start_thread(
   }
   CallAnswer::new(Done, [
     ("threadId", Json::string(thread_id)),
-    ("model", model_of(deps, thread_id)),
+    ("model", show_thread_model(deps, thread_id)),
     ("effort", Json::null()),
   ])
 }
@@ -138,10 +138,10 @@ async fn send_message(
 
 ///|
 /// The model the thread runs on as T3 Code reports it, or null when it cannot tell.
-async fn model_of(deps : T3Deps, thread_id : String) -> Json noraise {
+async fn show_thread_model(deps : T3Deps, thread_id : String) -> Json noraise {
   let argv = ["thread", "show", thread_id, "--messages", "0", "--json"]
   guard run_t3(deps, argv, "", SHOW_TIMEOUT_MS) is Ran(stdout) &&
-    printed(stdout) is Some(shown) &&
+    printed_object_of(stdout) is Some(shown) &&
     object_of(shown.get("thread")).get("model") is Some(String(_) as model) else {
     return Json::null()
   }
@@ -155,7 +155,7 @@ async fn run_t3(
   input : String,
   timeout_ms : Int32,
 ) -> Ran noraise {
-  let path = match binary(deps) {
+  let path = match resolve_binary(deps) {
     Ok(path) => path
     Err(message) => return Refused(not_sent(message))
   }
@@ -227,7 +227,7 @@ let before_sending : Array[(Array[String], String?)] = [
 ]
 
 ///|
-fn binary(deps : T3Deps) -> Result[String, String] {
+fn resolve_binary(deps : T3Deps) -> Result[String, String] {
   match deps.env.get(BIN_VARIABLE) {
     Some(set) if set != "" =>
       if set.has_prefix("/") {
@@ -268,7 +268,7 @@ fn provider_of(model : String) -> String {
 
 ///|
 /// The one JSON object a --json command prints, on its last line.
-fn printed(stdout : String) -> Map[String, Json]? {
+fn printed_object_of(stdout : String) -> Map[String, Json]? {
   let trimmed = @text.js_trim(stdout)
   let last = match trimmed.rev_find("\n") {
     Some(at) => trimmed[at + 1:].to_owned()

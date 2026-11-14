@@ -799,7 +799,7 @@ async fn Adapter::open_chat(
 
 ///|
 fn Adapter::review_project(self : Adapter, result : Json?) -> String? {
-  @bridge.project_at(result, self.deps.review_home)
+  @bridge.find_project_id(result, self.deps.review_home)
 }
 
 ///|

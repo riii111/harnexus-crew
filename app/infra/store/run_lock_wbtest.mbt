@@ -14,7 +14,7 @@ fn write_lock(lock : String, pid : Double, token : String) -> Unit raise {
 
 ///|
 fn token_of(lock : String) -> String raise {
-  match load(lock) {
+  match read_json_or_null(lock) {
     Object(members) =>
       match members.get("token") {
         Some(String(token)) => token
@@ -29,7 +29,7 @@ test "acquire writes the pid, token and start time of the holder" {
   in_scratch(directory => {
     let lock = lock_in(directory)
     let token = acquire(lock, "review")
-    match load(lock) {
+    match read_json_or_null(lock) {
       Object(members) => {
         assert_eq(
           members.get("pid"),

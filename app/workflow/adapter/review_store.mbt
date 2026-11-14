@@ -274,7 +274,7 @@ fn reviews_directory(
 ) -> String raise @failure.TaskFailed {
   // To share records with harnexus, keep them beside its state file.
   @path.join([
-    @path.dirname(@environment.harnexus_state_path(env)),
+    @path.dirname(@environment.resolve_harnexus_state_path(env)),
     "cloud-reviews",
   ])
 }

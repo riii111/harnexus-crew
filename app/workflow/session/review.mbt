@@ -31,7 +31,7 @@ async fn review_in(
   args : @workflow.ReviewInput,
   cloud : async (@workflow.ReviewInput) -> Json raise @failure.TaskFailed,
 ) -> Json raise @failure.TaskFailed {
-  if @environment.declared_environment(ctx.env)
+  if @environment.parse_declared_environment(ctx.env)
     is Some({ environment: Cloud, runner: InCloud(Some(ClaudeCloud)), }) {
     return cloud(args)
   }
@@ -123,7 +123,7 @@ async fn review_request_of(
   path : String,
 ) -> @request.ReviewRequest raise @failure.TaskFailed {
   @request.ReviewRequest::from_json(
-    @store.read_json(path),
+    @store.read_regular_json(path),
     Worktrees(ctx.host.worktrees),
     ctx.probe,
     ctx.git,
