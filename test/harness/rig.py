@@ -170,3 +170,17 @@ def wait_for(ready, what):
         if time.monotonic() - started > RUN_TIMEOUT_SECONDS:
             raise TimeoutError(f"timed out waiting for {what}")
         time.sleep(0.005)
+
+
+def codes(steps):
+    return [step["code"] for step in steps]
+
+
+def candidate_repository(path):
+    """The git commands that make a repository with a `base` branch and one commit past it."""
+    return [
+        ["init", "-q", path],
+        ["-C", path, "commit", "--allow-empty", "-qm", "test: initial"],
+        ["-C", path, "branch", "base"],
+        ["-C", path, "commit", "--allow-empty", "-qm", "test: candidate 1"],
+    ]
