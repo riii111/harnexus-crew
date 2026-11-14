@@ -11,7 +11,8 @@ import {
 
 import {
   "moonbitlang/core/async",
-  "moonbitlang/core/env",
+  "moonbitlang/core/async/fs",
+  "riii111/harnexus-crew/app/testkit" @app_testkit,
   "riii111/harnexus-crew/share/os/testkit",
 } for "wbtest"
 
