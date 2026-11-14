@@ -37,9 +37,9 @@ pub fn links(
 ) -> Array[Candidate] raise @failure.TaskFailed {
   let candidates = candidates_of(template)
   // Each whole target is swapped for a bare marker, so a target with spaces or brackets still counts here and is refused by the caller rather than slipping through.
-  let marked = with_markers(template, candidates, nonce)
+  let marked = replace_with_markers(template, candidates, nonce)
   // A comment spanning blocks would be split by the parser, so its text is blanked first, keeping the lines.
-  let seen = destinations(blank_comments(marked))
+  let seen = find_destinations(blank_comments(marked))
   let found = []
   for candidate in candidates {
     if seen.contains(marker_of(nonce, candidate.index)) {
@@ -83,7 +83,7 @@ fn candidates_of(template : String) -> Array[Candidate] {
 }
 
 ///|
-fn with_markers(
+fn replace_with_markers(
   template : String,
   candidates : Array[Candidate],
   nonce : String,
@@ -100,7 +100,7 @@ fn with_markers(
 }
 
 ///|
-fn destinations(
+fn find_destinations(
   text : String,
 ) -> @hashset.HashSet[String] raise @failure.TaskFailed {
   let bytes = @utf8.encode(text)
@@ -122,7 +122,7 @@ fn read_destinations(
   let found = @hashset.HashSet([])
   let mut at = 1
   while at < reply.length() {
-    let size = length_at(reply, at + 1)
+    let size = decode_length(reply, at + 1)
     let start = at + 5
     if start + size > reply.length() {
       @failure.fail("the Markdown parser (md4c) returned a truncated record")
@@ -166,17 +166,17 @@ fn marker_of(nonce : String, index : Int32) -> String {
 
 ///|
 fn is_comment_open(units : ArrayView[UInt16], at : Int32) -> Bool {
-  units[at] == 0x3C &&
-  units[at + 1] == 0x21 &&
-  units[at + 2] == 0x2D &&
-  units[at + 3] == 0x2D
+  units[at] == '<' &&
+  units[at + 1] == '!' &&
+  units[at + 2] == '-' &&
+  units[at + 3] == '-'
 }
 
 ///|
 fn find_comment_close(units : ArrayView[UInt16], from : Int32) -> Int32 {
   let mut at = from
   while at + 2 < units.length() {
-    if units[at] == 0x2D && units[at + 1] == 0x2D && units[at + 2] == 0x3E {
+    if units[at] == '-' && units[at + 1] == '-' && units[at + 2] == '>' {
       return at
     }
     at += 1
@@ -185,7 +185,7 @@ fn find_comment_close(units : ArrayView[UInt16], from : Int32) -> Int32 {
 }
 
 ///|
-fn length_at(reply : Bytes, at : Int32) -> Int32 {
+fn decode_length(reply : Bytes, at : Int32) -> Int32 {
   reply[at].to_int() |
   (reply[at + 1].to_int() << 8) |
   (reply[at + 2].to_int() << 16) |

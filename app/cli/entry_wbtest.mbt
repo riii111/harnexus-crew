@@ -23,11 +23,11 @@ async test "usage is checked before anything is read from the environment" {
 ///|
 async test "an error nothing expected is reported as a crash with where to report it" {
   let crashing : () -> @environment.Env raise = () => raise Unexpected
-  let run = run(["environment"][:], crashing)
-  assert_eq(run.code, 1)
-  assert_eq(run.stdout, "")
+  let result = run(["environment"][:], crashing)
+  assert_eq(result.code, 1)
+  assert_eq(result.stdout, "")
   inspect(
-    run.stderr,
+    result.stderr,
     content=(
       #|harnexus-crew: unexpected failure: riii111/harnexus-crew/app/cli.Unexpected.Unexpected
       #|To report a bug, open an issue at https://github.com/riii111/taskctl/issues with the command you ran and its output.
@@ -38,20 +38,20 @@ async test "an error nothing expected is reported as a crash with where to repor
 
 ///|
 async test "environment needs no home when the declaration settles it" {
-  let run = run(
+  let result = run(
     ["environment"][:],
     homeless_env([("HARNEXUS_EXECUTION_ENV", "local")]),
   )
-  assert_eq(run.code, 0)
-  assert_true(run.stdout.contains("\"source\":\"explicit\""))
+  assert_eq(result.code, 0)
+  assert_true(result.stdout.contains("\"source\":\"explicit\""))
 }
 
 ///|
 async test "a command that needs the home fails when HOME is not set" {
   for argv in [["environment"], ["state"], ["adapter", "serve", "--id", "a"]] {
-    let run = run(argv[:], homeless_env([]))
-    assert_eq(run.code, 1)
-    assert_eq(run.stderr, "harnexus-crew: HOME is not set\n")
+    let result = run(argv[:], homeless_env([]))
+    assert_eq(result.code, 1)
+    assert_eq(result.stderr, "harnexus-crew: HOME is not set\n")
   }
 }
 
