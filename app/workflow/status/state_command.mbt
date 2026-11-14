@@ -6,30 +6,20 @@ let owned_kinds : Array[String] = ["cloud-review", "launch", "review"]
 /// Every state file of the owned kinds, by path.
 pub fn state_command(env : @environment.Env) -> Json raise @failure.TaskFailed {
   let listed : Array[(String, Json)] = []
-  for path in state_paths(env.state_root()) {
+  for path in list_state_paths(env.state_root()) {
     listed.push((path, @store.load(path)))
   }
   Json::object(Map::from_array(listed))
 }
 
 ///|
-fn state_paths(root : String) -> Array[String] raise @failure.TaskFailed {
+fn list_state_paths(root : String) -> Array[String] raise @failure.TaskFailed {
   let paths : Array[String] = []
-  if @store.is_directory(root) {
-    for kind in owned_kinds {
-      let kind_path = @path.join([root, kind])
-      if !@store.is_directory(kind_path) {
-        continue
-      }
-      for key in names_in(kind_path) {
-        let key_path = @path.join([kind_path, key])
-        if !@store.is_directory(key_path) {
-          continue
-        }
-        for name in names_in(key_path) {
-          if name.has_suffix(".json") {
-            paths.push(@path.join([key_path, name]))
-          }
+  for kind in owned_kinds {
+    for key_path in list_subdirectories(@path.join([root, kind])) {
+      for name in list_names(key_path) {
+        if name.has_suffix(".json") {
+          paths.push(@path.join([key_path, name]))
         }
       }
     }
@@ -39,7 +29,23 @@ fn state_paths(root : String) -> Array[String] raise @failure.TaskFailed {
 }
 
 ///|
-fn names_in(path : String) -> Array[String] raise @failure.TaskFailed {
+fn list_subdirectories(
+  path : String,
+) -> Array[String] raise @failure.TaskFailed {
+  let subdirectories : Array[String] = []
+  if @store.is_directory(path) {
+    for name in list_names(path) {
+      let child = @path.join([path, name])
+      if @store.is_directory(child) {
+        subdirectories.push(child)
+      }
+    }
+  }
+  subdirectories
+}
+
+///|
+fn list_names(path : String) -> Array[String] raise @failure.TaskFailed {
   let names = @store.list_directory_if_exists(path) catch {
     failed => @failure.fail(failed.user_message())
   }
