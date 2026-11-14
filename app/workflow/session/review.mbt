@@ -26,6 +26,12 @@ pub fn check_kept(
 }
 
 ///|
+/// The members an app review session keeps when a review is asked for again.
+let app_session_keys : Array[String] = [
+  "taskId", "workerAI", "workerChatId", "projectId", "checkout",
+]
+
+///|
 async fn review_in(
   ctx : Context,
   args : @workflow.ReviewInput,
@@ -199,12 +205,6 @@ fn resolve_session_value(request : Json, key : String) -> Json {
     value
   }
 }
-
-///|
-/// The members an app review session keeps when a review is asked for again.
-let app_session_keys : Array[String] = [
-  "taskId", "workerAI", "workerChatId", "projectId", "checkout",
-]
 
 ///|
 fn first_set(values : Array[Json]) -> Json {

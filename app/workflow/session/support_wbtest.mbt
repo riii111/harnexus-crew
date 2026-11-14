@@ -17,41 +17,6 @@ struct Rig {
 }
 
 ///|
-const BASE : String = "1111111111111111111111111111111111111111"
-
-///|
-const HEAD_1 : String = "2222222222222222222222222222222222222222"
-
-///|
-const HEAD_2 : String = "3333333333333333333333333333333333333333"
-
-///|
-/// Runs `body` with a scratch root that is removed afterwards.
-async fn with_rig(
-  name : String,
-  answers : Array[@bridge.CallAnswer],
-  body : async (Rig) -> Unit,
-) -> Unit {
-  let made = "\{@testkit.temp_base()}/hxs-\{@testkit.pid()}-\{name}-\{@store.new_uuid()[:8]}"
-  @store.prepare_directory(made) catch {
-    failed => abort(failed.user_message())
-  }
-  let root = @store.resolve_real_path_or_self(made)
-  errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
-  let rig = {
-    root,
-    answers,
-    calls: [],
-    before_save: (_, _) => (),
-    head: Ref(HEAD_1),
-    checkout_path: "\{root}/codex/worktrees/ab12/repo",
-    prompts: [],
-  }
-  body(rig)
-  @testkit.remove_tree(root)
-}
-
-///|
 fn Rig::env(self : Rig, extra : Array[(String, String)]) -> @environment.Env {
   let vars = Map([])
   vars["HOME"] = self.root
@@ -148,42 +113,6 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
 }
 
 ///|
-fn write_text(path : String, text : String) -> Unit {
-  @store.prepare_directory(@path.dirname(path)) catch {
-    failed => abort(failed.user_message())
-  }
-  @store.write_atomic(path, text) catch {
-    failed => abort(failed.user_message())
-  }
-}
-
-///|
-fn read_state(path : String) -> Json {
-  @store.read_json_or_null(path) catch {
-    failed => abort(failed.message())
-  }
-}
-
-///|
-fn done(thread : String) -> @bridge.CallAnswer {
-  @bridge.CallAnswer::new(Done, [
-    ("threadId", Json::string(thread)),
-    ("model", Json::string("claude-sonnet-5-5")),
-    ("effort", Json::string("high")),
-  ])
-}
-
-///|
-fn show(json : Json) -> String {
-  json.stringify()
-}
-
-///|
-fn launch_request_text() -> String {
-  "{\"taskId\":\"TR1\",\"documentRefs\":[\"https://example.com/task\"],\"completionTarget\":\"draft_pr\",\"projectId\":\"project\"}"
-}
-
-///|
 fn Rig::write_launch_file(self : Rig) -> String {
   let path = "\{self.root}/launch.json"
   write_text(path, launch_request_text())
@@ -211,14 +140,64 @@ fn Rig::review_dir(self : Rig) -> String {
 }
 
 ///|
-fn parse_arguments(command : String, argv : Array[String]) -> @args.Command {
-  match
-    (@args.parse_command(command, argv[:]) catch {
-      _ => abort("bad arguments")
-    }) {
-    Run(parsed) => parsed
-    Help => abort("help was asked for")
+fn Rig::review_cloud(
+  _ : Rig,
+) -> async (@workflow.ReviewInput) -> Json raise @failure.TaskFailed {
+  _ => @failure.fail("the cloud review was asked for")
+}
+
+///|
+const BASE : String = "1111111111111111111111111111111111111111"
+
+///|
+const HEAD_1 : String = "2222222222222222222222222222222222222222"
+
+///|
+const HEAD_2 : String = "3333333333333333333333333333333333333333"
+
+///|
+/// Runs `body` with a scratch root that is removed afterwards.
+async fn with_rig(
+  name : String,
+  answers : Array[@bridge.CallAnswer],
+  body : async (Rig) -> Unit,
+) -> Unit {
+  let made = "\{@testkit.temp_base()}/hxs-\{@testkit.pid()}-\{name}-\{@store.new_uuid()[:8]}"
+  @store.prepare_directory(made) catch {
+    failed => abort(failed.user_message())
   }
+  let root = @store.resolve_real_path_or_self(made)
+  errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
+  let rig = {
+    root,
+    answers,
+    calls: [],
+    before_save: (_, _) => (),
+    head: Ref(HEAD_1),
+    checkout_path: "\{root}/codex/worktrees/ab12/repo",
+    prompts: [],
+  }
+  body(rig)
+  @testkit.remove_tree(root)
+}
+
+///|
+fn done(thread : String) -> @bridge.CallAnswer {
+  @bridge.CallAnswer::new(Done, [
+    ("threadId", Json::string(thread)),
+    ("model", Json::string("claude-sonnet-5-5")),
+    ("effort", Json::string("high")),
+  ])
+}
+
+///|
+fn bridge_answer(value : Json) -> @bridge.CallAnswer {
+  @bridge.CallAnswer::of_json(value).unwrap()
+}
+
+///|
+fn launch_request_text() -> String {
+  "{\"taskId\":\"TR1\",\"documentRefs\":[\"https://example.com/task\"],\"completionTarget\":\"draft_pr\",\"projectId\":\"project\"}"
 }
 
 ///|
@@ -248,13 +227,34 @@ fn review_args(
 }
 
 ///|
-fn Rig::review_cloud(
-  _ : Rig,
-) -> async (@workflow.ReviewInput) -> Json raise @failure.TaskFailed {
-  _ => @failure.fail("the cloud review was asked for")
+fn parse_arguments(command : String, argv : Array[String]) -> @args.Command {
+  match
+    (@args.parse_command(command, argv[:]) catch {
+      _ => abort("bad arguments")
+    }) {
+    Run(parsed) => parsed
+    Help => abort("help was asked for")
+  }
 }
 
 ///|
-fn bridge_answer(value : Json) -> @bridge.CallAnswer {
-  @bridge.CallAnswer::of_json(value).unwrap()
+fn write_text(path : String, text : String) -> Unit {
+  @store.prepare_directory(@path.dirname(path)) catch {
+    failed => abort(failed.user_message())
+  }
+  @store.write_atomic(path, text) catch {
+    failed => abort(failed.user_message())
+  }
+}
+
+///|
+fn read_state(path : String) -> Json {
+  @store.read_json_or_null(path) catch {
+    failed => abort(failed.message())
+  }
+}
+
+///|
+fn show(json : Json) -> String {
+  json.stringify()
 }

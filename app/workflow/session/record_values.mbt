@@ -1,30 +1,4 @@
 ///|
-/// The values Python and JS count as false, which decide whether state recorded by either version counts as present.
-fn truthy(value : Json) -> Bool {
-  match value {
-    Null | False => false
-    True => true
-    Number(number, ..) => number != 0.0
-    String(text) => text.length() > 0
-    Array(items) => !items.is_empty()
-    Object(members) => !members.is_empty()
-  }
-}
-
-///|
-fn value_of(members : Map[String, Json], key : String) -> Json {
-  members.get(key).unwrap_or(Json::null())
-}
-
-///|
-fn settings_of(record : Json) -> Json {
-  Json::object({
-    "model": @jsonio.field(record, "model"),
-    "effort": @jsonio.field(record, "effort"),
-  })
-}
-
-///|
 fn sent_settings(sent : Json) -> Json {
   let requested = settings_of(@jsonio.field(sent, "expected"))
   let asked = !(@jsonio.field(requested, "model") is Null) ||
@@ -41,6 +15,14 @@ fn sent_settings(sent : Json) -> Json {
 }
 
 ///|
+fn settings_of(record : Json) -> Json {
+  Json::object({
+    "model": @jsonio.field(record, "model"),
+    "effort": @jsonio.field(record, "effort"),
+  })
+}
+
+///|
 fn thread_title(kind : String, request : Json) -> String {
   let name = @jsonio.field(request, "displayName")
   if truthy(name) {
@@ -48,4 +30,22 @@ fn thread_title(kind : String, request : Json) -> String {
   } else {
     "\{kind} \{@jsonio.as_text(@jsonio.field(request, "taskId"))}"
   }
+}
+
+///|
+/// The values Python and JS count as false, which decide whether state recorded by either version counts as present.
+fn truthy(value : Json) -> Bool {
+  match value {
+    Null | False => false
+    True => true
+    Number(number, ..) => number != 0.0
+    String(text) => text.length() > 0
+    Array(items) => !items.is_empty()
+    Object(members) => !members.is_empty()
+  }
+}
+
+///|
+fn value_of(members : Map[String, Json], key : String) -> Json {
+  members.get(key).unwrap_or(Json::null())
 }

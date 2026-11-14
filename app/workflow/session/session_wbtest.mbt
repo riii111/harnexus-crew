@@ -1,9 +1,4 @@
 ///|
-fn exists(path : String) -> Bool {
-  @store.path_exists(path)
-}
-
-///|
 async test "a run that finds a pending record by another run stops before the app is called" {
   with_rig("s-5", [done("w1")], rig => {
     let path = rig.write_launch_file()
@@ -452,4 +447,9 @@ fn with_member(request : Json, key : String, value : Json) -> Json {
     }
     other => other
   }
+}
+
+///|
+fn exists(path : String) -> Bool {
+  @store.path_exists(path)
 }
