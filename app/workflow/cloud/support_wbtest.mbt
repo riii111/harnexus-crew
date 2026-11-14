@@ -11,23 +11,7 @@ const HEAD_2 : String = "3333333333333333333333333333333333333333"
 const OTHER : String = "01a18d52-e03a-74c1-a50e-4e697b47172c"
 
 ///|
-fn temp_base() -> String {
-  let base = @env.get_env_var("TMPDIR").unwrap_or("/tmp")
-  if base.has_suffix("/") {
-    base[:base.length() - 1].to_owned()
-  } else {
-    base
-  }
-}
-
-///|
-async fn remove_tree(directory : String) -> Unit {
-  ignore(
-    @process.run_command("rm", ["-rf", directory], { "PATH": "/usr/bin:/bin" }) catch {
-      _ => abort("cannot remove \{directory}")
-    },
-  )
-}
+const REVIEWER : String = "01a18d52-e03a-74c1-a50e-4e697b47172b"
 
 ///|
 fn write_text(path : String, text : String) -> Unit {
@@ -50,13 +34,11 @@ struct Rig {
   head : Ref[String]
   /// A record whose path ends with this suffix cannot be written.
   unwritable : Ref[String?]
-  /// The values the reviewer template was filled with.
-  prompts : Array[Map[String, String]]
 }
 
 ///|
 async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
-  let made = "\{temp_base()}/hxc-\{@testkit.pid()}-\{name}-\{@store.new_uuid()[:8]}"
+  let made = @testkit.scratch(name)
   @store.prepare_directory("\{made}/repo") catch {
     failed => abort(failed.user_message())
   }
@@ -64,16 +46,15 @@ async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
     failed => abort(failed.user_message())
   }
   let root = @store.resolve_real_path_or_self(made)
-  errdefer @async.protect_from_cancel(() => remove_tree(root))
+  errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
   body({
     root,
     fake: "\{root}/fake",
     checkout: "\{root}/repo",
     head: Ref(HEAD_1),
     unwritable: Ref(None),
-    prompts: [],
   })
-  remove_tree(root)
+  @testkit.remove_tree(root)
 }
 
 ///|
@@ -130,7 +111,6 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
       env,
     ),
     prompt: fields => {
-      self.prompts.push(fields)
       "reviewer prompt for \{fields.get("task_id").unwrap_or("?")} at \{fields.get("head").unwrap_or("?")}"
     },
     save: (path, data) => {
@@ -191,18 +171,6 @@ async fn Rig::review(
 }
 
 ///|
-async fn failure_of(
-  work : async () -> Unit raise @failure.TaskFailed,
-) -> String {
-  try {
-    work()
-    ""
-  } catch {
-    failed => failed.message()
-  }
-}
-
-///|
 /// The message a review failed with, "" when it succeeded.
 async fn Rig::review_failure(
   self : Rig,
@@ -210,7 +178,7 @@ async fn Rig::review_failure(
   env~ : Array[(String, String)] = [],
   task~ : String = "example",
 ) -> String {
-  failure_of(() => ignore(self.review(extra~, env~, task~)))
+  @apptestkit.failure_of(() => ignore(self.review(extra~, env~, task~)))
 }
 
 ///|
@@ -268,11 +236,6 @@ fn read_state(path : String) -> Json {
   @store.read_json_or_null(path) catch {
     failed => abort(failed.message())
   }
-}
-
-///|
-fn show(json : Json) -> String {
-  json.stringify()
 }
 
 ///|

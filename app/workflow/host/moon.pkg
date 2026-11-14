@@ -12,8 +12,7 @@ import {
   "moonbitlang/core/async",
   "moonbitlang/core/async/raw_fd",
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/env",
-  "riii111/harnexus-crew/share/os/process",
+  "riii111/harnexus-crew/app/testkit" @apptestkit,
   "riii111/harnexus-crew/share/os/testkit",
 } for "wbtest"
 
