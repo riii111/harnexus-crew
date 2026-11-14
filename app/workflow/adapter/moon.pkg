@@ -12,7 +12,6 @@ import {
 }
 
 import {
-  "riii111/harnexus-crew/share/os/process",
   "riii111/harnexus-crew/share/os/testkit",
 } for "wbtest"
 

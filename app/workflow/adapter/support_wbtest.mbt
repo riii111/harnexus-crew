@@ -5,35 +5,6 @@ let session : String = "session_01AbC"
 let parent : String = "parent-chat"
 
 ///|
-fn temp_base() -> String {
-  let base = @env.get_env_var("TMPDIR").unwrap_or("/tmp")
-  if base.has_suffix("/") {
-    base[:base.length() - 1].to_owned()
-  } else {
-    base
-  }
-}
-
-///|
-/// A new empty directory under the temporary directory, for one test to fill.
-fn scratch(name : String) -> String {
-  let directory = "\{temp_base()}/hxd-\{@testkit.pid()}-\{name}-\{@store.new_uuid()[:8]}"
-  @store.prepare_directory(directory) catch {
-    failed => abort(failed.user_message())
-  }
-  directory
-}
-
-///|
-async fn remove_tree(directory : String) -> Unit {
-  ignore(
-    @process.run_command("rm", ["-rf", directory], { "PATH": "/usr/bin:/bin" }) catch {
-      _ => abort("cannot remove \{directory}")
-    },
-  )
-}
-
-///|
 /// The folders one machine's adapters share.
 priv struct Place {
   reviews : String
@@ -42,24 +13,41 @@ priv struct Place {
 }
 
 ///|
-let gate : @async.Mutex = @async.Mutex()
+async fn with_place(name : String, body : async (Place) -> Unit) -> Unit {
+  @testkit.serial(() => {
+    let root = @testkit.scratch(name)
+    defer @async.protect_from_cancel(() => @testkit.remove_tree(root))
+    let at = {
+      reviews: "\{root}/cloud-reviews",
+      observe: "\{root}/observe",
+      review_home: "\{root}/review-home",
+    }
+    @store.prepare_directory(at.review_home) catch {
+      failed => abort(failed.user_message())
+    }
+    body(at)
+  })
+}
 
 ///|
-async fn with_place(name : String, body : async (Place) -> Unit) -> Unit {
-  // The test driver runs up to ten tests at once on one thread, and a test that counts descriptors would see the others' cleanup children, so each test runs alone.
-  gate.acquire()
-  defer gate.release()
-  let root = scratch(name)
-  defer @async.protect_from_cancel(() => remove_tree(root))
-  let at = {
-    reviews: "\{root}/cloud-reviews",
-    observe: "\{root}/observe",
-    review_home: "\{root}/review-home",
-  }
-  @store.prepare_directory(at.review_home) catch {
-    failed => abort(failed.user_message())
-  }
-  body(at)
+fn write_chats_file(at : Place, chats : Json) -> Unit {
+  write_file("\{at.reviews}/chats.json", text_of(chats))
+}
+
+///|
+fn bound_chat(thread_id : String) -> Json {
+  object([("threadId", str(thread_id)), ("session", str(session))])
+}
+
+///|
+fn hello_line(mode : String) -> Array[(String, Json)] {
+  [
+    ("type", str("hello")),
+    ("bridgeId", str("b1")),
+    ("adapterId", str("taskctl")),
+    ("mode", str(mode)),
+    ("versions", Json::array([Json::number(1.0)])),
+  ]
 }
 
 ///|
@@ -102,16 +90,6 @@ fn text_of(value : Json) -> String {
 ///|
 fn str(text : String) -> Json {
   Json::string(text)
-}
-
-///|
-/// A prompt record of a Cloud session.
-fn prompt(uuid : String, text : String) -> Json {
-  object([
-    ("type", str("user")),
-    ("uuid", str(uuid)),
-    ("message", object([("role", str("user")), ("content", str(text))])),
-  ])
 }
 
 ///|
@@ -193,51 +171,8 @@ fn two_reviews() -> Array[Json] {
 }
 
 ///|
-/// The result of a `list_projects` request that names the review home.
-fn projects_answer(at : Place) -> Json {
-  let listing = object([
-    (
-      "projects",
-      Json::array([
-        object([
-          ("projectId", str("review-home")),
-          ("path", str(at.review_home)),
-        ]),
-      ]),
-    ),
-  ])
-  object([
-    ("outcome", str("done")),
-    (
-      "result",
-      object([
-        (
-          "content",
-          Json::array([
-            object([("type", str("text")), ("text", str(text_of(listing)))]),
-          ]),
-        ),
-      ]),
-    ),
-  ])
-}
-
-///|
 fn done_answer() -> Json {
   object([("outcome", str("done"))])
-}
-
-///|
-fn done_with_chat(thread_id : String) -> Json {
-  object([("outcome", str("done")), ("threadId", str(thread_id))])
-}
-
-///|
-fn outcome_answer(outcome : String, reason~ : String? = None) -> Json {
-  match reason {
-    Some(reason) => object([("outcome", str(outcome)), ("reason", str(reason))])
-    None => object([("outcome", str(outcome))])
-  }
 }
 
 ///|
@@ -313,13 +248,7 @@ async fn Link::say(self : Link, line : Array[(String, Json)]) -> Unit {
 
 ///|
 async fn Link::start(self : Link, mode : String) -> Unit {
-  self.say([
-    ("type", str("hello")),
-    ("bridgeId", str("b1")),
-    ("adapterId", str("taskctl")),
-    ("mode", str(mode)),
-    ("versions", Json::array([Json::number(1.0)])),
-  ])
+  self.say(hello_line(mode))
   self.say(ready_line([]))
 }
 
