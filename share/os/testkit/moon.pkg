@@ -1,8 +1,12 @@
 import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+  "moonbitlang/core/env",
   "riii111/harnexus-crew/share/sys",
 }
 
 options(
+  "allow-experimental-packages": true,
   "native-stub": [ "stub.c" ],
 )
 

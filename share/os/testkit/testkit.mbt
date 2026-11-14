@@ -95,6 +95,53 @@ pub fn restore_stdio(saved : FixedArray[Int32]) -> Unit {
 }
 
 ///|
+let gate : @async.Mutex = @async.Mutex()
+
+///|
+pub async fn serial(body : async () -> Unit) -> Unit {
+  // The test driver runs up to ten tests at once on one thread, so a test that counts descriptors, times a deadline or counts a child's runs holds the gate to keep another test's sockets, children and sleeps out of it.
+  gate.acquire()
+  defer gate.release()
+  body()
+}
+
+///|
+/// The result of `work` and how many milliseconds it took.
+pub async fn[T] timed(work : async () -> T) -> (T, Int32) {
+  let started = @async.now()
+  let value = work()
+  (value, (@async.now() - started).to_int())
+}
+
+///|
+pub fn assert_between(value : Int32, low : Int32, high : Int32) -> Unit raise {
+  if value < low || value > high {
+    fail("\{value} is outside \{low}..\{high}")
+  }
+}
+
+///|
+/// The temporary directory without a trailing slash.
+pub fn temp_base() -> String {
+  let base = @env.get_env_var("TMPDIR").unwrap_or("/tmp")
+  if base.has_suffix("/") {
+    base[:base.length() - 1].to_owned()
+  } else {
+    base
+  }
+}
+
+///|
+pub async fn scratch(name : String) -> String {
+  @fs.tmpdir(prefix="hx-\{name}.")
+}
+
+///|
+pub async fn remove_tree(path : String) -> Unit {
+  @fs.rmdir(path, recursive=true, allow_missing=true)
+}
+
+///|
 fn encode_c_string(text : String) -> Bytes {
   @sys.c_string(text).unwrap()
 }

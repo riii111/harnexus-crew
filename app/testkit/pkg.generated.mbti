@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/harnexus-crew/app/testkit"
+
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/share/failure",
+}
+
+// Values
+pub fn env_of(Array[(String, String)]) -> @environment.Env
+
+pub async fn failure_of(async () -> Unit raise @failure.TaskFailed) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

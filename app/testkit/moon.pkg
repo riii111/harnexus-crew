@@ -1,0 +1,10 @@
+import {
+  "riii111/harnexus-crew/app/infra/environment",
+  "riii111/harnexus-crew/share/failure",
+}
+
+options(
+  "allow-experimental-packages": true,
+)
+
+supported_targets = "+native"
