@@ -1,9 +1,4 @@
 ///|
-priv suberror ConnectFailed {
-  ConnectFailed(Int32)
-}
-
-///|
 /// Sends one line to a Unix stream socket and returns what the peer answers before it closes, without trailing whitespace.
 /// deadline   : Covers the connect, the write and the read.
 /// empty line : Only probes; the connection proves the peer is alive and nothing is sent.
@@ -15,6 +10,11 @@ pub async fn exchange_line(
   let target = @sys.c_string(path)
   // exchange_with refuses a path with a NUL before any attempt, so the unwrap only meets a path that has its C form.
   exchange_with(path, line, timeout_ms, fd => connect_once(fd, target.unwrap()))
+}
+
+///|
+priv suberror ConnectFailed {
+  ConnectFailed(Int32)
 }
 
 ///|

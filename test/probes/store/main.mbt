@@ -139,19 +139,6 @@ async fn count_under_lock(args : Array[String]) -> Json {
 }
 
 ///|
-fn increment_counter(counter : String) -> Unit raise @failure.TaskFailed {
-  try {
-    let current = @storage.read_text_if_exists(counter)
-      .map(number_of)
-      .unwrap_or(0L)
-    // Reading and writing are far enough apart for an unguarded run to be overtaken.
-    @storage.write_atomic(counter, (current + 1L).to_string())
-  } catch {
-    failed => @failure.fail(failed.user_message())
-  }
-}
-
-///|
 fn read_text(args : Array[String]) -> Json {
   try {
     match @storage.read_text_if_exists(arg(args, 2)) {
@@ -187,6 +174,19 @@ fn save_record(args : Array[String]) -> Json {
     object([("ok", Json::boolean(true))])
   } catch {
     failed => refused(failed.message())
+  }
+}
+
+///|
+fn increment_counter(counter : String) -> Unit raise @failure.TaskFailed {
+  try {
+    let current = @storage.read_text_if_exists(counter)
+      .map(number_of)
+      .unwrap_or(0L)
+    // Reading and writing are far enough apart for an unguarded run to be overtaken.
+    @storage.write_atomic(counter, (current + 1L).to_string())
+  } catch {
+    failed => @failure.fail(failed.user_message())
   }
 }
 

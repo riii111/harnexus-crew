@@ -6,12 +6,12 @@ pub suberror TaskFailed {
 }
 
 ///|
-pub fn[T] fail(message : String) -> T raise TaskFailed {
-  raise TaskFailed(message)
-}
-
-///|
 pub fn TaskFailed::message(self : TaskFailed) -> String {
   let TaskFailed(message) = self
   message
+}
+
+///|
+pub fn[T] fail(message : String) -> T raise TaskFailed {
+  raise TaskFailed(message)
 }

@@ -8,27 +8,6 @@ pub struct Candidate {
 }
 
 ///|
-const CLOSE_BRACKET : UInt16 = 0x5D
-
-///|
-const OPEN_PAREN : UInt16 = 0x28
-
-///|
-const CLOSE_PAREN : UInt16 = 0x29
-
-///|
-const NEWLINE : UInt16 = 0x0A
-
-///|
-const BACKTICK : UInt16 = 0x60
-
-///|
-const STATUS_OK : Int32 = 0
-
-///|
-const STATUS_PARSE_FAILED : Int32 = 1
-
-///|
 /// The candidates that Markdown reads as the destination of a link or an image, in template order.
 /// `nonce` makes the stand-in marker for each candidate; it must not occur in the template.
 pub fn links(
@@ -48,6 +27,21 @@ pub fn links(
   }
   found
 }
+
+///|
+const CLOSE_BRACKET : UInt16 = 0x5D
+
+///|
+const OPEN_PAREN : UInt16 = 0x28
+
+///|
+const CLOSE_PAREN : UInt16 = 0x29
+
+///|
+const NEWLINE : UInt16 = 0x0A
+
+///|
+const BACKTICK : UInt16 = 0x60
 
 ///|
 /// An inline link target, up to the first closing parenthesis on its line.
@@ -101,37 +95,8 @@ fn replace_with_markers(
 }
 
 ///|
-fn find_destinations(
-  text : String,
-) -> @hashset.HashSet[String] raise @failure.TaskFailed {
-  let bytes = @utf8.encode(text)
-  read_destinations(destinations_raw(bytes, bytes.length()))
-}
-
-///|
-fn read_destinations(
-  reply : Bytes,
-) -> @hashset.HashSet[String] raise @failure.TaskFailed {
-  let status = reply[0].to_int()
-  // To prevent a parser failure from bypassing link validation, fail instead of reporting no links.
-  if status == STATUS_PARSE_FAILED {
-    @failure.fail("the Markdown parser (md4c) failed")
-  }
-  if status != STATUS_OK {
-    @failure.fail("the Markdown parser (md4c) ran out of memory")
-  }
-  let found = @hashset.HashSet([])
-  let mut at = 1
-  while at < reply.length() {
-    let size = decode_length(reply, at + 1)
-    let start = at + 5
-    if start + size > reply.length() {
-      @failure.fail("the Markdown parser (md4c) returned a truncated record")
-    }
-    found.add(@utf8.decode_lossy(reply[start:start + size]))
-    at = start + size
-  }
-  found
+fn marker_of(nonce : String, index : Int32) -> String {
+  "hx\{nonce}n\{index}x"
 }
 
 ///|
@@ -161,11 +126,6 @@ fn blank_comments(text : String) -> String {
 }
 
 ///|
-fn marker_of(nonce : String, index : Int32) -> String {
-  "hx\{nonce}n\{index}x"
-}
-
-///|
 fn is_comment_open(units : ArrayView[UInt16], at : Int32) -> Bool {
   units[at] == '<' &&
   units[at + 1] == '!' &&
@@ -183,6 +143,46 @@ fn find_comment_close(units : ArrayView[UInt16], from : Int32) -> Int32 {
     at += 1
   }
   -1
+}
+
+///|
+fn find_destinations(
+  text : String,
+) -> @hashset.HashSet[String] raise @failure.TaskFailed {
+  let bytes = @utf8.encode(text)
+  read_destinations(destinations_raw(bytes, bytes.length()))
+}
+
+///|
+const STATUS_OK : Int32 = 0
+
+///|
+const STATUS_PARSE_FAILED : Int32 = 1
+
+///|
+fn read_destinations(
+  reply : Bytes,
+) -> @hashset.HashSet[String] raise @failure.TaskFailed {
+  let status = reply[0].to_int()
+  // To prevent a parser failure from bypassing link validation, fail instead of reporting no links.
+  if status == STATUS_PARSE_FAILED {
+    @failure.fail("the Markdown parser (md4c) failed")
+  }
+  if status != STATUS_OK {
+    @failure.fail("the Markdown parser (md4c) ran out of memory")
+  }
+  let found = @hashset.HashSet([])
+  let mut at = 1
+  while at < reply.length() {
+    let size = decode_length(reply, at + 1)
+    let start = at + 5
+    if start + size > reply.length() {
+      @failure.fail("the Markdown parser (md4c) returned a truncated record")
+    }
+    found.add(@utf8.decode_lossy(reply[start:start + size]))
+    at = start + size
+  }
+  found
 }
 
 ///|

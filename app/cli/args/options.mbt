@@ -1,4 +1,9 @@
 ///|
+pub suberror UsageError {
+  UsageError(String)
+}
+
+///|
 priv enum OptionKind {
   Flag
   Text
@@ -24,8 +29,24 @@ priv struct ParsedOptions {
 }
 
 ///|
-pub suberror UsageError {
-  UsageError(String)
+fn ParsedOptions::flag(self : ParsedOptions, name : String) -> Bool {
+  self.values.get(name) is Some(On)
+}
+
+///|
+fn ParsedOptions::text(self : ParsedOptions, name : String) -> String? {
+  match self.values.get(name) {
+    Some(One(text)) => Some(text)
+    _ => None
+  }
+}
+
+///|
+fn ParsedOptions::list(self : ParsedOptions, name : String) -> Array[String] {
+  match self.values.get(name) {
+    Some(Many(items)) => items
+    _ => []
+  }
 }
 
 ///|
@@ -131,25 +152,4 @@ fn unexpected_argument(arg : String) -> UsageError {
   UsageError(
     "Unexpected argument '\{arg}'. This command does not take positional arguments",
   )
-}
-
-///|
-fn ParsedOptions::flag(self : ParsedOptions, name : String) -> Bool {
-  self.values.get(name) is Some(On)
-}
-
-///|
-fn ParsedOptions::text(self : ParsedOptions, name : String) -> String? {
-  match self.values.get(name) {
-    Some(One(text)) => Some(text)
-    _ => None
-  }
-}
-
-///|
-fn ParsedOptions::list(self : ParsedOptions, name : String) -> Array[String] {
-  match self.values.get(name) {
-    Some(Many(items)) => items
-    _ => []
-  }
 }

@@ -1,14 +1,4 @@
 ///|
-priv suberror Unexpected {
-  Unexpected
-}
-
-///|
-fn homeless_env(vars : Array[(String, String)]) -> () -> @environment.Env raise {
-  () => @testkit.env_of(vars)
-}
-
-///|
 async test "a usage error is reported without reading the environment" {
   let refusing : () -> @environment.Env raise = () => fail("env was read")
 
@@ -75,4 +65,14 @@ async test "adapter help is printed without a home" {
 ///|
 async test "an adapter usage error is reported without a home" {
   assert_eq(run(["adapter", "bogus"][:], homeless_env([])).code, 2)
+}
+
+///|
+priv suberror Unexpected {
+  Unexpected
+}
+
+///|
+fn homeless_env(vars : Array[(String, String)]) -> () -> @environment.Env raise {
+  () => @testkit.env_of(vars)
 }

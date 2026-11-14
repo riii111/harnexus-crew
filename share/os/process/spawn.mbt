@@ -1,4 +1,10 @@
 ///|
+const SIGTERM : Int32 = 15
+
+///|
+const SIGKILL : Int32 = 9
+
+///|
 /// A started command and the parent's ends of its pipes.
 priv struct Child {
   pid : Int32
@@ -8,85 +14,6 @@ priv struct Child {
   stderr : Fd
   mut reaped : Bool
   mut swept : Bool
-}
-
-///|
-priv enum Exit {
-  Code(Int32)
-  Signaled(Int32)
-}
-
-///|
-priv suberror SpawnFailed {
-  SpawnFailed(errno~ : Int32)
-  InvalidArgument
-}
-
-///|
-/// A descriptor the caller owns until a stream takes it.
-priv struct Fd {
-  fd : Int32
-  mut taken : Bool
-}
-
-///|
-const SPAWN_NEW_SESSION : Int32 = 1
-
-///|
-const SPAWN_PIPED : Int32 = 2
-
-///|
-const SIGTERM : Int32 = 15
-
-///|
-const SIGKILL : Int32 = 9
-
-///|
-/// env        : The command's exact environment.
-/// new_session: When true, the command leads its own session and process group, which `Child::signal` reaches with `group`.
-/// piped      : When true, stdin, stdout and stderr are pipes; otherwise they are shared with this process.
-/// Returns only once exec has succeeded, so a failure here means the command never ran.
-fn spawn(
-  file : String,
-  args : ArrayView[String],
-  env : Map[String, String],
-  cwd : String,
-  piped~ : Bool,
-  new_session~ : Bool,
-) -> Child raise SpawnFailed {
-  let argv : Array[String] = [file]
-  argv.append(args.to_owned())
-  let entries : Array[String] = []
-  for key, value in env {
-    if key != "" {
-      entries.push("\{key}=\{value}")
-    }
-  }
-  let out = FixedArray::make(4, -1)
-  let flags = (if new_session { SPAWN_NEW_SESSION } else { 0 }) |
-    (if piped { SPAWN_PIPED } else { 0 })
-  let errno = spawn_raw(
-    encode_c_string(file),
-    pack_c_strings(argv),
-    argv.length(),
-    pack_c_strings(entries),
-    entries.length(),
-    encode_c_string(cwd),
-    flags,
-    out,
-  )
-  if errno != 0 {
-    raise SpawnFailed(errno~)
-  }
-  {
-    pid: out[0],
-    new_session,
-    stdin: Fd::new(out[1]),
-    stdout: Fd::new(out[2]),
-    stderr: Fd::new(out[3]),
-    reaped: false,
-    swept: false,
-  }
 }
 
 ///|
@@ -164,11 +91,30 @@ fn Child::collect(self : Child, timeout_ms : Int32) -> Exit? {
 }
 
 ///|
+priv enum Exit {
+  Code(Int32)
+  Signaled(Int32)
+}
+
+///|
+priv suberror SpawnFailed {
+  SpawnFailed(errno~ : Int32)
+  InvalidArgument
+}
+
+///|
 fn SpawnFailed::code(self : SpawnFailed) -> String {
   match self {
     SpawnFailed(errno~) => @unix.errno_name(errno)
     InvalidArgument => "ERR_INVALID_ARG_VALUE"
   }
+}
+
+///|
+/// A descriptor the caller owns until a stream takes it.
+priv struct Fd {
+  fd : Int32
+  mut taken : Bool
 }
 
 ///|
@@ -189,6 +135,60 @@ fn Fd::close_unless_taken(self : Fd) -> Unit {
   if !self.taken && self.fd >= 0 {
     self.taken = true
     @unix.close_fd(self.fd)
+  }
+}
+
+///|
+const SPAWN_NEW_SESSION : Int32 = 1
+
+///|
+const SPAWN_PIPED : Int32 = 2
+
+///|
+/// env        : The command's exact environment.
+/// new_session: When true, the command leads its own session and process group, which `Child::signal` reaches with `group`.
+/// piped      : When true, stdin, stdout and stderr are pipes; otherwise they are shared with this process.
+/// Returns only once exec has succeeded, so a failure here means the command never ran.
+fn spawn(
+  file : String,
+  args : ArrayView[String],
+  env : Map[String, String],
+  cwd : String,
+  piped~ : Bool,
+  new_session~ : Bool,
+) -> Child raise SpawnFailed {
+  let argv : Array[String] = [file]
+  argv.append(args.to_owned())
+  let entries : Array[String] = []
+  for key, value in env {
+    if key != "" {
+      entries.push("\{key}=\{value}")
+    }
+  }
+  let out = FixedArray::make(4, -1)
+  let flags = (if new_session { SPAWN_NEW_SESSION } else { 0 }) |
+    (if piped { SPAWN_PIPED } else { 0 })
+  let errno = spawn_raw(
+    encode_c_string(file),
+    pack_c_strings(argv),
+    argv.length(),
+    pack_c_strings(entries),
+    entries.length(),
+    encode_c_string(cwd),
+    flags,
+    out,
+  )
+  if errno != 0 {
+    raise SpawnFailed(errno~)
+  }
+  {
+    pid: out[0],
+    new_session,
+    stdin: Fd::new(out[1]),
+    stdout: Fd::new(out[2]),
+    stderr: Fd::new(out[3]),
+    reaped: false,
+    swept: false,
   }
 }
 
