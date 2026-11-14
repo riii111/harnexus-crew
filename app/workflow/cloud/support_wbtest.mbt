@@ -14,16 +14,6 @@ const OTHER : String = "01a18d52-e03a-74c1-a50e-4e697b47172c"
 const REVIEWER : String = "01a18d52-e03a-74c1-a50e-4e697b47172b"
 
 ///|
-fn write_text(path : String, text : String) -> Unit {
-  @store.prepare_directory(@path.dirname(path)) catch {
-    failed => abort(failed.user_message())
-  }
-  @store.write_atomic(path, text) catch {
-    failed => abort(failed.user_message())
-  }
-}
-
-///|
 /// What a test of a cloud review works with: a scratch root with a checkout and a stand-in for the Codex CLI.
 struct Rig {
   root : String
@@ -37,41 +27,84 @@ struct Rig {
 }
 
 ///|
-async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
-  let made = @testkit.scratch(name)
-  @store.prepare_directory("\{made}/repo") catch {
-    failed => abort(failed.user_message())
-  }
-  @store.prepare_directory("\{made}/fake") catch {
-    failed => abort(failed.user_message())
-  }
-  let root = @store.resolve_real_path_or_self(made)
-  errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
-  body({
-    root,
-    fake: "\{root}/fake",
-    checkout: "\{root}/repo",
-    head: Ref(HEAD_1),
-    unwritable: Ref(None),
-  })
-  @testkit.remove_tree(root)
+async fn Rig::review(
+  self : Rig,
+  extra~ : Array[String] = [],
+  env~ : Array[(String, String)] = [],
+  task~ : String = "example",
+  request? : String,
+) -> Json raise @failure.TaskFailed {
+  let path = self.request_file(task~, extra?=request)
+  let argv = ["--request", path]
+  argv.append(extra)
+  review_in(self.context(env), parsed_review(argv))
 }
 
 ///|
-fn Rig::env(self : Rig, extra : Array[(String, String)]) -> @environment.Env {
-  let vars = Map([])
-  vars["HOME"] = self.root
-  vars["XDG_STATE_HOME"] = "\{self.root}/state"
-  vars["PATH"] = @env.get_env_var("PATH").unwrap_or("/usr/bin:/bin")
-  vars["CLAUDE_CODE_REMOTE"] = "true"
-  vars["CLAUDE_CODE_SESSION_ID"] = "worker-session"
-  vars["HARNEXUS_CODEX_BIN"] = "\{@env.current_dir().unwrap()}/test/native/mocks/fake-cli.sh"
-  vars["FAKE_DIR"] = self.fake
-  for pair in extra {
-    let (name, value) = pair
-    vars[name] = value
+/// The message a review failed with, "" when it succeeded.
+async fn Rig::review_failure(
+  self : Rig,
+  extra~ : Array[String] = [],
+  env~ : Array[(String, String)] = [],
+  task~ : String = "example",
+) -> String {
+  @apptestkit.failure_of(() => ignore(self.review(extra~, env~, task~)))
+}
+
+///|
+fn Rig::plan(
+  self : Rig,
+  run : Int32,
+  out~ : String = "",
+  exit~ : Int32 = 0,
+  stderr? : String,
+  sleep? : String,
+) -> Unit {
+  write_text("\{self.fake}/out.\{run}", out)
+  write_text("\{self.fake}/exit.\{run}", exit.to_string())
+  if stderr is Some(text) {
+    write_text("\{self.fake}/stderr.\{run}", text)
   }
-  @environment.Env::new(vars)
+  if sleep is Some(seconds) {
+    write_text("\{self.fake}/sleep.\{run}", seconds)
+  }
+}
+
+///|
+fn Rig::count_runs(self : Rig) -> Int32 {
+  let mut count = 0
+  while @store.path_exists("\{self.fake}/args.\{count + 1}") {
+    count += 1
+  }
+  count
+}
+
+///|
+fn Rig::pending_exists(self : Rig, task_id : String) -> Bool {
+  @store.path_exists("\{self.state_dir(task_id)}/pending.json")
+}
+
+///|
+fn Rig::state_dir(self : Rig, task_id : String) -> String {
+  @store.state_directory(
+    "\{self.root}/state/harnexus-crew",
+    "cloud-review",
+    "\{self.checkout}\u{0}\{task_id}",
+  )
+}
+
+///|
+fn Rig::request_file(
+  self : Rig,
+  task~ : String = "example",
+  extra? : String,
+) -> String {
+  let path = "\{self.root}/review.json"
+  write_text(
+    path,
+    "{\"taskId\":\"\{task}\",\"workerAI\":\"Claude\",\"checkout\":\"\{self.checkout}\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null\{extra.unwrap_or("")}}",
+  )
+  path
 }
 
 ///|
@@ -123,62 +156,41 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
 }
 
 ///|
-fn Rig::state_dir(self : Rig, task_id : String) -> String {
-  @store.state_directory(
-    "\{self.root}/state/harnexus-crew",
-    "cloud-review",
-    "\{self.checkout}\u{0}\{task_id}",
-  )
-}
-
-///|
-fn Rig::request_file(
-  self : Rig,
-  task~ : String = "example",
-  extra? : String,
-) -> String {
-  let path = "\{self.root}/review.json"
-  write_text(
-    path,
-    "{\"taskId\":\"\{task}\",\"workerAI\":\"Claude\",\"checkout\":\"\{self.checkout}\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null\{extra.unwrap_or("")}}",
-  )
-  path
-}
-
-///|
-fn parsed_review(extra : Array[String]) -> @workflow.ReviewInput {
-  match
-    (@args.parse_command("review", extra[:]) catch {
-      _ => abort("bad arguments")
-    }) {
-    Run(Review(args)) => args
-    _ => abort("not a review")
+fn Rig::env(self : Rig, extra : Array[(String, String)]) -> @environment.Env {
+  let vars = Map([])
+  vars["HOME"] = self.root
+  vars["XDG_STATE_HOME"] = "\{self.root}/state"
+  vars["PATH"] = @env.get_env_var("PATH").unwrap_or("/usr/bin:/bin")
+  vars["CLAUDE_CODE_REMOTE"] = "true"
+  vars["CLAUDE_CODE_SESSION_ID"] = "worker-session"
+  vars["HARNEXUS_CODEX_BIN"] = "\{@env.current_dir().unwrap()}/test/native/mocks/fake-cli.sh"
+  vars["FAKE_DIR"] = self.fake
+  for pair in extra {
+    let (name, value) = pair
+    vars[name] = value
   }
+  @environment.Env::new(vars)
 }
 
 ///|
-async fn Rig::review(
-  self : Rig,
-  extra~ : Array[String] = [],
-  env~ : Array[(String, String)] = [],
-  task~ : String = "example",
-  request? : String,
-) -> Json raise @failure.TaskFailed {
-  let path = self.request_file(task~, extra?=request)
-  let argv = ["--request", path]
-  argv.append(extra)
-  review_in(self.context(env), parsed_review(argv))
-}
-
-///|
-/// The message a review failed with, "" when it succeeded.
-async fn Rig::review_failure(
-  self : Rig,
-  extra~ : Array[String] = [],
-  env~ : Array[(String, String)] = [],
-  task~ : String = "example",
-) -> String {
-  @apptestkit.failure_of(() => ignore(self.review(extra~, env~, task~)))
+async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
+  let made = @testkit.scratch(name)
+  @store.prepare_directory("\{made}/repo") catch {
+    failed => abort(failed.user_message())
+  }
+  @store.prepare_directory("\{made}/fake") catch {
+    failed => abort(failed.user_message())
+  }
+  let root = @store.resolve_real_path_or_self(made)
+  errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
+  body({
+    root,
+    fake: "\{root}/fake",
+    checkout: "\{root}/repo",
+    head: Ref(HEAD_1),
+    unwritable: Ref(None),
+  })
+  @testkit.remove_tree(root)
 }
 
 ///|
@@ -204,34 +216,6 @@ fn events(thread : String, answer : String) -> String {
 }
 
 ///|
-fn Rig::plan(
-  self : Rig,
-  run : Int32,
-  out~ : String = "",
-  exit~ : Int32 = 0,
-  stderr? : String,
-  sleep? : String,
-) -> Unit {
-  write_text("\{self.fake}/out.\{run}", out)
-  write_text("\{self.fake}/exit.\{run}", exit.to_string())
-  if stderr is Some(text) {
-    write_text("\{self.fake}/stderr.\{run}", text)
-  }
-  if sleep is Some(seconds) {
-    write_text("\{self.fake}/sleep.\{run}", seconds)
-  }
-}
-
-///|
-fn Rig::count_runs(self : Rig) -> Int32 {
-  let mut count = 0
-  while @store.path_exists("\{self.fake}/args.\{count + 1}") {
-    count += 1
-  }
-  count
-}
-
-///|
 fn read_state(path : String) -> Json {
   @store.read_json_or_null(path) catch {
     failed => abort(failed.message())
@@ -239,6 +223,22 @@ fn read_state(path : String) -> Json {
 }
 
 ///|
-fn Rig::pending_exists(self : Rig, task_id : String) -> Bool {
-  @store.path_exists("\{self.state_dir(task_id)}/pending.json")
+fn parsed_review(extra : Array[String]) -> @workflow.ReviewInput {
+  match
+    (@args.parse_command("review", extra[:]) catch {
+      _ => abort("bad arguments")
+    }) {
+    Run(Review(args)) => args
+    _ => abort("not a review")
+  }
+}
+
+///|
+fn write_text(path : String, text : String) -> Unit {
+  @store.prepare_directory(@path.dirname(path)) catch {
+    failed => abort(failed.user_message())
+  }
+  @store.write_atomic(path, text) catch {
+    failed => abort(failed.user_message())
+  }
 }

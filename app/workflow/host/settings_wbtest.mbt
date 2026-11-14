@@ -1,9 +1,4 @@
 ///|
-fn settings(model : String?, effort : String?) -> TurnSettings {
-  { model, effort, }
-}
-
-///|
 test "a turn that ran as asked is not refused" {
   assert_eq(
     refusal_of(settings(Some("m"), None), settings(Some("m"), None)),
@@ -50,4 +45,9 @@ test "each setting the app did not say is named with what was expected" {
     "did not say which model (expected m)",
     msg="model only",
   )
+}
+
+///|
+fn settings(model : String?, effort : String?) -> TurnSettings {
+  { model, effort, }
 }
