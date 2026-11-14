@@ -1,15 +1,4 @@
 ///|
-fn read(text : String) -> String {
-  try {
-    let config = TemplateConfig::from_json("/c/task.json", @jsonio.parse(text))
-    "ok worker=\{config.worker.unwrap_or("-")} reviewer=\{config.reviewer.unwrap_or("-")}"
-  } catch {
-    @failure.TaskFailed(message) => message
-    _ => "not JSON"
-  }
-}
-
-///|
 test "absolute template paths are accepted" {
   inspect(
     read("{\"templates\":{\"worker\":\"/w\",\"reviewer\":\"/r\"}}"),
@@ -74,4 +63,15 @@ test "unknown keys are refused at both levels" {
 test "the config sits in harnexus's config directory" {
   let env = @environment.Env::new({ "XDG_CONFIG_HOME": "/xc/../y" })
   inspect(template_config_path(env), content="/y/harnexus/task.json")
+}
+
+///|
+fn read(text : String) -> String {
+  try {
+    let config = TemplateConfig::from_json("/c/task.json", @jsonio.parse(text))
+    "ok worker=\{config.worker.unwrap_or("-")} reviewer=\{config.reviewer.unwrap_or("-")}"
+  } catch {
+    @failure.TaskFailed(message) => message
+    _ => "not JSON"
+  }
 }

@@ -5,35 +5,6 @@ priv struct T3Deps {
 }
 
 ///|
-priv enum Ran {
-  Ran(String)
-  Refused(CallAnswer)
-}
-
-///|
-/// T3 Code creates the worktree before it answers, so a start waits longer than a send.
-const START_TIMEOUT_MS : Int32 = 180000
-
-///|
-const SEND_TIMEOUT_MS : Int32 = 60000
-
-///|
-const SHOW_TIMEOUT_MS : Int32 = 30000
-
-///|
-const KILL_GRACE_MS : Int32 = 5000
-
-///|
-const BIN_VARIABLE : String = "HARNEXUS_T3_BIN"
-
-///|
-const NO_THINKING : String = "T3 Code's t3 CLI cannot set a thinking level; leave out --thinking, and set it in T3 Code instead"
-
-///|
-/// A Codex App worker starts from the project's checked-out branch, and T3 Code needs that base named.
-const DEFAULT_WORKTREE_BASE : String = "HEAD"
-
-///|
 pub async fn call_t3(
   env : @environment.Env,
   tool : String,
@@ -54,6 +25,19 @@ async fn dispatch_tool(
     "send_message_to_thread" => send_message(deps, args)
     _ => unsupported("T3 Code does not offer \{tool}")
   }
+}
+
+///|
+/// T3 Code creates the worktree before it answers, so a start waits longer than a send.
+const START_TIMEOUT_MS : Int32 = 180000
+
+///|
+const NO_THINKING : String = "T3 Code's t3 CLI cannot set a thinking level; leave out --thinking, and set it in T3 Code instead"
+
+///|
+priv enum Ran {
+  Ran(String)
+  Refused(CallAnswer)
 }
 
 ///|
@@ -106,6 +90,9 @@ async fn start_thread(
 }
 
 ///|
+const SEND_TIMEOUT_MS : Int32 = 60000
+
+///|
 async fn send_message(
   deps : T3Deps,
   args : Map[String, Json],
@@ -136,6 +123,9 @@ async fn send_message(
 }
 
 ///|
+const SHOW_TIMEOUT_MS : Int32 = 30000
+
+///|
 /// The model the thread runs on as T3 Code reports it, or null when it cannot tell.
 async fn show_thread_model(deps : T3Deps, thread_id : String) -> Json noraise {
   let argv = ["thread", "show", thread_id, "--messages", "0", "--json"]
@@ -146,6 +136,27 @@ async fn show_thread_model(deps : T3Deps, thread_id : String) -> Json noraise {
   }
   model
 }
+
+///|
+const KILL_GRACE_MS : Int32 = 5000
+
+///|
+const BIN_VARIABLE : String = "HARNEXUS_T3_BIN"
+
+///|
+/// Failures the CLI reports before it reaches the server or that the server says left nothing behind; any other failure may come after the thread was made or the message queued.
+let before_sending : Array[(Array[String], String?)] = [
+  (["No running T3 Code server"], None),
+  (
+    ["No T3 Code project matches"],
+    Some("add the folder to T3 Code as a project with `t3 project add <path>`"),
+  ),
+  (["No thread was created"], None),
+  (
+    ["Failed to reserve loopback port", "listen EPERM"],
+    Some("run outside the sandbox"),
+  ),
+]
 
 ///|
 async fn run_t3(
@@ -211,21 +222,6 @@ async fn run_t3(
 }
 
 ///|
-/// Failures the CLI reports before it reaches the server or that the server says left nothing behind; any other failure may come after the thread was made or the message queued.
-let before_sending : Array[(Array[String], String?)] = [
-  (["No running T3 Code server"], None),
-  (
-    ["No T3 Code project matches"],
-    Some("add the folder to T3 Code as a project with `t3 project add <path>`"),
-  ),
-  (["No thread was created"], None),
-  (
-    ["Failed to reserve loopback port", "listen EPERM"],
-    Some("run outside the sandbox"),
-  ),
-]
-
-///|
 fn resolve_binary(deps : T3Deps) -> Result[String, String] {
   match deps.env.get(BIN_VARIABLE) {
     Some(set) if set != "" =>
@@ -244,6 +240,10 @@ fn resolve_binary(deps : T3Deps) -> Result[String, String] {
       )
   }
 }
+
+///|
+/// A Codex App worker starts from the project's checked-out branch, and T3 Code needs that base named.
+const DEFAULT_WORKTREE_BASE : String = "HEAD"
 
 ///|
 fn worktree_base(target : Map[String, Json]) -> String? {

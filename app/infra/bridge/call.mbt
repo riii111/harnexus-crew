@@ -1,12 +1,9 @@
 ///|
-const PROTOCOL_VERSION : Int32 = 1
-
-///|
 /// The bridge must answer first, so the timeout exceeds the longest wait_threads it allows.
 const ANSWER_TIMEOUT_MS : Int32 = 900000
 
 ///|
-const SOCKET_HINT : String = "open the app with HARNEXUS_CALL_SOCKET=on (for example `HARNEXUS_CALL_SOCKET=on bun run open-app` in the harnexus checkout) and run outside the sandbox"
+const PROTOCOL_VERSION : Int32 = 1
 
 ///|
 pub async fn call_app(
@@ -44,6 +41,9 @@ pub async fn call_app(
 }
 
 ///|
+const SOCKET_HINT : String = "open the app with HARNEXUS_CALL_SOCKET=on (for example `HARNEXUS_CALL_SOCKET=on bun run open-app` in the harnexus checkout) and run outside the sandbox"
+
+///|
 fn socket_hint(code : String?) -> String {
   match code {
     Some("ENOENT") => "no bridge has opened the socket; \{SOCKET_HINT}"
@@ -53,21 +53,6 @@ fn socket_hint(code : String?) -> String {
       "the sandbox blocked the connection; run outside the sandbox"
     _ => SOCKET_HINT
   }
-}
-
-///|
-fn not_sent(error : String) -> CallAnswer {
-  CallAnswer::failed(NotSent, error~)
-}
-
-///|
-fn unsupported(error : String) -> CallAnswer {
-  CallAnswer::failed(Unsupported, error~)
-}
-
-///|
-fn unknown(error : String) -> CallAnswer {
-  CallAnswer::failed(Unknown, error~)
 }
 
 ///|

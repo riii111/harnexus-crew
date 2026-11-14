@@ -1,49 +1,4 @@
 ///|
-async fn t3_json(
-  deps : T3Deps,
-  tool : String,
-  args : Map[String, Json],
-) -> String {
-  json_text(dispatch_tool(deps, tool, args).to_json())
-}
-
-///|
-fn worker_target(starting_state? : Json) -> Json {
-  let environment = { "type": Json::string("worktree") }
-  if starting_state is Some(state) {
-    environment["startingState"] = state
-  }
-  Json::object({
-    "type": Json::string("project"),
-    "projectId": Json::string("p1"),
-    "environment": Json::object(environment),
-  })
-}
-
-///|
-fn create_args(
-  target? : Json,
-  extra? : Array[(String, Json)],
-) -> Map[String, Json] {
-  let args : Map[String, Json] = {
-    "prompt": Json::string("p"),
-    "target": target.unwrap_or(worker_target()),
-    "title": Json::string("T"),
-    "model": Json::string("claude-sonnet-5-5"),
-  }
-  for pair in extra.unwrap_or([]) {
-    let (name, value) = pair
-    args[name] = value
-  }
-  args
-}
-
-///|
-fn shown(model : String) -> String {
-  "{\"thread\":{\"threadId\":\"t1\",\"model\":\"\{model}\"},\"messages\":[]}"
-}
-
-///|
 async test "create_thread starts the thread in a new worktree from the starting branch" {
   @testkit.serial(() => {
     with_t3("t3-1", fake => {
@@ -636,6 +591,51 @@ test "only a worktree environment has a base" {
     )
   }
   assert_eq(worktree_base({}), None)
+}
+
+///|
+async fn t3_json(
+  deps : T3Deps,
+  tool : String,
+  args : Map[String, Json],
+) -> String {
+  json_text(dispatch_tool(deps, tool, args).to_json())
+}
+
+///|
+fn worker_target(starting_state? : Json) -> Json {
+  let environment = { "type": Json::string("worktree") }
+  if starting_state is Some(state) {
+    environment["startingState"] = state
+  }
+  Json::object({
+    "type": Json::string("project"),
+    "projectId": Json::string("p1"),
+    "environment": Json::object(environment),
+  })
+}
+
+///|
+fn create_args(
+  target? : Json,
+  extra? : Array[(String, Json)],
+) -> Map[String, Json] {
+  let args : Map[String, Json] = {
+    "prompt": Json::string("p"),
+    "target": target.unwrap_or(worker_target()),
+    "title": Json::string("T"),
+    "model": Json::string("claude-sonnet-5-5"),
+  }
+  for pair in extra.unwrap_or([]) {
+    let (name, value) = pair
+    args[name] = value
+  }
+  args
+}
+
+///|
+fn shown(model : String) -> String {
+  "{\"thread\":{\"threadId\":\"t1\",\"model\":\"\{model}\"},\"messages\":[]}"
 }
 
 ///|
