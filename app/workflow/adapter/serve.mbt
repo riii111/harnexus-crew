@@ -44,7 +44,7 @@ fn build_parts(env : @environment.Env) -> Parts raise @failure.TaskFailed {
   let root = observation_root(env)
   let locks = @path.join([root, "locks"])
   {
-    store: ReviewStore::new(reviews_directory(env), locks),
+    store: ReviewStore::new(resolve_reviews_directory(env), locks),
     observations: Observations::new(root),
     locks,
   }

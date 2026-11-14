@@ -353,11 +353,11 @@ async fn Link::records(
     ("parentThreadId", str(parent)),
     ("link", str(parent)),
     ("phase", str(phase)),
-    ("shownBefore", optional_text(shown_before)),
+    ("shownBefore", text_or_null(shown_before)),
     ("records", Json::array(records)),
   ]
   if phase == "linked" {
-    line.push(("linkedAt", optional_text(linked_at)))
+    line.push(("linkedAt", text_or_null(linked_at)))
   }
   self.say(line)
 }
@@ -409,7 +409,7 @@ fn names_in(directory : String) -> Array[String] {
 
 ///|
 fn pending_keys(link : Link) -> Array[String] {
-  let waiting = link.adapter.deps.observations.pending() catch {
+  let waiting = link.adapter.deps.observations.read_pending() catch {
     failed => abort(failed.message())
   }
   waiting.map(entry => entry.review.key)

@@ -51,7 +51,7 @@ fn strings_in(value : Json?) -> Array[String] {
 }
 
 ///|
-fn optional_text(text : String?) -> Json {
+fn text_or_null(text : String?) -> Json {
   match text {
     Some(text) => Json::string(text)
     None => Json::null()
@@ -91,7 +91,7 @@ fn short_hash(text : String) -> String {
 }
 
 ///|
-fn[T] io(work : () -> T raise @store.FileFailed) -> T raise @failure.TaskFailed {
+fn[T] with_task_failure(work : () -> T raise @store.FileFailed) -> T raise @failure.TaskFailed {
   work() catch {
     failed => @failure.fail(failed.user_message())
   }

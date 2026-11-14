@@ -50,7 +50,7 @@ fn Observations::new(root : String) -> Observations {
 }
 
 ///|
-fn Observations::position(
+fn Observations::read_position(
   self : Observations,
   session_id : String,
 ) -> SessionPosition? raise @failure.TaskFailed {
@@ -81,7 +81,7 @@ fn Observations::keep_position(
 }
 
 ///|
-fn Observations::opening(
+fn Observations::read_opening(
   self : Observations,
   reviewer : String,
 ) -> Opening? raise @failure.TaskFailed {
@@ -121,11 +121,11 @@ fn Observations::drop_opening(
   self : Observations,
   reviewer : String,
 ) -> Unit raise @failure.TaskFailed {
-  io(() => @store.remove_file(self.opening_path(reviewer)))
+  with_task_failure(() => @store.remove_file(self.opening_path(reviewer)))
 }
 
 ///|
-fn Observations::pending(
+fn Observations::read_pending(
   self : Observations,
 ) -> Array[PendingReview] raise @failure.TaskFailed {
   let path = self.pending_path()
@@ -175,8 +175,8 @@ async fn Observations::change_pending(
   self : Observations,
   change : (Array[PendingReview]) -> Array[PendingReview],
 ) -> Unit raise @failure.TaskFailed {
-  @store.with_lock(self.locks(), "pending", () => {
-    let entries = self.pending()
+  @store.with_lock(self.locks_directory(), "pending", () => {
+    let entries = self.read_pending()
     self.keep_pending(change(entries))
   })
 }
@@ -199,7 +199,7 @@ fn observation_root(env : @environment.Env) -> String {
 }
 
 ///|
-fn Observations::locks(self : Observations) -> String {
+fn Observations::locks_directory(self : Observations) -> String {
   @path.join([self.root, "locks"])
 }
 
@@ -229,12 +229,12 @@ fn SessionPosition::to_json(self : SessionPosition) -> Json {
     (
       "baseline",
       object([
-        ("uuid", optional_text(self.baseline.uuid)),
+        ("uuid", text_or_null(self.baseline.uuid)),
         ("estimated", Json::boolean(self.baseline.estimated)),
         ("at", Json::string(self.baseline.at)),
       ]),
     ),
-    ("cursor", optional_text(self.cursor)),
+    ("cursor", text_or_null(self.cursor)),
     ("excluded", Json::array(self.excluded.map(Json::string))),
     ("taken", Json::array(self.taken.map(Json::string))),
   ])
@@ -268,7 +268,7 @@ fn position_in(value : Json) -> SessionPosition? {
 fn PendingReview::to_json(self : PendingReview) -> Json {
   object([
     ("parentThreadId", Json::string(self.parent_thread_id)),
-    ("sessionId", optional_text(self.session_id)),
+    ("sessionId", text_or_null(self.session_id)),
     ("review", review_json(self.review)),
   ])
 }
@@ -309,7 +309,7 @@ fn Opening::to_json(self : Opening) -> Json {
   object([
     ("key", Json::string(self.key)),
     ("text", Json::string(self.text)),
-    ("sessionId", optional_text(self.session_id)),
+    ("sessionId", text_or_null(self.session_id)),
     ("showing", Json::boolean(self.showing)),
   ])
 }

@@ -133,7 +133,7 @@ fn Adapter::accept(self : Adapter, raw : String) -> Handling {
     }
     // To keep the end of input from overtaking a response, handle responses immediately instead of spawning a task.
     Some(String("response")) => {
-      self.answer(line)
+      self.complete_request(line)
       Handled
     }
     Some(String("request")) =>
@@ -146,7 +146,7 @@ fn Adapter::accept(self : Adapter, raw : String) -> Handling {
       match field(line, "event") {
         Some(String("session_records")) =>
           Later(() => {
-            self.in_order(() => {
+            self.run_in_order(() => {
               self.take_records(line)
               self.drain()
             })
@@ -169,7 +169,7 @@ fn Adapter::accept(self : Adapter, raw : String) -> Handling {
 async fn Adapter::take_ready(self : Adapter, line : Json) -> Unit noraise {
   let bindings = field(line, "bindings")
   self.adopt_bridge_bindings(bindings)
-  self.in_order(() => self.post_missed_openings(bindings))
+  self.run_in_order(() => self.post_missed_openings(bindings))
   if field(line, "conflicts") is Some(Array(conflicts)) &&
     conflicts.length() > 0 {
     (self.deps.log)([
@@ -177,7 +177,7 @@ async fn Adapter::take_ready(self : Adapter, line : Json) -> Unit noraise {
       ("threads", Json::array(conflicts)),
     ])
   }
-  self.in_order(() => self.drain())
+  self.run_in_order(() => self.drain())
 }
 
 ///|
@@ -187,7 +187,7 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
   }
   let session_id = text_member(event, "sessionId").unwrap_or("")
   let records = objects_in(field(event, "records"))
-  let known = self.deps.observations.position(session_id) catch {
+  let known = self.deps.observations.read_position(session_id) catch {
     failed => {
       (self.deps.log)([
         ("step", Json::string("position_unreadable")),
@@ -292,11 +292,11 @@ async fn Adapter::take_turn(self : Adapter, event : Json) -> Unit noraise {
 async fn Adapter::take_bound(self : Adapter, event : Json) -> Unit noraise {
   let reviewer = text_member(event, "conversationId").unwrap_or("")
   let thread_id = text_member(event, "threadId").unwrap_or("")
-  let chats = self.deps.store.chats() catch { _ => return }
+  let chats = self.deps.store.read_chats() catch { _ => return }
   if chats.get(reviewer) is Some(chat) && chat.thread_id == thread_id {
     return
   }
-  let session = self.opening_session(reviewer)
+  let session = self.read_opening_session(reviewer)
   ignore(
     Ok(self.deps.store.keep_chat(reviewer, { thread_id, session, })) catch {
       e => Err(e)
@@ -308,7 +308,7 @@ async fn Adapter::take_bound(self : Adapter, event : Json) -> Unit noraise {
 async fn Adapter::answer_history(self : Adapter, line : Json) -> Unit noraise {
   let thread_id = text_member(line, "threadId").unwrap_or("")
   let entries = self.deps.store
-    .history_of(thread_id)
+    .read_history(thread_id)
     .map(entry => {
       object([
         ("role", Json::string(entry.role)),
@@ -326,7 +326,7 @@ async fn Adapter::answer_history(self : Adapter, line : Json) -> Unit noraise {
 }
 
 ///|
-fn Adapter::answer(self : Adapter, line : Json) -> Unit {
+fn Adapter::complete_request(self : Adapter, line : Json) -> Unit {
   guard line is Object(members) else { return }
   guard members.get("id") is Some(String(id)) else { return }
   guard self.asks.get(id) is Some(asked) else { return }
@@ -361,12 +361,12 @@ async fn Adapter::run_jobs(self : Adapter) -> Unit noraise {
 
 ///|
 async fn Adapter::finish(self : Adapter) -> Unit noraise {
-  self.in_order(() => ())
+  self.run_in_order(() => ())
   self.jobs.close()
 }
 
 ///|
-async fn Adapter::in_order(
+async fn Adapter::run_in_order(
   self : Adapter,
   work : async () -> Unit noraise,
 ) -> Unit noraise {
@@ -395,7 +395,7 @@ async fn Adapter::adopt_bridge_bindings(
   bindings : Json?,
 ) -> Unit noraise {
   guard self.writing && bindings is Some(Array(items)) else { return }
-  let chats = self.deps.store.chats() catch { _ => return }
+  let chats = self.deps.store.read_chats() catch { _ => return }
   for binding in items {
     guard text_member(binding, "conversationId") is Some(reviewer) &&
       text_member(binding, "threadId") is Some(thread_id) else {
@@ -412,7 +412,7 @@ async fn Adapter::adopt_bridge_bindings(
       ])
       continue
     }
-    let session = self.opening_session(reviewer)
+    let session = self.read_opening_session(reviewer)
     self.deps.store.keep_chat(reviewer, { thread_id, session, }) catch {
       failed =>
         (self.deps.log)([
@@ -456,7 +456,7 @@ async fn Adapter::show_opening(
   @store.with_lock(self.deps.locks, "opening-\{lock_name(reviewer)}", () => {
     let observations = self.deps.observations
     let asked = match
-      (Ok(observations.opening(reviewer)) catch { e => Err(e) }) {
+      (Ok(observations.read_opening(reviewer)) catch { e => Err(e) }) {
       Ok(Some(asked)) => asked
       _ => return false
     }
@@ -494,11 +494,11 @@ async fn Adapter::show_opening(
 }
 
 ///|
-fn Adapter::opening_session(
+fn Adapter::read_opening_session(
   self : Adapter,
   reviewer : String,
 ) -> String? noraise {
-  match (Ok(self.deps.observations.opening(reviewer)) catch { e => Err(e) }) {
+  match (Ok(self.deps.observations.read_opening(reviewer)) catch { e => Err(e) }) {
     Ok(Some(asked)) => asked.session_id
     _ => None
   }
@@ -542,7 +542,7 @@ async fn Adapter::ask_reviewer(
   reviewer : String,
   text : String,
 ) -> Unit noraise {
-  let session = match (Ok(self.deps.store.chats()) catch { e => Err(e) }) {
+  let session = match (Ok(self.deps.store.read_chats()) catch { e => Err(e) }) {
     Ok(chats) =>
       match chats.get(reviewer) {
         Some(chat) => chat.session
@@ -584,7 +584,7 @@ async fn Adapter::drain(self : Adapter) -> Unit noraise {
   if !self.writing || !self.ready {
     return
   }
-  let waiting = self.deps.observations.pending() catch {
+  let waiting = self.deps.observations.read_pending() catch {
     failed => {
       (self.deps.log)([
         ("step", Json::string("pending_unreadable")),
@@ -595,7 +595,7 @@ async fn Adapter::drain(self : Adapter) -> Unit noraise {
   }
   let settled : Map[String, Bool] = Map([])
   for entry in waiting {
-    if !is_retried(self.deliver(entry)) {
+    if !should_retry(self.deliver(entry)) {
       settled[entry.review.key] = true
     }
   }
@@ -629,14 +629,14 @@ async fn Adapter::deliver_locked(
 ) -> String noraise {
   let review = entry.review
   let store = self.deps.store
-  match store.state_of(review.key) {
+  match store.read_state(review.key) {
     Sent => return "done"
     Held => return "held"
     _ => ()
   }
   match store.claim(review.key) {
     Taken =>
-      return if store.state_of(review.key) is Sent {
+      return if store.read_state(review.key) is Sent {
         "done"
       } else {
         "reserved"
@@ -648,7 +648,7 @@ async fn Adapter::deliver_locked(
     store.unclaim(review.key)
     return "not_kept"
   }
-  let chats = store.chats() catch {
+  let chats = store.read_chats() catch {
     _ => {
       store.unclaim(review.key)
       return "held"
@@ -656,7 +656,7 @@ async fn Adapter::deliver_locked(
   }
   let text = @host.review_text(review)
   // While a chat's first review waits for its first turn, a later review of the same reviewer waits too, so it is neither shown first nor opens another chat.
-  let asked = self.deps.observations.opening(review.reviewer) catch {
+  let asked = self.deps.observations.read_opening(review.reviewer) catch {
     _ => {
       store.unclaim(review.key)
       return "awaiting_chat"
@@ -808,13 +808,13 @@ async fn Adapter::greet(self : Adapter) -> Unit noraise {
   self.send_line([
     ("type", Json::string("hello")),
     ("adapterId", Json::string(self.deps.adapter_id)),
-    ("bindings", Json::array(self.declared_bindings())),
+    ("bindings", Json::array(self.read_declared_bindings())),
   ])
 }
 
 ///|
-async fn Adapter::declared_bindings(self : Adapter) -> Array[Json] noraise {
-  let chats = self.deps.store.chats() catch {
+async fn Adapter::read_declared_bindings(self : Adapter) -> Array[Json] noraise {
+  let chats = self.deps.store.read_chats() catch {
     failed => {
       (self.deps.log)([
         ("step", Json::string("chats_unreadable")),
@@ -936,7 +936,7 @@ fn answer_of(outcome : String, reason~ : String? = None) -> Answer {
 }
 
 ///|
-fn is_retried(outcome : String) -> Bool {
+fn should_retry(outcome : String) -> Bool {
   // To avoid showing a review twice after an unknown result, retry only outcomes that prove it was not shown.
   match outcome {
     "not_sent"
