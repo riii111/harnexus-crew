@@ -39,7 +39,7 @@ fn codex_host(env : @environment.Env, app : @environment.App) -> Host {
   {
     thread_variable: @environment.thread_variable(app),
     call: (caller, tool, args) => @bridge.call_app(env, caller, tool, args),
-    review_project: caller => codex_review_project(env, caller),
+    review_project: caller => find_codex_review_project(env, caller),
     worktrees: env.worktrees(app),
     thinking: Some({ worker: "high", reviewer: "medium", }),
     reply_to: worker_ai => worker_ai,
@@ -57,7 +57,7 @@ fn t3_host(
     thread_variable: @environment.thread_variable(app),
     call: (_, tool, args) => @bridge.call_t3_in(env, tool, args, which~),
     // The t3 CLI takes a folder for its project, and says so when no project holds it.
-    review_project: _ => review_home(env),
+    review_project: _ => resolve_review_home(env),
     // T3 Code keeps a worktree at <repository name>/<branch> under its own folder.
     worktrees: env.worktrees(app),
     thinking: None,
@@ -69,11 +69,11 @@ fn t3_host(
 }
 
 ///|
-async fn codex_review_project(
+async fn find_codex_review_project(
   env : @environment.Env,
   caller : String,
 ) -> String raise @failure.TaskFailed {
-  let home = review_home(env)
+  let home = resolve_review_home(env)
   let answer = @bridge.call_app(env, caller, "list_projects", {})
   if answer.outcome != "done" {
     @failure.fail("list_projects failed: \{answer.to_json().stringify()}")
@@ -87,7 +87,7 @@ async fn codex_review_project(
 }
 
 ///|
-fn review_home(env : @environment.Env) -> String {
+fn resolve_review_home(env : @environment.Env) -> String {
   // To avoid creating a worktree for each review, use the existing empty project.
   @store.real_path_or_self(@path.join([env.home(), "review-home"]))
 }
