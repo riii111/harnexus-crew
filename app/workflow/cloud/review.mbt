@@ -72,12 +72,12 @@ async fn run_review(
     Object(members) => Some(members)
     _ => None
   }
-  let candidate = request.candidate(previous, args.update_base, ctx.git)
+  let candidate = request.resolve_candidate(previous, args.update_base, ctx.git)
   let data = candidate.to_json()
   if previous is Some(previous) {
     check_continuation(state, previous, data)
   }
-  let fields = candidate.reviewer_fields("Cloud", ctx.probe)
+  let fields = candidate.build_reviewer_fields("Cloud", ctx.probe)
   let prompt = (ctx.prompt)(fields)
   let launch = Launch::of_env(ctx.env)
   let reviewer = reviewer_of(state)

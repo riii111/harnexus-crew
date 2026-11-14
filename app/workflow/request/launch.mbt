@@ -18,12 +18,14 @@ pub async fn LaunchRequest::from_json(
     ["taskId", "documentRefs", "completionTarget", "projectId"],
     ["startingBranch", "displayName"],
   )
-  let task_id = task_id_of(members.get("taskId"))
-  let display_name = display_name_of(members.get("displayName"))
-  let project_id = project_of(members.get("projectId"), "projectId")
-  let starting_branch = starting_branch_of(members.get("startingBranch"))
-  let document_refs = document_refs_of(members.get("documentRefs"), probe)
-  let completion_target = completion_target_of(members.get("completionTarget"))
+  let task_id = parse_task_id(members.get("taskId"))
+  let display_name = parse_display_name(members.get("displayName"))
+  let project_id = parse_project_id(members.get("projectId"))
+  let starting_branch = parse_starting_branch(members.get("startingBranch"))
+  let document_refs = parse_document_refs(members.get("documentRefs"), probe)
+  let completion_target = parse_completion_target(
+    members.get("completionTarget"),
+  )
   {
     task_id,
     display_name,
@@ -57,7 +59,7 @@ pub fn LaunchRequest::session_key(self : LaunchRequest) -> String {
 }
 
 ///|
-fn completion_target_of(
+fn parse_completion_target(
   value : Json?,
 ) -> CompletionTarget raise @failure.TaskFailed {
   match value {

@@ -5,7 +5,7 @@ async fn run_command(command : @args.Command, env : @environment.Env) -> Json {
     Environment => @status.environment_command(env)
     State({ request: None, }) => @status.state_command(env)
     State({ request: Some(request), }) =>
-      @session.state_request(request, env, which~)
+      @session.show_request_state(request, env, which~)
     Launch(args) => @session.launch(args, env, which~)
     Review(args) =>
       @session.review(args, env, which~, cloud=args => @cloud.review(args, env))

@@ -19,7 +19,8 @@ pub fn check_kept(
   keys : Array[String],
 ) -> Unit raise @failure.TaskFailed {
   for key in keys {
-    if session_value(previous, key) != session_value(current, key) {
+    if resolve_session_value(previous, key) !=
+      resolve_session_value(current, key) {
       @failure.fail("review session must keep the original \{key}")
     }
   }
@@ -45,8 +46,8 @@ async fn review_in(
       "--recover applies to review only in a Claude Code cloud session",
     )
   }
-  let request = review_request_of(ctx, args.request)
-  let worker = @request.caller_id(ctx.env)
+  let request = read_review_request(ctx, args.request)
+  let worker = @request.read_caller_id(ctx.env)
   let request = match request.worker_chat_id {
     None => request.with_worker_chat_id(worker)
     Some(id) if id == worker => request
@@ -55,7 +56,7 @@ async fn review_in(
         "workerChatId in the request must equal \{ctx.host.thread_variable}",
       )
   }
-  let session = review_session(ctx.env, ctx.ports, request, worker)
+  let session = open_review_session(ctx.env, ctx.ports, request, worker)
   session.check_idle()
   let state = state_json(session.state)
   let recorded = @jsonio.field(state, "candidate")
@@ -66,7 +67,7 @@ async fn review_in(
     Object(members) if !members.is_empty() => Some(members)
     _ => None
   }
-  let candidate = request.candidate(previous, args.update_base, ctx.git)
+  let candidate = request.resolve_candidate(previous, args.update_base, ctx.git)
   let data = candidate.to_json()
   if previous is Some(previous) {
     check_kept(Json::object(previous), data, app_session_keys)
@@ -76,7 +77,7 @@ async fn review_in(
       )
     }
   }
-  let fields = candidate.reviewer_fields(
+  let fields = candidate.build_reviewer_fields(
     (ctx.host.reply_to)(request.worker_ai.name()),
     ctx.probe,
   )
@@ -118,7 +119,7 @@ async fn review_in(
 }
 
 ///|
-async fn review_request_of(
+async fn read_review_request(
   ctx : Context,
   path : String,
 ) -> @request.ReviewRequest raise @failure.TaskFailed {
@@ -131,7 +132,7 @@ async fn review_request_of(
 }
 
 ///|
-fn review_session(
+fn open_review_session(
   env : @environment.Env,
   ports : Ports,
   request : @request.ReviewRequest,
@@ -154,11 +155,11 @@ fn review_session(
       if @jsonio.field(candidate, "workerChatId") is String(id) && id == thread {
         @failure.fail("a worker cannot review itself")
       }
-      let state_json = state_json(state)
+      let previous = state_json(state)
       let settings = [
         sent_settings(sent),
-        @jsonio.field(state_json, "settings"),
-        sent_settings(@jsonio.field(state_json, "sent")),
+        @jsonio.field(previous, "settings"),
+        sent_settings(@jsonio.field(previous, "sent")),
       ]
       {
         "reviewer": Json::string(thread),
@@ -191,7 +192,7 @@ fn review_session(
 
 ///|
 /// A member of a request as the session compares it: the checkout by its real path.
-fn session_value(request : Json, key : String) -> Json {
+fn resolve_session_value(request : Json, key : String) -> Json {
   let value = @jsonio.field(request, key)
   if key == "checkout" && truthy(value) {
     Json::string(@store.real_path_or_self(@jsonio.as_text(value)))

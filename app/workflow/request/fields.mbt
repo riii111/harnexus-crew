@@ -1,13 +1,13 @@
 ///|
 /// The values a worker template is filled with.
 /// The document references are checked again, because the files may have gone since the request was read.
-pub async fn LaunchRequest::worker_fields(
+pub async fn LaunchRequest::build_worker_fields(
   self : LaunchRequest,
   probe : FileProbe,
 ) -> Map[String, String] raise @failure.TaskFailed {
   {
     "task_id": self.task_id,
-    "document_refs": document_block(self.document_refs, probe),
+    "document_refs": render_document_block(self.document_refs, probe),
     "completion_target": self.completion_target.name(),
   }
 }
@@ -15,7 +15,7 @@ pub async fn LaunchRequest::worker_fields(
 ///|
 /// The values a reviewer template is filled with.
 /// `reply_to` names how the reviewer returns its result: the worker's AI in the app, `T3` in T3 Code, or `Cloud` in a Claude Code cloud session.
-pub async fn ReviewCandidate::reviewer_fields(
+pub async fn ReviewCandidate::build_reviewer_fields(
   self : ReviewCandidate,
   reply_to : String,
   probe : FileProbe,
@@ -27,7 +27,7 @@ pub async fn ReviewCandidate::reviewer_fields(
   }
   {
     "task_id": request.task_id,
-    "document_refs": document_block(request.document_refs, probe),
+    "document_refs": render_document_block(request.document_refs, probe),
     "worker_ai": request.worker_ai.name(),
     "reply_to": reply_to,
     "worker_chat_id": worker_chat_id,
@@ -66,11 +66,11 @@ pub fn sample_reviewer_fields(reply_to : String) -> Map[String, String] {
 }
 
 ///|
-async fn document_block(
+async fn render_document_block(
   refs : Array[String],
   probe : FileProbe,
 ) -> String raise @failure.TaskFailed {
-  let checked = document_refs_of(
+  let checked = parse_document_refs(
     Some(Json::array(refs.map(fn(reference) { Json::string(reference) }))),
     probe,
   )
