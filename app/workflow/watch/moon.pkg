@@ -8,11 +8,7 @@ import {
 
 import {
   "moonbitlang/core/async",
-  "moonbitlang/core/env",
-  "riii111/harnexus-crew/app/cli/args",
-  "riii111/harnexus-crew/app/infra/store",
-  "riii111/harnexus-crew/share/os/process",
-  "riii111/harnexus-crew/share/os/testkit",
+  "riii111/harnexus-crew/app/testkit" @app_testkit,
 } for "wbtest"
 
 options(

@@ -13,7 +13,7 @@ test "a github.com pull request URL is linkable, with or without what a browser 
 }
 
 ///|
-test "anything else is not linkable" {
+test "a URL that is not a github.com pull request is not linkable" {
   for
     url in [
       "", "#20", "20", "http://github.com/o/r/pull/7", "https://github.com/o/r/pull/0",
@@ -32,10 +32,16 @@ test "anything else is not linkable" {
 
 ///|
 test "the number is read from a linkable URL" {
+  for
+    url in [
+      "https://github.com/o/r/pull/12", "https://github.com/o/r/pull/12/files#x",
+    ] {
+    assert_eq(github_pr_number(url), Some("12"), msg=url)
+  }
+}
+
+///|
+test "no number is read from a URL that is not linkable" {
   assert_eq(github_pr_number("https://github.com/o/r/pull/12"), Some("12"))
-  assert_eq(
-    github_pr_number("https://github.com/o/r/pull/12/files#x"),
-    Some("12"),
-  )
   assert_eq(github_pr_number("https://github.com/o/r/pull/12x"), None)
 }
