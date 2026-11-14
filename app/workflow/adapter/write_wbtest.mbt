@@ -163,8 +163,8 @@ async test "the session that ran a review shown in a chat kept from before is re
       write_chats_file(at, object([("R1", str("chat-r1"))]))
       let link = connect(at, group)
       link.start("write")
-      link.records("linked", [])
-      link.records("continued", judged("aaa1111"))
+      link.say_records("linked", [])
+      link.say_records("continued", judged("aaa1111"))
       link.say(turn_line("t1", "chat-r1", "R1", "input", text="B1 は？"))
       assert_eq(
         text_of(read_json_file("\{at.reviews}/chats.json")),
@@ -189,13 +189,13 @@ async test "the reviews two adapters queue at once are kept, and each is shown" 
       let two = connect(at, group)
       one.start("write")
       two.start("write")
-      one.records("linked", [], session_id="session_A")
-      two.records("linked", [], session_id="session_B")
+      one.say_records("linked", [], session_id="session_A")
+      two.say_records("linked", [], session_id="session_B")
       let first = group.spawn(() => {
-        one.records("continued", judged("aaa1111"), session_id="session_A")
+        one.say_records("continued", judged("aaa1111"), session_id="session_A")
       })
       let second = group.spawn(() => {
-        two.records(
+        two.say_records(
           "continued",
           judged("bbb2222", reviewer="R2"),
           session_id="session_B",
@@ -221,8 +221,8 @@ async test "a binding only the bridge kept is recorded, and the next review is p
       let link = connect(at, group)
       link.say(hello_line("write"))
       link.say(ready_line([binding("R1", "chat-r1")]))
-      link.records("linked", [])
-      link.records("continued", judged("aaa1111"))
+      link.say_records("linked", [])
+      link.say_records("continued", judged("aaa1111"))
       assert_eq(
         text_of(read_json_file("\{at.reviews}/chats.json")),
         "{\"R1\":{\"threadId\":\"chat-r1\",\"session\":\"session_01AbC\"}}",
@@ -248,8 +248,8 @@ async test "while a chat's first review waits for its first turn, a later review
       link.start("write")
       let first = review_of_head("aaa1111")
       let second = review_of_head("bbb2222")
-      link.records("linked", [])
-      link.records("continued", two_reviews())
+      link.say_records("linked", [])
+      link.say_records("continued", two_reviews())
       let posts_before_turn = link.requests(op="post").length()
       link.say(bound_line("R1", "chat-r1"))
       link.say(turn_line("t1", "chat-r1", "R1", "opened"))
@@ -280,8 +280,8 @@ async test "the first review is posted after a restart when the bridge bound its
       before.start("write")
       let first = review_of_head("aaa1111")
       let second = review_of_head("bbb2222")
-      before.records("linked", [])
-      before.records("continued", two_reviews())
+      before.say_records("linked", [])
+      before.say_records("continued", two_reviews())
       let after = connect(at, group, answer=_ => done_with_chat("chat-r1"))
       after.say(hello_line("write"))
       after.say(ready_line([binding("R1", "chat-r1")]))

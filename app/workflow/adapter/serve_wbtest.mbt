@@ -29,10 +29,10 @@ async test "a request still waiting when the bridge closes ends as unknown, and 
       write_file("\{at.reviews}/chats.json", "{\"R1\":\"chat-r1\"}")
       let link = connect(at, group, silent=true)
       link.start("write")
-      link.records("linked", [])
+      link.say_records("linked", [])
       let review = review_of_head("aaa1111")
       let handling = group.spawn(() => {
-        link.records("continued", judged("aaa1111"))
+        link.say_records("continued", judged("aaa1111"))
       })
       wait_for_requests(link, 1)
       link.adapter.close_input()
@@ -55,10 +55,10 @@ async test "a review whose chat could not be listed when the bridge closes waits
     @async.with_task_group(group => {
       let link = connect(at, group, silent=true)
       link.start("write")
-      link.records("linked", [])
+      link.say_records("linked", [])
       let review = review_of_head("aaa1111")
       let handling = group.spawn(() => {
-        link.records("continued", judged("aaa1111"))
+        link.say_records("continued", judged("aaa1111"))
       })
       wait_for_requests(link, 1)
       link.adapter.close_input()
@@ -164,8 +164,8 @@ async test "a bridge in observe mode is refused: nothing is greeted, taken or se
     @async.with_task_group(group => {
       let link = connect(at, group)
       link.start("observe")
-      link.records("linked", [])
-      link.records("continued", judged("aaa1111"))
+      link.say_records("linked", [])
+      link.say_records("continued", judged("aaa1111"))
       link.say(turn_line("t1", "x", "R1", "opened"))
       assert_eq(link.lines_of_type("hello").length(), 0)
       assert_eq(link.lines_of_type("observed").length(), 0)
@@ -187,14 +187,14 @@ async test "many round trips leave no descriptor, waiting request or lock behind
       write_file("\{at.reviews}/chats.json", "{\"R1\":\"chat-r1\"}")
       let link = connect(at, group)
       link.start("write")
-      link.records("linked", [])
+      link.say_records("linked", [])
       // A first round trip opens whatever the adapter keeps open for good.
-      link.records("continued", judged("h000000"))
+      link.say_records("continued", judged("h000000"))
       let before = @testkit.open_fds()
       let rounds = 60
       for round in 1..<rounds {
         let head = "h\{round.to_string()}"
-        link.records("continued", [..judged("h000000"), ..judged(head)])
+        link.say_records("continued", [..judged("h000000"), ..judged(head)])
       }
       assert_eq(@testkit.open_fds(), before)
       assert_eq(link.adapter.unanswered.length(), 0)

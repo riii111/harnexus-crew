@@ -336,7 +336,7 @@ fn ready_line(bindings : Array[Json]) -> Array[(String, Json)] {
 }
 
 ///|
-async fn Link::records(
+async fn Link::say_records(
   self : Link,
   phase : String,
   records : Array[Json],
