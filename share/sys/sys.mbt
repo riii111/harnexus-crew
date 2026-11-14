@@ -1,22 +1,6 @@
 ///|
-pub enum Platform {
-  Darwin
-  Linux
-  Other
-}
-
-///|
 pub suberror WriteFailed {
   WriteFailed(fd~ : Int32, errno~ : Int32)
-}
-
-///|
-pub fn platform() -> Platform {
-  match platform_raw() {
-    1 => Darwin
-    2 => Linux
-    _ => Other
-  }
 }
 
 ///|
@@ -38,9 +22,6 @@ pub fn c_string(text : String) -> Bytes? {
   }
   Some(@utf8.encode(text + "\u{0}"))
 }
-
-///|
-extern "C" fn platform_raw() -> Int32 = "harnexus_platform"
 
 ///|
 #borrow(bytes)

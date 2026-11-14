@@ -34,7 +34,7 @@ pub fn now_iso() -> String {
 }
 
 ///|
-pub fn current_pid() -> Int32 {
+fn current_pid() -> Int32 {
   pid_raw()
 }
 

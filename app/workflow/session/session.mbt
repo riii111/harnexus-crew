@@ -1,5 +1,5 @@
 ///|
-pub(all) struct Ports {
+priv struct Ports {
   /// Sends an App operation as the caller's thread: caller, tool, arguments.
   call : async (String, String, Map[String, Json]) -> @bridge.CallAnswer noraise
   /// Writes a record; with `exclusive` the record must not exist yet.

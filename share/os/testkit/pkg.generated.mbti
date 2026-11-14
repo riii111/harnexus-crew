@@ -16,6 +16,8 @@ pub fn eagain() -> Int32
 
 pub fn fd_open(Int32) -> Bool
 
+pub fn is_macos() -> Bool
+
 pub fn listen(String, backlog? : Int32) -> Int32 raise Errno
 
 pub fn open_fds() -> Int32

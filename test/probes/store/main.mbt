@@ -61,7 +61,7 @@ async fn hold(args : Array[String]) -> Json {
 /// Creates the takeover marker of a lock for this process and exits at once, as a run that died while taking over a lock would.
 fn leave_marker(args : Array[String]) -> Json {
   let marker = arg(args, 2) + ".reap"
-  let pid = Json::number(@storage.current_pid().to_double())
+  let pid = Json::number(@testkit.pid().to_double())
   try {
     let made = @storage.write_exclusive(
       marker,

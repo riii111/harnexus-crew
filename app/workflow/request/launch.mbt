@@ -1,11 +1,11 @@
 ///|
 pub struct LaunchRequest {
   task_id : String
-  display_name : OptionalText
+  priv display_name : OptionalText
   project_id : String
   starting_branch : OptionalText
-  document_refs : Array[String]
-  completion_target : CompletionTarget
+  priv document_refs : Array[String]
+  priv completion_target : CompletionTarget
 }
 
 ///|

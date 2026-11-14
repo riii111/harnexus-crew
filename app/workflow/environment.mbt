@@ -4,7 +4,7 @@ pub fn refuse_in_cloud(
   command : String,
 ) -> Unit raise @failure.TaskFailed {
   match @environment.declared_environment(env) {
-    Some({ environment: Cloud, runner, .. }) => {
+    Some({ environment: Cloud, runner, }) => {
       let alternative = match runner {
         InCloud(Some(ClaudeCloud)) =>
           "In a Claude Code cloud session, start a worker as a new cloud session with create_session, and follow its PR with subscribe_pr_activity from that session"

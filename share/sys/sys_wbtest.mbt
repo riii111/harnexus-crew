@@ -1,9 +1,4 @@
 ///|
-test "platform is a supported OS" {
-  inspect(platform() is Other, content="false")
-}
-
-///|
 test "write_text reports a closed descriptor" {
   let errno = try {
     write_text(-1, "x")

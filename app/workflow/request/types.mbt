@@ -7,22 +7,14 @@ pub enum OptionalText {
 }
 
 ///|
-pub fn OptionalText::text(self : OptionalText) -> String? {
-  match self {
-    Text(text) => Some(text)
-    Absent | Null => None
-  }
-}
-
-///|
-pub enum CompletionTarget {
+priv enum CompletionTarget {
   Implementation
   DraftPr
   Merge
 }
 
 ///|
-pub fn CompletionTarget::name(self : CompletionTarget) -> String {
+fn CompletionTarget::name(self : CompletionTarget) -> String {
   match self {
     Implementation => "implementation"
     DraftPr => "draft_pr"

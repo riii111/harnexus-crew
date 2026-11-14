@@ -4,17 +4,6 @@
 
 #include <moonbit.h>
 
-MOONBIT_FFI_EXPORT
-int32_t harnexus_platform(void) {
-#if defined(__APPLE__)
-  return 1;
-#elif defined(__linux__)
-  return 2;
-#else
-  return 0;
-#endif
-}
-
 // Returns 0 once all `len` bytes are written, else the errno of the failing write.
 // The buffer is owned by the caller (#borrow) and is not retained.
 MOONBIT_FFI_EXPORT

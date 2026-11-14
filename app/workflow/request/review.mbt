@@ -14,20 +14,20 @@ pub struct ReviewRequest {
   task_id : String
   worker_ai : WorkerAi
   /// Absent only in Cloud, where no app project is involved.
-  project_id : String?
+  priv project_id : String?
   /// The real path of the top level of a repository.
   checkout : String
-  base_branch : String
-  document_refs : Array[String]
-  display_name : OptionalText
-  pr_url : String?
+  priv base_branch : String
+  priv document_refs : Array[String]
+  priv display_name : OptionalText
+  priv pr_url : String?
   worker_chat_id : String?
 }
 
 ///|
 /// A review request with the two commits it covers.
 pub struct ReviewCandidate {
-  request : ReviewRequest
+  priv request : ReviewRequest
   head : String
   base : String
 }
@@ -80,12 +80,6 @@ pub fn ReviewRequest::with_worker_chat_id(
   id : String,
 ) -> ReviewRequest {
   { ..self, worker_chat_id: Some(id), }
-}
-
-///|
-/// The request as it is saved: the pull request URL is always there, null when none was given.
-pub fn ReviewRequest::to_json(self : ReviewRequest) -> Json {
-  Json::object(self.members())
 }
 
 ///|

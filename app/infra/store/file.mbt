@@ -1,7 +1,7 @@
 ///|
 /// What a file operation was doing when it failed.
 /// `Sync` means the change was made but may not survive a crash.
-pub(all) enum FileAction {
+pub enum FileAction {
   Read
   Write
   Sync
@@ -12,7 +12,7 @@ pub(all) enum FileAction {
 ///|
 /// A file operation that did not complete.
 /// `code` is the symbolic errno such as "ENOENT", or None when the failure has no errno.
-pub(all) suberror FileFailed {
+pub suberror FileFailed {
   FileFailed(
     action~ : FileAction,
     path~ : String,

@@ -228,15 +228,12 @@ async test "C1 real full listen queue: macOS refuses at once, Linux holds the co
     }
     assert_true(held.length() < 64)
     let (result, elapsed) = timed(() => outcome_of(path, "{\"x\":1}", 1000))
-    match @sys.platform() {
-      Darwin => {
-        assert_eq(result, "not_sent ECONNREFUSED")
-        assert_between(elapsed, 0, 500)
-      }
-      _ => {
-        assert_eq(result, "not_sent ETIMEDOUT")
-        assert_between(elapsed, 800, 1600)
-      }
+    if @testkit.is_macos() {
+      assert_eq(result, "not_sent ECONNREFUSED")
+      assert_between(elapsed, 0, 500)
+    } else {
+      assert_eq(result, "not_sent ETIMEDOUT")
+      assert_between(elapsed, 800, 1600)
     }
   })
 }

@@ -74,6 +74,11 @@ pub fn fd_open(fd : Int32) -> Bool {
 }
 
 ///|
+pub fn is_macos() -> Bool {
+  is_macos_raw() != 0
+}
+
+///|
 /// The test runner's output goes through descriptors 0 to 2, so nothing may print or wait until `restore_stdio` is called with the result.
 pub fn close_stdio() -> FixedArray[Int32] raise Errno {
   let saved = FixedArray::make(3, -1)
@@ -126,6 +131,9 @@ extern "C" fn fd_open_raw(fd : Int32) -> Int32 = "harnexus_testkit_fd_open"
 
 ///|
 extern "C" fn eagain_raw() -> Int32 = "harnexus_testkit_eagain"
+
+///|
+extern "C" fn is_macos_raw() -> Int32 = "harnexus_testkit_is_macos"
 
 ///|
 #borrow(saved)
