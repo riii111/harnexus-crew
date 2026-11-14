@@ -1,7 +1,4 @@
 ///|
-const OUTPUT_LIMIT : Int32 = 16777216
-
-///|
 priv struct Capture {
   stdout : @buffer.Buffer
   stderr : @buffer.Buffer
@@ -11,6 +8,9 @@ priv struct Capture {
 fn Capture::new() -> Capture {
   { stdout: @buffer.Buffer(), stderr: @buffer.Buffer(), }
 }
+
+///|
+const OUTPUT_LIMIT : Int32 = 16777216
 
 ///|
 async fn drain(

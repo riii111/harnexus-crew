@@ -7,76 +7,8 @@ from harness import jsonvalue
 from harness.asserts import ScenarioAsserts
 from harness.rig import candidate_repository, codes, observed, read_recorded, wait_for, with_rig
 
-SKILLS = {"skills": "test/fixtures/task-skills"}
-CONFIG = {
-    "config/harnexus/task.json": jsonvalue.dumps(
-        {
-            "templates": {
-                "worker": "{{root}}/skills/task-session-launch/references/worker.md",
-                "reviewer": "{{root}}/skills/task-review-cycle/references/reviewer.md",
-            }
-        }
-    )
-}
-ENV = {"HARNEXUS_CALL_SOCKET": "{{bridge}}", "CODEX_THREAD_ID": "w1"}
-
-
-def answer(tool, reply):
-    return {"match": {"tool": tool}, "answer": {"version": 1, **reply}}
-
-
-LIST = answer(
-    "list_projects",
-    {"outcome": "done", "result": {"projects": [{"projectId": "p-review", "path": "{{home}}/review-home"}]}},
-)
-LAUNCH_REQUEST = {
-    "taskId": "TR1",
-    "documentRefs": ["https://example.com/task"],
-    "completionTarget": "draft_pr",
-    "projectId": "project",
-}
-REPO_PATH = "{{home}}/.codex/worktrees/ab12/repo"
-REVIEW_REQUEST = {
-    "taskId": "TR1",
-    "workerAI": "Codex",
-    "projectId": "project",
-    "checkout": REPO_PATH,
-    "baseBranch": "base",
-    "documentRefs": ["https://example.com/task"],
-    "prUrl": None,
-}
-REPOSITORY = candidate_repository(REPO_PATH)
-LAUNCH = ["launch", "--request", "launch.json"]
-REVIEW = ["review", "--request", "review.json"]
-
-
-def launch_fields(bridge):
-    return {
-        "env": ENV,
-        "seed": SKILLS,
-        "bridge": bridge,
-        "files": {**CONFIG, "work/launch.json": jsonvalue.dumps(LAUNCH_REQUEST)},
-    }
-
-
-def review_fields(bridge):
-    return {
-        "env": ENV,
-        "seed": SKILLS,
-        "bridge": bridge,
-        "git": REPOSITORY,
-        "files": {**CONFIG, "work/review.json": jsonvalue.dumps(REVIEW_REQUEST)},
-    }
-
 
 class SessionCommands(ScenarioAsserts, unittest.TestCase):
-    def run_scenario(self, name, fields, body, strip=lambda seen: seen):
-        """Runs the scenario on the Native build and checks it against the recorded expectation."""
-        done = with_rig({"name": name, **fields}, body)
-        native = observed(done)
-        self.assertSameJson(strip(read_recorded(name, done)), strip(native))
-        return native
-
     def test_launch_keeps_one_worker_per_task_and_name_titles_and_watches_its_pull_request(self):
         native = self.run_scenario(
             "session-launch-flow",
@@ -347,6 +279,75 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             self.assertEqual(1, len(kept))
             self.assertMatches(jsonvalue.loads(kept[0][1]), {"threadId": "w1"})
             self.assertEqual([], [path for path in done.files if path.endswith("pending.json")])
+
+    def run_scenario(self, name, fields, body, strip=lambda seen: seen):
+        """Runs the scenario on the Native build and checks it against the recorded expectation."""
+        done = with_rig({"name": name, **fields}, body)
+        native = observed(done)
+        self.assertSameJson(strip(read_recorded(name, done)), strip(native))
+        return native
+
+
+def launch_fields(bridge):
+    return {
+        "env": ENV,
+        "seed": SKILLS,
+        "bridge": bridge,
+        "files": {**CONFIG, "work/launch.json": jsonvalue.dumps(LAUNCH_REQUEST)},
+    }
+
+
+def review_fields(bridge):
+    return {
+        "env": ENV,
+        "seed": SKILLS,
+        "bridge": bridge,
+        "git": REPOSITORY,
+        "files": {**CONFIG, "work/review.json": jsonvalue.dumps(REVIEW_REQUEST)},
+    }
+
+
+def answer(tool, reply):
+    return {"match": {"tool": tool}, "answer": {"version": 1, **reply}}
+
+
+SKILLS = {"skills": "test/fixtures/task-skills"}
+CONFIG = {
+    "config/harnexus/task.json": jsonvalue.dumps(
+        {
+            "templates": {
+                "worker": "{{root}}/skills/task-session-launch/references/worker.md",
+                "reviewer": "{{root}}/skills/task-review-cycle/references/reviewer.md",
+            }
+        }
+    )
+}
+ENV = {"HARNEXUS_CALL_SOCKET": "{{bridge}}", "CODEX_THREAD_ID": "w1"}
+
+
+LIST = answer(
+    "list_projects",
+    {"outcome": "done", "result": {"projects": [{"projectId": "p-review", "path": "{{home}}/review-home"}]}},
+)
+LAUNCH_REQUEST = {
+    "taskId": "TR1",
+    "documentRefs": ["https://example.com/task"],
+    "completionTarget": "draft_pr",
+    "projectId": "project",
+}
+REPO_PATH = "{{home}}/.codex/worktrees/ab12/repo"
+REVIEW_REQUEST = {
+    "taskId": "TR1",
+    "workerAI": "Codex",
+    "projectId": "project",
+    "checkout": REPO_PATH,
+    "baseBranch": "base",
+    "documentRefs": ["https://example.com/task"],
+    "prUrl": None,
+}
+REPOSITORY = candidate_repository(REPO_PATH)
+LAUNCH = ["launch", "--request", "launch.json"]
+REVIEW = ["review", "--request", "review.json"]
 
 
 if __name__ == "__main__":

@@ -1,11 +1,4 @@
 ///|
-fn json(text : String) -> Json {
-  @jsonio.parse(text) catch {
-    _ => abort("not JSON: \{text}")
-  }
-}
-
-///|
 async test "save_json writes the record with one space of indent" {
   in_scratch(directory => {
     let path = "\{directory}/state.json"
@@ -172,4 +165,11 @@ async test "read_records refuses a pending record that is not JSON" {
       "\{directory}/pending.json is not valid JSON",
     )
   })
+}
+
+///|
+fn json(text : String) -> Json {
+  @jsonio.parse(text) catch {
+    _ => abort("not JSON: \{text}")
+  }
 }

@@ -23,13 +23,6 @@ pub struct ReviewRequest {
 }
 
 ///|
-pub struct ReviewCandidate {
-  priv request : ReviewRequest
-  head : String
-  base : String
-}
-
-///|
 pub async fn ReviewRequest::from_json(
   json : Json,
   scope : ReviewScope,
@@ -137,6 +130,13 @@ fn ReviewRequest::members(self : ReviewRequest) -> Map[String, Json] {
 }
 
 ///|
+pub struct ReviewCandidate {
+  priv request : ReviewRequest
+  head : String
+  base : String
+}
+
+///|
 pub fn ReviewCandidate::to_json(self : ReviewCandidate) -> Json {
   let members = self.request.members()
   members["head"] = Json::string(self.head)
@@ -150,15 +150,6 @@ fn parse_worker_ai(value : Json?) -> WorkerAi raise @failure.TaskFailed {
     Some(String("Claude")) => Claude
     Some(String("Codex")) => Codex
     _ => @failure.fail("workerAI must be Claude or Codex")
-  }
-}
-
-///|
-fn parse_worker_chat_id(value : Json?) -> String? raise @failure.TaskFailed {
-  match value {
-    None | Some(Null) => None
-    Some(String(id)) => Some(id)
-    Some(_) => @failure.fail("workerChatId must be a string or null")
   }
 }
 
@@ -198,6 +189,15 @@ async fn resolve_checkout(
     @failure.fail(refused)
   }
   checkout
+}
+
+///|
+fn parse_worker_chat_id(value : Json?) -> String? raise @failure.TaskFailed {
+  match value {
+    None | Some(Null) => None
+    Some(String(id)) => Some(id)
+    Some(_) => @failure.fail("workerChatId must be a string or null")
+  }
 }
 
 ///|

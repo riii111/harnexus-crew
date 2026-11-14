@@ -61,12 +61,6 @@ fn is_process_alive(pid : Double) -> Bool {
 }
 
 ///|
-fn hex_byte(value : Int32) -> String {
-  let digits = "0123456789abcdef"
-  "\{digits[value / 16].to_char().unwrap()}\{digits[value % 16].to_char().unwrap()}"
-}
-
-///|
 fn iso_time(millis : Int64) -> String {
   let days = millis / 86400000L
   let of_day = (millis % 86400000L).to_int()
@@ -99,4 +93,10 @@ fn iso_time(millis : Int64) -> String {
 fn pad(value : Int32, width : Int32) -> String {
   let digits = value.to_string()
   "0".repeat(width - digits.length()) + digits
+}
+
+///|
+fn hex_byte(value : Int32) -> String {
+  let digits = "0123456789abcdef"
+  "\{digits[value / 16].to_char().unwrap()}\{digits[value % 16].to_char().unwrap()}"
 }

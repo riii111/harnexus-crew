@@ -3,15 +3,6 @@
 priv suberror StillAlive
 
 ///|
-priv struct Supervised {
-  exit : Exit
-  ended : @boundary.ProcessEnd
-  // To preserve UTF-8 characters split across chunks, the output stays bytes until all of it is collected.
-  stdout : Bytes
-  stderr : Bytes
-}
-
-///|
 /// Runs a command in its own process group, so a child it started does not outlive it.
 /// Returns after the command exits and its output is read to the end.
 /// stop         : At the deadline or above 16 MiB of output, the group gets SIGTERM, then SIGKILL after `kill_grace_ms`.
@@ -56,6 +47,15 @@ pub async fn run_process(
     stderr: @utf8.decode_lossy(run.stderr),
     ended: run.ended,
   }
+}
+
+///|
+priv struct Supervised {
+  exit : Exit
+  ended : @boundary.ProcessEnd
+  // To preserve UTF-8 characters split across chunks, the output stays bytes until all of it is collected.
+  stdout : Bytes
+  stderr : Bytes
 }
 
 ///|

@@ -38,6 +38,34 @@ pub fn read_caller_id(
 }
 
 ///|
+fn read_request(
+  json : Json,
+  required : Array[String],
+  optional : Array[String],
+) -> Map[String, Json] raise @failure.TaskFailed {
+  let members = match json {
+    Object(members) => members
+    _ => @failure.fail("request must be a JSON object")
+  }
+  let unknown = []
+  for key, _ in members {
+    if !required.contains(key) && !optional.contains(key) {
+      unknown.push(key)
+    }
+  }
+  if !unknown.is_empty() {
+    unknown.sort_by(String::lexical_compare)
+    @failure.fail("unknown request fields: \{unknown.join(", ")}")
+  }
+  let missing = required.filter(fn(key) { !members.contains(key) })
+  if !missing.is_empty() {
+    missing.sort_by(String::lexical_compare)
+    @failure.fail("missing request fields: \{missing.join(", ")}")
+  }
+  members
+}
+
+///|
 fn parse_task_id(value : Json?) -> String raise @failure.TaskFailed {
   // The task ID is an identifier in prompts, so reject whitespace and prose.
   let id = parse_single_line(value, "taskId")
@@ -112,6 +140,41 @@ async fn parse_document_refs(
 }
 
 ///|
+fn parse_single_line(
+  value : Json?,
+  name : String,
+) -> String raise @failure.TaskFailed {
+  match value {
+    Some(String(text)) => check_single_line(text, name)
+    _ => @failure.fail("\{name} must be a nonempty single-line string")
+  }
+}
+
+///|
+fn is_pull_request_url(value : String) -> Bool {
+  if !value.has_prefix("https://") {
+    return false
+  }
+  let parts = value["https://".length():]
+    .to_owned()
+    .split("/")
+    .map(fn(part) { part.to_owned() })
+    .collect()
+  let count = parts.length()
+  if count != 5 && count != 6 {
+    return false
+  }
+  for index in 0..<3 {
+    if parts[index] == "" || @text.has_space(parts[index]) {
+      return false
+    }
+  }
+  parts[3] == "pull" &&
+  is_positive_number(parts[4]) &&
+  (count == 5 || parts[5] == "")
+}
+
+///|
 fn is_branch_name(branch : String) -> Bool {
   let points = units_of(branch)
   points.length() > 0 &&
@@ -156,47 +219,12 @@ fn is_https_url(value : String) -> Bool {
 }
 
 ///|
-fn is_pull_request_url(value : String) -> Bool {
-  if !value.has_prefix("https://") {
-    return false
-  }
-  let parts = value["https://".length():]
-    .to_owned()
-    .split("/")
-    .map(fn(part) { part.to_owned() })
-    .collect()
-  let count = parts.length()
-  if count != 5 && count != 6 {
-    return false
-  }
-  for index in 0..<3 {
-    if parts[index] == "" || @text.has_space(parts[index]) {
-      return false
-    }
-  }
-  parts[3] == "pull" &&
-  is_positive_number(parts[4]) &&
-  (count == 5 || parts[5] == "")
-}
-
-///|
 fn unique_count(refs : Array[String]) -> Int32 {
   let seen = Map([])
   for reference in refs {
     seen[reference] = true
   }
   seen.length()
-}
-
-///|
-fn parse_single_line(
-  value : Json?,
-  name : String,
-) -> String raise @failure.TaskFailed {
-  match value {
-    Some(String(text)) => check_single_line(text, name)
-    _ => @failure.fail("\{name} must be a nonempty single-line string")
-  }
 }
 
 ///|
@@ -230,32 +258,4 @@ fn is_scheme_unit(unit : Int32) -> Bool {
 ///|
 fn units_of(text : String) -> Array[Int32] {
   text.code_units().map(unit => unit.to_int())
-}
-
-///|
-fn read_request(
-  json : Json,
-  required : Array[String],
-  optional : Array[String],
-) -> Map[String, Json] raise @failure.TaskFailed {
-  let members = match json {
-    Object(members) => members
-    _ => @failure.fail("request must be a JSON object")
-  }
-  let unknown = []
-  for key, _ in members {
-    if !required.contains(key) && !optional.contains(key) {
-      unknown.push(key)
-    }
-  }
-  if !unknown.is_empty() {
-    unknown.sort_by(String::lexical_compare)
-    @failure.fail("unknown request fields: \{unknown.join(", ")}")
-  }
-  let missing = required.filter(fn(key) { !members.contains(key) })
-  if !missing.is_empty() {
-    missing.sort_by(String::lexical_compare)
-    @failure.fail("missing request fields: \{missing.join(", ")}")
-  }
-  members
 }

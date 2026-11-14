@@ -19,52 +19,6 @@ from harness.compare import compare
 from harness.execute import observe
 from harness.normalize import normalize
 
-# A stand-in CLI: it writes the state files, sends the requests, runs the command, prints and exits as its options say.
-STUB = r'''
-import json, os, socket, subprocess, sys
-options = json.loads(sys.argv[1])
-for path, text in options.get("state", {}).items():
-    target = os.path.join(os.environ["XDG_STATE_HOME"], path)
-    os.makedirs(os.path.dirname(target), exist_ok=True)
-    with open(target, "w") as written:
-        written.write(text)
-for line in options.get("requests", []):
-    connection = socket.socket(socket.AF_UNIX)
-    try:
-        connection.connect(os.environ["HARNEXUS_CALL_SOCKET"])
-        connection.sendall((line + "\n").encode())
-        while connection.recv(4096):
-            pass
-    except OSError:
-        pass
-    finally:
-        connection.close()
-if options.get("command"):
-    subprocess.run(options["command"], input=b"prompt", capture_output=True)
-sys.stdout.write(options.get("stdout", ""))
-sys.stderr.write(options.get("stderr", ""))
-sys.exit(options.get("exit", 0))
-'''
-
-BASE = {
-    "stdout": '{"a":1,"b":[1,2]}\n',
-    "stderr": "note\n",
-    "exit": 0,
-    "state": {"taskctl/k1/state.json": '{"x":1}'},
-    "requests": ['{"tool":"create_thread"}'],
-    "command": ["codex", "review"],
-}
-
-
-def stub_case(**overrides):
-    fields = {
-        "name": "stub-case",
-        "env": {"HARNEXUS_CALL_SOCKET": "{{bridge}}"},
-        "bridge": [{"answer": {"outcome": "done"}}, {"answer": {"outcome": "done"}}],
-        "commands": {"codex": {"stdout": "ok\n"}},
-    }
-    return make_case(**{**fields, **overrides})
-
 
 class Harness(unittest.TestCase):
     def setUp(self):
@@ -72,17 +26,6 @@ class Harness(unittest.TestCase):
         self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
         self.stub_path = Path(directory) / "stub.py"
         self.stub_path.write_text(STUB, encoding="utf-8")
-
-    def stub(self, options):
-        return [sys.executable, "-I", str(self.stub_path), json.dumps(options)]
-
-    def observe_differences(self, case, expected_options, actual_options):
-        first, first_root = observe(self.stub(expected_options), case)
-        second, second_root = observe(self.stub(actual_options), case)
-        return compare(case, normalize(first, first_root), normalize(second, second_root))
-
-    def fields(self, found):
-        return [difference["field"] for difference in found]
 
     def test_json_compares_by_meaning_not_by_member_order(self):
         reordered = {**BASE, "stdout": '{"b":[1,2],"a":1}\n'}
@@ -132,6 +75,17 @@ class Harness(unittest.TestCase):
     def test_a_case_with_an_unknown_member_is_refused(self):
         with self.assertRaises(InvalidCase):
             parse_case({"name": "x", "kind": "command", "argv": [], "extra": 1})
+
+    def observe_differences(self, case, expected_options, actual_options):
+        first, first_root = observe(self.stub(expected_options), case)
+        second, second_root = observe(self.stub(actual_options), case)
+        return compare(case, normalize(first, first_root), normalize(second, second_root))
+
+    def stub(self, options):
+        return [sys.executable, "-I", str(self.stub_path), json.dumps(options)]
+
+    def fields(self, found):
+        return [difference["field"] for difference in found]
 
 
 class BridgeSynchronization(unittest.TestCase):
@@ -202,6 +156,53 @@ class CasesAndRecordings(unittest.TestCase):
         names = {case.name for case in load_cases()}
         recorded = {path.stem for path in (expected.EXPECTED / "cases").glob("*.json")}
         self.assertEqual(names, recorded)
+
+
+def stub_case(**overrides):
+    fields = {
+        "name": "stub-case",
+        "env": {"HARNEXUS_CALL_SOCKET": "{{bridge}}"},
+        "bridge": [{"answer": {"outcome": "done"}}, {"answer": {"outcome": "done"}}],
+        "commands": {"codex": {"stdout": "ok\n"}},
+    }
+    return make_case(**{**fields, **overrides})
+
+
+# A stand-in CLI: it writes the state files, sends the requests, runs the command, prints and exits as its options say.
+STUB = r'''
+import json, os, socket, subprocess, sys
+options = json.loads(sys.argv[1])
+for path, text in options.get("state", {}).items():
+    target = os.path.join(os.environ["XDG_STATE_HOME"], path)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with open(target, "w") as written:
+        written.write(text)
+for line in options.get("requests", []):
+    connection = socket.socket(socket.AF_UNIX)
+    try:
+        connection.connect(os.environ["HARNEXUS_CALL_SOCKET"])
+        connection.sendall((line + "\n").encode())
+        while connection.recv(4096):
+            pass
+    except OSError:
+        pass
+    finally:
+        connection.close()
+if options.get("command"):
+    subprocess.run(options["command"], input=b"prompt", capture_output=True)
+sys.stdout.write(options.get("stdout", ""))
+sys.stderr.write(options.get("stderr", ""))
+sys.exit(options.get("exit", 0))
+'''
+
+BASE = {
+    "stdout": '{"a":1,"b":[1,2]}\n',
+    "stderr": "note\n",
+    "exit": 0,
+    "state": {"taskctl/k1/state.json": '{"x":1}'},
+    "requests": ['{"tool":"create_thread"}'],
+    "command": ["codex", "review"],
+}
 
 
 if __name__ == "__main__":

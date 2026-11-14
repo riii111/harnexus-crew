@@ -1,10 +1,10 @@
 ///|
+pub const NAME : String = "harnexus-crew"
+
+///|
 pub struct Env {
   priv vars : Map[String, String]
 }
-
-///|
-pub const NAME : String = "harnexus-crew"
 
 ///|
 pub fn Env::new(vars : Map[String, String]) -> Env {

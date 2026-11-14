@@ -33,17 +33,20 @@ class Case:
     compare: dict = field(default_factory=dict)
 
 
-def _check(condition, name, message):
-    if not condition:
-        raise InvalidCase(f"{name}: {message}")
+def load_cases():
+    cases = []
+    for path in sorted(CASES.glob("*.json")):
+        case = parse_case(json.loads(path.read_text(encoding="utf-8")))
+        if f"{case.name}.json" != path.name:
+            raise InvalidCase(f"{path.name} must be named after its case, {case.name}")
+        cases.append(case)
+    return cases
 
 
-def _strings(value):
-    return isinstance(value, list) and all(isinstance(item, str) for item in value)
-
-
-def _string_map(value):
-    return isinstance(value, dict) and all(isinstance(item, str) for item in value.values())
+def make_case(**fields):
+    """A case built in code, such as a scenario's: it is checked like one read from a file."""
+    base = {"kind": "command", "argv": []}
+    return parse_case({**base, **fields})
 
 
 def parse_case(data):
@@ -103,17 +106,14 @@ def parse_case(data):
     )
 
 
-def make_case(**fields):
-    """A case built in code, such as a scenario's: it is checked like one read from a file."""
-    base = {"kind": "command", "argv": []}
-    return parse_case({**base, **fields})
+def _strings(value):
+    return isinstance(value, list) and all(isinstance(item, str) for item in value)
 
 
-def load_cases():
-    cases = []
-    for path in sorted(CASES.glob("*.json")):
-        case = parse_case(json.loads(path.read_text(encoding="utf-8")))
-        if f"{case.name}.json" != path.name:
-            raise InvalidCase(f"{path.name} must be named after its case, {case.name}")
-        cases.append(case)
-    return cases
+def _string_map(value):
+    return isinstance(value, dict) and all(isinstance(item, str) for item in value.values())
+
+
+def _check(condition, name, message):
+    if not condition:
+        raise InvalidCase(f"{name}: {message}")

@@ -1,7 +1,4 @@
 ///|
-let feedback_hint : String = "To report a bug, open an issue at https://github.com/riii111/taskctl/issues with the command you ran and its output."
-
-///|
 fn usage_of(commands : Array[String], name : String) -> String {
   let buffer = StringBuilder()
   buffer.write_string("usage:\n")
@@ -10,6 +7,9 @@ fn usage_of(commands : Array[String], name : String) -> String {
   }
   buffer.to_string()
 }
+
+///|
+let feedback_hint : String = "To report a bug, open an issue at https://github.com/riii111/taskctl/issues with the command you ran and its output."
 
 ///|
 fn help_run(usage : String) -> @run.CommandRun {

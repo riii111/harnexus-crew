@@ -1,11 +1,4 @@
 ///|
-priv enum CallSocketSetting {
-  Off
-  Default
-  At(String)
-}
-
-///|
 pub fn resolve_harnexus_state_path(
   env : Env,
 ) -> String raise @failure.TaskFailed {
@@ -15,6 +8,13 @@ pub fn resolve_harnexus_state_path(
     Some(path) if @path.is_absolute(path) => path
     Some(_) => @failure.fail("HARNEXUS_STATE_PATH must be an absolute path")
   }
+}
+
+///|
+priv enum CallSocketSetting {
+  Off
+  Default
+  At(String)
 }
 
 ///|

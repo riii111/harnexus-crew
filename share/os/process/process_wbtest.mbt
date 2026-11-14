@@ -1,72 +1,4 @@
 ///|
-fn plain_env() -> Map[String, String] {
-  { "PATH": "/usr/bin:/bin" }
-}
-
-///|
-fn mock(name : String) -> String {
-  "\{@env.current_dir().unwrap()}/test/native/mocks/\{name}"
-}
-
-///|
-async fn describe_run(
-  file : String,
-  args : Array[String],
-  input~ : String = "",
-  timeout_ms~ : Int32 = 1000,
-  kill_grace_ms~ : Int32 = 500,
-  cwd~ : String = "/",
-  env~ : Map[String, String] = plain_env(),
-  output~ : Bool = false,
-) -> String {
-  try {
-    let run = run_process(
-      file,
-      args,
-      input,
-      cwd~,
-      env~,
-      timeout_ms~,
-      kill_grace_ms~,
-    )
-    let head = "started ended=\{run.ended.name()} status=\{run.status}"
-    if output {
-      "\{head} stdout=\{Json::string(run.stdout).stringify()} stderr=\{Json::string(run.stderr).stringify()}"
-    } else {
-      head
-    }
-  } catch {
-    @boundary.ProcessRunFailed(started~, message~) =>
-      "failed started=\{started}: \{message}"
-  }
-}
-
-///|
-async fn run_shell(script : String) -> String {
-  let ran = run_command("/bin/sh", ["-c", script], plain_env())
-  ran.stdout
-}
-
-///|
-async fn wait_until_gone(pid : Int32) -> Bool {
-  // A signalled child is collected by init a moment after it dies, so poll instead of checking once.
-  for _ in 0..<200 {
-    if !@testkit.alive(pid) {
-      return true
-    }
-    @async.sleep(10)
-  }
-  false
-}
-
-///|
-async fn read_pid(file : String) -> Int32 {
-  @string.parse_int(run_shell("cat \{file}").trim().to_owned()) catch {
-    _ => -1
-  }
-}
-
-///|
 async test "E1 a missing command is reported as not started with ENOENT" {
   @testkit.serial(() => {
     assert_eq(
@@ -139,32 +71,6 @@ async test "E4 a program that exits 127 is a result, not a start failure" {
       "started ended=exit status=127",
     )
   })
-}
-
-///|
-fn spawn_missing_with_stdio_closed() -> (Int32, Int32, Int32) raise {
-  let saved = @testkit.close_stdio()
-  let before = @testkit.open_fds()
-  // A print or a wait while descriptors 0 to 2 are closed would hit the test runner's own output, so the synchronous `spawn` is called directly.
-  let errno = try {
-    let child = spawn(
-      "/nonexistent/cmd",
-      [],
-      plain_env(),
-      "/",
-      piped=true,
-      new_session=true,
-    )
-    child.stop_and_reap()
-    child.release_pipes()
-    0
-  } catch {
-    SpawnFailed(errno~) => errno
-    InvalidArgument => -1
-  }
-  let after = @testkit.open_fds()
-  @testkit.restore_stdio(saved)
-  (errno, before, after)
 }
 
 ///|
@@ -558,16 +464,6 @@ async test "run_command ends a command that reads stdin to its end instead of wa
 }
 
 ///|
-async fn describe_command_run(
-  script : String,
-  timeout_ms~ : Int32,
-) -> (String, Int32) {
-  @testkit.timed(() => {
-    run_command_failure("/bin/sh", ["-c", script], timeout_ms~)
-  })
-}
-
-///|
 async test "run_command kills a command that ignores SIGTERM after a grace" {
   @testkit.serial(() => {
     let (result, elapsed) = describe_command_run(
@@ -866,6 +762,110 @@ async test "run_command attaches no error code to a timeout or a signal death" {
       run_command_failure("/bin/sh", ["-c", "kill -9 $$"]),
       "command=/bin/sh message=cannot run /bin/sh code=none",
     )
+  })
+}
+
+///|
+fn plain_env() -> Map[String, String] {
+  { "PATH": "/usr/bin:/bin" }
+}
+
+///|
+fn mock(name : String) -> String {
+  "\{@env.current_dir().unwrap()}/test/native/mocks/\{name}"
+}
+
+///|
+async fn describe_run(
+  file : String,
+  args : Array[String],
+  input~ : String = "",
+  timeout_ms~ : Int32 = 1000,
+  kill_grace_ms~ : Int32 = 500,
+  cwd~ : String = "/",
+  env~ : Map[String, String] = plain_env(),
+  output~ : Bool = false,
+) -> String {
+  try {
+    let run = run_process(
+      file,
+      args,
+      input,
+      cwd~,
+      env~,
+      timeout_ms~,
+      kill_grace_ms~,
+    )
+    let head = "started ended=\{run.ended.name()} status=\{run.status}"
+    if output {
+      "\{head} stdout=\{Json::string(run.stdout).stringify()} stderr=\{Json::string(run.stderr).stringify()}"
+    } else {
+      head
+    }
+  } catch {
+    @boundary.ProcessRunFailed(started~, message~) =>
+      "failed started=\{started}: \{message}"
+  }
+}
+
+///|
+async fn run_shell(script : String) -> String {
+  let ran = run_command("/bin/sh", ["-c", script], plain_env())
+  ran.stdout
+}
+
+///|
+async fn wait_until_gone(pid : Int32) -> Bool {
+  // A signalled child is collected by init a moment after it dies, so poll instead of checking once.
+  for _ in 0..<200 {
+    if !@testkit.alive(pid) {
+      return true
+    }
+    @async.sleep(10)
+  }
+  false
+}
+
+///|
+async fn read_pid(file : String) -> Int32 {
+  @string.parse_int(run_shell("cat \{file}").trim().to_owned()) catch {
+    _ => -1
+  }
+}
+
+///|
+fn spawn_missing_with_stdio_closed() -> (Int32, Int32, Int32) raise {
+  let saved = @testkit.close_stdio()
+  let before = @testkit.open_fds()
+  // A print or a wait while descriptors 0 to 2 are closed would hit the test runner's own output, so the synchronous `spawn` is called directly.
+  let errno = try {
+    let child = spawn(
+      "/nonexistent/cmd",
+      [],
+      plain_env(),
+      "/",
+      piped=true,
+      new_session=true,
+    )
+    child.stop_and_reap()
+    child.release_pipes()
+    0
+  } catch {
+    SpawnFailed(errno~) => errno
+    InvalidArgument => -1
+  }
+  let after = @testkit.open_fds()
+  @testkit.restore_stdio(saved)
+  (errno, before, after)
+}
+
+///|
+async fn describe_command_run(
+  script : String,
+  timeout_ms~ : Int32,
+) -> (String, Int32) {
+  @testkit.timed(() => {
+    run_command_failure("/bin/sh", ["-c", script], timeout_ms~)
   })
 }
 

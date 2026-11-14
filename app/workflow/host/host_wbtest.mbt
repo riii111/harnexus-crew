@@ -1,34 +1,4 @@
 ///|
-fn no_which(_ : String) -> String? {
-  None
-}
-
-///|
-fn env_with_home(pairs : Array[(String, String)]) -> @environment.Env {
-  @apptestkit.env_of([("HOME", "/h"), ..pairs])
-}
-
-///|
-/// Runs `body` with a home whose review-home folder exists.
-async fn with_home(name : String, body : async (String) -> Unit) -> Unit {
-  let home = @testkit.scratch(name)
-  let review_home = "\{home}/review-home"
-  @store.prepare_directory(review_home) catch {
-    failed => abort(failed.user_message())
-  }
-  errdefer @async.protect_from_cancel(() => @testkit.remove_tree(home))
-  body(home)
-  @testkit.remove_tree(home)
-}
-
-///|
-async fn resolve_review_project(host : Host) -> String {
-  (host.review_project)("w1") catch {
-    @failure.TaskFailed(message) => "failed: \{message}"
-  }
-}
-
-///|
 test "the Codex App host's thread variable is CODEX_THREAD_ID" {
   inspect(codex_app_host().thread_variable, content="CODEX_THREAD_ID")
 }
@@ -181,8 +151,46 @@ async fn with_review_projects(
 }
 
 ///|
-fn socket_path(name : String) -> String {
-  "\{@testkit.temp_base()}/hxa-\{@testkit.pid()}-\{name}.sock"
+async fn resolve_review_project(host : Host) -> String {
+  (host.review_project)("w1") catch {
+    @failure.TaskFailed(message) => "failed: \{message}"
+  }
+}
+
+///|
+/// Runs `body` with a home whose review-home folder exists.
+async fn with_home(name : String, body : async (String) -> Unit) -> Unit {
+  let home = @testkit.scratch(name)
+  let review_home = "\{home}/review-home"
+  @store.prepare_directory(review_home) catch {
+    failed => abort(failed.user_message())
+  }
+  errdefer @async.protect_from_cancel(() => @testkit.remove_tree(home))
+  body(home)
+  @testkit.remove_tree(home)
+}
+
+///|
+/// A bridge that records the lines it receives and answers each by `rule`, or not at all for None.
+async fn with_bridge(
+  name : String,
+  rule : (String) -> String?,
+  body : async (String, Array[String]) -> Unit,
+) -> Unit {
+  let lines = []
+  with_server(
+    name,
+    stream => {
+      let line = read_request(stream).unwrap_or("")
+      lines.push(line)
+      match rule(line) {
+        Some(reply) => stream.write(@utf8.encode(reply + "\n"))
+        // A bridge that does not answer keeps the connection open.
+        None => @async.sleep(60000)
+      }
+    },
+    path => body(path, lines),
+  )
 }
 
 ///|
@@ -218,6 +226,11 @@ async fn with_server(
 }
 
 ///|
+fn socket_path(name : String) -> String {
+  "\{@testkit.temp_base()}/hxa-\{@testkit.pid()}-\{name}.sock"
+}
+
+///|
 /// The request line, as the bridge reads it; None when the peer closed before sending one.
 async fn read_request(stream : @raw_fd.RawFdStream) -> String? {
   let line = stream.read_until(b"\n") catch { _ => None }
@@ -225,24 +238,11 @@ async fn read_request(stream : @raw_fd.RawFdStream) -> String? {
 }
 
 ///|
-/// A bridge that records the lines it receives and answers each by `rule`, or not at all for None.
-async fn with_bridge(
-  name : String,
-  rule : (String) -> String?,
-  body : async (String, Array[String]) -> Unit,
-) -> Unit {
-  let lines = []
-  with_server(
-    name,
-    stream => {
-      let line = read_request(stream).unwrap_or("")
-      lines.push(line)
-      match rule(line) {
-        Some(reply) => stream.write(@utf8.encode(reply + "\n"))
-        // A bridge that does not answer keeps the connection open.
-        None => @async.sleep(60000)
-      }
-    },
-    path => body(path, lines),
-  )
+fn env_with_home(pairs : Array[(String, String)]) -> @environment.Env {
+  @apptestkit.env_of([("HOME", "/h"), ..pairs])
+}
+
+///|
+fn no_which(_ : String) -> String? {
+  None
 }

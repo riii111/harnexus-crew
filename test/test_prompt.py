@@ -12,95 +12,6 @@ from harness import jsonvalue
 from harness.binaries import require_binary
 from harness.cases import REPO
 
-SKILLS = REPO / "test" / "fixtures" / "task-skills"
-
-WORKER_FIELDS = {"task_id": "TR1", "document_refs": "- /docs/agreement.md", "completion_target": "draft_pr"}
-REVIEWER_FIELDS = {
-    "task_id": "TR1",
-    "document_refs": "- /docs/agreement.md",
-    "worker_ai": "Codex",
-    "reply_to": "Codex",
-    "worker_chat_id": "worker",
-    "checkout": "/checkout",
-    "pr_url": "null",
-    "base": "1" * 40,
-    "head": "2" * 40,
-}
-MISSING_LINK_AFTER = [
-    ("a code span", "`[a](b.md)` then [c](missing.md)\n"),
-    ("a lone backtick a CRLF blank line before another", "Type a ` to start.\r\n\r\n[c](missing.md)\r\n\r\nThen `x`.\r\n"),
-    ("a lone backtick a heading before another", "Type a backtick: `\n# Instructions\n[c](missing.md)\nUse `x`.\n"),
-    ("an escaped backtick", "Write \\` then [c](missing.md) and `x`.\n"),
-]
-REFUSED_LINKS = [
-    ("a real path with a space", "[$s](spaced/SKILL.md)", "TR1", "whose path has a space, parenthesis, # or backslash"),
-    ("a real path with #", "[$s](hashed/SKILL.md)", "TR1", "whose path has a space, parenthesis, # or backslash"),
-    ("a target with a title", '[n](notes/task.md "notes")', "TR1", "without angle brackets, spaces or a title"),
-    ("a target opening with escaped braces", "[n]({{task_id}}/task.md)", "TR1", "which is not a file"),
-    ("a target opening with a full-width space", "[n](　notes/task.md)", "TR1", "without angle brackets, spaces or a title"),
-    ("a target in angle brackets", "[n](<notes/task.md>)", "TR1", "without angle brackets, spaces or a title"),
-    (
-        "a field holding a path",
-        "[n](notes/{task_id}.md)",
-        "x/../../task",
-        "{task_id} may hold only letters, digits, _ and - inside a link target",
-    ),
-    (
-        "a field whose value would break the anchor",
-        "[n](notes/task.md#{task_id})",
-        "#42",
-        "{task_id} may hold only letters, digits, _ and - inside a link target",
-    ),
-    ("a field that is not a request value", "[n](notes/{constructor}.md)", "TR1", "unknown template field {constructor}"),
-]
-REFUSED_CONFIGS = [
-    ("a missing config", None, "harnexus/task.json does not exist; set templates.worker"),
-    ("a config without the worker template", {"templates": {"reviewer": "/reviewer.md"}}, "templates.worker is not set in"),
-    ("a relative template path", {"templates": {"worker": "worker.md"}}, "templates.worker must be an absolute path"),
-    ("an unknown config field", {"templates": {}, "prompts": {}}, "is invalid"),
-    (
-        "a missing template",
-        {"templates": {"worker": "/nonexistent/worker.md"}},
-        "the worker template /nonexistent/worker.md: cannot read /nonexistent/worker.md",
-    ),
-]
-
-
-class Fixture:
-    def __init__(self, test):
-        self.root = Path(os.path.realpath(tempfile.mkdtemp(prefix="harnexus-templates-")))
-        test.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
-        self.home = self.root / "config"
-
-    def configure(self, config):
-        if config is None:
-            return
-        (self.home / "harnexus").mkdir(parents=True, exist_ok=True)
-        (self.home / "harnexus" / "task.json").write_text(json.dumps(config), encoding="utf-8")
-
-    def use_worker(self, template):
-        self.configure({"templates": {"worker": str(template)}})
-
-    def fill_prompt(self, kind, fields=None):
-        """Returns (True, filled text) or (False, the refusal)."""
-        fields = WORKER_FIELDS if fields is None else fields
-        ran = subprocess.run(
-            [
-                require_binary("HARNEXUS_PROMPT_PROBE"),
-                str(self.root),
-                str(self.home),
-                kind,
-                *[f"{name}={value}" for name, value in fields.items()],
-            ],
-            capture_output=True,
-        )
-        if ran.returncode != 0:
-            raise RuntimeError(f"probe exited {ran.returncode}: {ran.stderr.decode('utf-8', errors='replace')}")
-        reply = jsonvalue.loads(ran.stdout.decode("utf-8"))
-        if "prompt" in reply:
-            return True, reply["prompt"]
-        return False, reply.get("error", "")
-
 
 class NativeTemplateFilling(unittest.TestCase):
     def test_links_the_reviewer_prompt_to_the_files_beside_its_template(self):
@@ -254,6 +165,96 @@ class NativeTemplateFilling(unittest.TestCase):
 
                 self.assertIs(False, ok)
                 self.assertIn(error, message)
+
+
+class Fixture:
+    def __init__(self, test):
+        self.root = Path(os.path.realpath(tempfile.mkdtemp(prefix="harnexus-templates-")))
+        test.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        self.home = self.root / "config"
+
+    def configure(self, config):
+        if config is None:
+            return
+        (self.home / "harnexus").mkdir(parents=True, exist_ok=True)
+        (self.home / "harnexus" / "task.json").write_text(json.dumps(config), encoding="utf-8")
+
+    def use_worker(self, template):
+        self.configure({"templates": {"worker": str(template)}})
+
+    def fill_prompt(self, kind, fields=None):
+        """Returns (True, filled text) or (False, the refusal)."""
+        fields = WORKER_FIELDS if fields is None else fields
+        ran = subprocess.run(
+            [
+                require_binary("HARNEXUS_PROMPT_PROBE"),
+                str(self.root),
+                str(self.home),
+                kind,
+                *[f"{name}={value}" for name, value in fields.items()],
+            ],
+            capture_output=True,
+        )
+        if ran.returncode != 0:
+            raise RuntimeError(f"probe exited {ran.returncode}: {ran.stderr.decode('utf-8', errors='replace')}")
+        reply = jsonvalue.loads(ran.stdout.decode("utf-8"))
+        if "prompt" in reply:
+            return True, reply["prompt"]
+        return False, reply.get("error", "")
+
+
+SKILLS = REPO / "test" / "fixtures" / "task-skills"
+
+WORKER_FIELDS = {"task_id": "TR1", "document_refs": "- /docs/agreement.md", "completion_target": "draft_pr"}
+REVIEWER_FIELDS = {
+    "task_id": "TR1",
+    "document_refs": "- /docs/agreement.md",
+    "worker_ai": "Codex",
+    "reply_to": "Codex",
+    "worker_chat_id": "worker",
+    "checkout": "/checkout",
+    "pr_url": "null",
+    "base": "1" * 40,
+    "head": "2" * 40,
+}
+MISSING_LINK_AFTER = [
+    ("a code span", "`[a](b.md)` then [c](missing.md)\n"),
+    ("a lone backtick a CRLF blank line before another", "Type a ` to start.\r\n\r\n[c](missing.md)\r\n\r\nThen `x`.\r\n"),
+    ("a lone backtick a heading before another", "Type a backtick: `\n# Instructions\n[c](missing.md)\nUse `x`.\n"),
+    ("an escaped backtick", "Write \\` then [c](missing.md) and `x`.\n"),
+]
+REFUSED_LINKS = [
+    ("a real path with a space", "[$s](spaced/SKILL.md)", "TR1", "whose path has a space, parenthesis, # or backslash"),
+    ("a real path with #", "[$s](hashed/SKILL.md)", "TR1", "whose path has a space, parenthesis, # or backslash"),
+    ("a target with a title", '[n](notes/task.md "notes")', "TR1", "without angle brackets, spaces or a title"),
+    ("a target opening with escaped braces", "[n]({{task_id}}/task.md)", "TR1", "which is not a file"),
+    ("a target opening with a full-width space", "[n](　notes/task.md)", "TR1", "without angle brackets, spaces or a title"),
+    ("a target in angle brackets", "[n](<notes/task.md>)", "TR1", "without angle brackets, spaces or a title"),
+    (
+        "a field holding a path",
+        "[n](notes/{task_id}.md)",
+        "x/../../task",
+        "{task_id} may hold only letters, digits, _ and - inside a link target",
+    ),
+    (
+        "a field whose value would break the anchor",
+        "[n](notes/task.md#{task_id})",
+        "#42",
+        "{task_id} may hold only letters, digits, _ and - inside a link target",
+    ),
+    ("a field that is not a request value", "[n](notes/{constructor}.md)", "TR1", "unknown template field {constructor}"),
+]
+REFUSED_CONFIGS = [
+    ("a missing config", None, "harnexus/task.json does not exist; set templates.worker"),
+    ("a config without the worker template", {"templates": {"reviewer": "/reviewer.md"}}, "templates.worker is not set in"),
+    ("a relative template path", {"templates": {"worker": "worker.md"}}, "templates.worker must be an absolute path"),
+    ("an unknown config field", {"templates": {}, "prompts": {}}, "is invalid"),
+    (
+        "a missing template",
+        {"templates": {"worker": "/nonexistent/worker.md"}},
+        "the worker template /nonexistent/worker.md: cannot read /nonexistent/worker.md",
+    ),
+]
 
 
 if __name__ == "__main__":

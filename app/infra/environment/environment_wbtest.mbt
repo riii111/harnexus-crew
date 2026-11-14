@@ -1,27 +1,4 @@
 ///|
-fn env_of(pairs : Array[(String, String)]) -> Env {
-  let vars = Map([])
-  for pair in pairs {
-    let (name, value) = pair
-    vars[name] = value
-  }
-  Env::new(vars)
-}
-
-///|
-fn detected(pairs : Array[(String, String)]) -> String {
-  try {
-    match detect(env_of(pairs)) {
-      Settled(found) => found.to_json().stringify()
-      AskSocket(path) => "ask \{path}"
-      NothingToAsk => "nothing to ask"
-    }
-  } catch {
-    @failure.TaskFailed(message) => "refused: \{message}"
-  }
-}
-
-///|
 test "an explicit local names the app that runs it" {
   inspect(
     detected([("HARNEXUS_EXECUTION_ENV", "local")]),
@@ -253,6 +230,29 @@ test "a relative HARNEXUS_STATE_PATH is refused" {
     }),
     content="HARNEXUS_STATE_PATH must be an absolute path",
   )
+}
+
+///|
+fn detected(pairs : Array[(String, String)]) -> String {
+  try {
+    match detect(env_of(pairs)) {
+      Settled(found) => found.to_json().stringify()
+      AskSocket(path) => "ask \{path}"
+      NothingToAsk => "nothing to ask"
+    }
+  } catch {
+    @failure.TaskFailed(message) => "refused: \{message}"
+  }
+}
+
+///|
+fn env_of(pairs : Array[(String, String)]) -> Env {
+  let vars = Map([])
+  for pair in pairs {
+    let (name, value) = pair
+    vars[name] = value
+  }
+  Env::new(vars)
 }
 
 ///|

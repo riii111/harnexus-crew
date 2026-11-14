@@ -72,25 +72,6 @@ fn text_or_none(value : Json?) -> String? {
 }
 
 ///|
-/// A session id the bridge and the state files agree on: 1 to 128 ASCII letters, digits, `_` and `-`.
-fn is_session_id(text : String) -> Bool {
-  let units = text.code_units()
-  if units.length() < 1 || units.length() > 128 {
-    return false
-  }
-  units
-  .iter()
-  .all(unit => {
-    let code = unit.to_int()
-    (code >= 48 && code <= 57) ||
-    (code >= 65 && code <= 90) ||
-    (code >= 97 && code <= 122) ||
-    code == 95 ||
-    code == 45
-  })
-}
-
-///|
 fn short_hash(text : String) -> String {
   @store.sha256_hex(text)[:16].to_owned()
 }

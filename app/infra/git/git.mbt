@@ -11,12 +11,6 @@ pub struct Git {
 }
 
 ///|
-/// The command runs unsandboxed, so repository config must never start helpers or transports.
-let git_safety : Array[String] = [
-  "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "protocol.allow=never",
-]
-
-///|
 pub fn Git::new(runner : GitRunner, env : @environment.Env) -> Git {
   { runner, env, }
 }
@@ -59,3 +53,9 @@ pub async fn Git::run(
   }
   @text.js_trim(output.stdout)
 }
+
+///|
+/// The command runs unsandboxed, so repository config must never start helpers or transports.
+let git_safety : Array[String] = [
+  "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "protocol.allow=never",
+]

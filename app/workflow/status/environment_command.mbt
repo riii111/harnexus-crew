@@ -1,7 +1,4 @@
 ///|
-const SOCKET_PROBE_TIMEOUT_MS : Int32 = 1500
-
-///|
 pub async fn environment_command(env : @environment.Env) -> Json {
   let detected = match @environment.detect(env) {
     Settled(declared) => declared
@@ -20,6 +17,9 @@ pub async fn environment_command(env : @environment.Env) -> Json {
   }
   detected.to_json()
 }
+
+///|
+const SOCKET_PROBE_TIMEOUT_MS : Int32 = 1500
 
 ///|
 async fn socket_accepts(path : String) -> Bool noraise {

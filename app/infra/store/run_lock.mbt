@@ -5,6 +5,34 @@ const RETRY_MS = 50
 const WAIT_MS = 30000
 
 ///|
+/// Runs `work` while holding a lock file that every process on the machine respects, waiting for one held by another.
+/// After `wait_ms` without the lock it fails with the reason the last attempt failed.
+pub async fn[T] with_lock(
+  directory : String,
+  name : String,
+  work : async () -> T raise @failure.TaskFailed,
+  wait_ms~ : Int32 = WAIT_MS,
+) -> T raise @failure.TaskFailed {
+  lift_file_failure(() => prepare_directory(directory))
+  let path = "\{directory}/\{name}.lock"
+  let until = @async.now() + wait_ms.to_int64()
+  while true {
+    let taken = Some(acquire(path, "harnexus-crew adapter")) catch {
+      failed => {
+        if @async.now() >= until {
+          @failure.fail("\{path} stayed locked: \{failed.message()}")
+        }
+        None
+      }
+    }
+    guard taken is Some(token) else { @async.sleep(RETRY_MS) }
+    defer release(path, token)
+    return work()
+  }
+  abort("unreachable")
+}
+
+///|
 /// Takes the lock at once or fails; the returned token proves it is this run's lock when releasing.
 /// A lock whose holder died is taken over, and of several runs doing that only one removes the lock.
 pub fn acquire(
@@ -52,34 +80,6 @@ pub fn release(lock : String, token : String) -> Unit {
     // A failed removal leaves the lock, because the caller has no way to handle it.
     _ => ()
   }
-}
-
-///|
-/// Runs `work` while holding a lock file that every process on the machine respects, waiting for one held by another.
-/// After `wait_ms` without the lock it fails with the reason the last attempt failed.
-pub async fn[T] with_lock(
-  directory : String,
-  name : String,
-  work : async () -> T raise @failure.TaskFailed,
-  wait_ms~ : Int32 = WAIT_MS,
-) -> T raise @failure.TaskFailed {
-  lift_file_failure(() => prepare_directory(directory))
-  let path = "\{directory}/\{name}.lock"
-  let until = @async.now() + wait_ms.to_int64()
-  while true {
-    let taken = Some(acquire(path, "harnexus-crew adapter")) catch {
-      failed => {
-        if @async.now() >= until {
-          @failure.fail("\{path} stayed locked: \{failed.message()}")
-        }
-        None
-      }
-    }
-    guard taken is Some(token) else { @async.sleep(RETRY_MS) }
-    defer release(path, token)
-    return work()
-  }
-  abort("unreachable")
 }
 
 ///|

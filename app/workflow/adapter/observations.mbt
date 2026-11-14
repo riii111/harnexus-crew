@@ -12,6 +12,49 @@ priv struct SessionPosition {
 }
 
 ///|
+fn SessionPosition::to_json(self : SessionPosition) -> Json {
+  object([
+    ("sessionId", Json::string(self.session_id)),
+    ("parentThreadId", Json::string(self.parent_thread_id)),
+    (
+      "baseline",
+      object([
+        ("uuid", text_or_null(self.baseline.uuid)),
+        ("estimated", Json::boolean(self.baseline.estimated)),
+        ("at", Json::string(self.baseline.at)),
+      ]),
+    ),
+    ("cursor", text_or_null(self.cursor)),
+    ("excluded", Json::array(self.excluded.map(Json::string))),
+    ("taken", Json::array(self.taken.map(Json::string))),
+  ])
+}
+
+///|
+fn position_in(value : Json) -> SessionPosition? {
+  guard value is Object(members) &&
+    members.get("baseline") is Some(Object(baseline)) else {
+    return None
+  }
+  guard members.get("sessionId") is Some(String(session_id)) &&
+    members.get("parentThreadId") is Some(String(parent_thread_id)) else {
+    return None
+  }
+  Some({
+    session_id,
+    parent_thread_id,
+    baseline: {
+      uuid: text_or_none(baseline.get("uuid")),
+      estimated: baseline.get("estimated") is Some(True),
+      at: text_or_none(baseline.get("at")).unwrap_or(""),
+    },
+    cursor: text_or_none(members.get("cursor")),
+    excluded: strings_in(members.get("excluded")),
+    taken: strings_in(members.get("taken")),
+  })
+}
+
+///|
 /// The record up to which reviews were in the session before the adapter first saw it, which are never opened.
 /// It is estimated when the bridge could only say what the app was last shown.
 priv struct Baseline {
@@ -29,6 +72,46 @@ priv struct PendingReview {
 }
 
 ///|
+fn PendingReview::to_json(self : PendingReview) -> Json {
+  object([
+    ("parentThreadId", Json::string(self.parent_thread_id)),
+    ("sessionId", text_or_null(self.session_id)),
+    ("review", review_json(self.review)),
+  ])
+}
+
+///|
+fn pending_in(value : Json) -> Array[PendingReview] {
+  let entries = []
+  guard value is Array(items) else { return entries }
+  for item in items {
+    guard item is Object(members) &&
+      members.get("review") is Some(Object(review)) else {
+      continue
+    }
+    guard members.get("parentThreadId") is Some(String(parent_thread_id)) &&
+      review.get("key") is Some(String(key)) &&
+      review.get("reviewer") is Some(String(reviewer)) &&
+      review.get("answer") is Some(String(answer)) else {
+      continue
+    }
+    entries.push({
+      parent_thread_id,
+      session_id: text_or_none(members.get("sessionId")),
+      review: {
+        key,
+        reviewer,
+        verdict: text_or_none(review.get("verdict")),
+        task_id: text_or_none(review.get("taskId")),
+        head: text_or_none(review.get("head")),
+        answer,
+      },
+    })
+  }
+  entries
+}
+
+///|
 /// A reviewer's chat asked for and not yet seen open: the review it opens with and the session that ran it, kept on disk so a restart neither asks again nor loses the text.
 priv struct Opening {
   key : String
@@ -36,6 +119,16 @@ priv struct Opening {
   session_id : String?
   /// Set before the text is shown, so a stop between showing it and removing the record never shows it twice.
   showing : Bool
+}
+
+///|
+fn Opening::to_json(self : Opening) -> Json {
+  object([
+    ("key", Json::string(self.key)),
+    ("text", Json::string(self.text)),
+    ("sessionId", text_or_null(self.session_id)),
+    ("showing", Json::boolean(self.showing)),
+  ])
 }
 
 ///|
@@ -194,11 +287,6 @@ fn Observations::keep_pending(
 }
 
 ///|
-fn observation_root(env : @environment.Env) -> String {
-  @path.join([env.state_root(), "cloud-observe"])
-}
-
-///|
 fn Observations::locks_directory(self : Observations) -> String {
   @path.join([self.root, "locks"])
 }
@@ -222,94 +310,25 @@ fn Observations::opening_path(self : Observations, reviewer : String) -> String 
 }
 
 ///|
-fn SessionPosition::to_json(self : SessionPosition) -> Json {
-  object([
-    ("sessionId", Json::string(self.session_id)),
-    ("parentThreadId", Json::string(self.parent_thread_id)),
-    (
-      "baseline",
-      object([
-        ("uuid", text_or_null(self.baseline.uuid)),
-        ("estimated", Json::boolean(self.baseline.estimated)),
-        ("at", Json::string(self.baseline.at)),
-      ]),
-    ),
-    ("cursor", text_or_null(self.cursor)),
-    ("excluded", Json::array(self.excluded.map(Json::string))),
-    ("taken", Json::array(self.taken.map(Json::string))),
-  ])
+fn observation_root(env : @environment.Env) -> String {
+  @path.join([env.state_root(), "cloud-observe"])
 }
 
 ///|
-fn position_in(value : Json) -> SessionPosition? {
-  guard value is Object(members) &&
-    members.get("baseline") is Some(Object(baseline)) else {
-    return None
+/// A session id the bridge and the state files agree on: 1 to 128 ASCII letters, digits, `_` and `-`.
+fn is_session_id(text : String) -> Bool {
+  let units = text.code_units()
+  if units.length() < 1 || units.length() > 128 {
+    return false
   }
-  guard members.get("sessionId") is Some(String(session_id)) &&
-    members.get("parentThreadId") is Some(String(parent_thread_id)) else {
-    return None
-  }
-  Some({
-    session_id,
-    parent_thread_id,
-    baseline: {
-      uuid: text_or_none(baseline.get("uuid")),
-      estimated: baseline.get("estimated") is Some(True),
-      at: text_or_none(baseline.get("at")).unwrap_or(""),
-    },
-    cursor: text_or_none(members.get("cursor")),
-    excluded: strings_in(members.get("excluded")),
-    taken: strings_in(members.get("taken")),
+  units
+  .iter()
+  .all(unit => {
+    let code = unit.to_int()
+    (code >= 48 && code <= 57) ||
+    (code >= 65 && code <= 90) ||
+    (code >= 97 && code <= 122) ||
+    code == 95 ||
+    code == 45
   })
-}
-
-///|
-fn PendingReview::to_json(self : PendingReview) -> Json {
-  object([
-    ("parentThreadId", Json::string(self.parent_thread_id)),
-    ("sessionId", text_or_null(self.session_id)),
-    ("review", review_json(self.review)),
-  ])
-}
-
-///|
-fn pending_in(value : Json) -> Array[PendingReview] {
-  let entries = []
-  guard value is Array(items) else { return entries }
-  for item in items {
-    guard item is Object(members) &&
-      members.get("review") is Some(Object(review)) else {
-      continue
-    }
-    guard members.get("parentThreadId") is Some(String(parent_thread_id)) &&
-      review.get("key") is Some(String(key)) &&
-      review.get("reviewer") is Some(String(reviewer)) &&
-      review.get("answer") is Some(String(answer)) else {
-      continue
-    }
-    entries.push({
-      parent_thread_id,
-      session_id: text_or_none(members.get("sessionId")),
-      review: {
-        key,
-        reviewer,
-        verdict: text_or_none(review.get("verdict")),
-        task_id: text_or_none(review.get("taskId")),
-        head: text_or_none(review.get("head")),
-        answer,
-      },
-    })
-  }
-  entries
-}
-
-///|
-fn Opening::to_json(self : Opening) -> Json {
-  object([
-    ("key", Json::string(self.key)),
-    ("text", Json::string(self.text)),
-    ("sessionId", text_or_null(self.session_id)),
-    ("showing", Json::boolean(self.showing)),
-  ])
 }

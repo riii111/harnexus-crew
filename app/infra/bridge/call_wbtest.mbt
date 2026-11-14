@@ -1,46 +1,4 @@
 ///|
-/// A bridge that records the lines it receives and answers each by `rule`, or not at all for None.
-async fn with_bridge(
-  name : String,
-  rule : (String) -> String?,
-  body : async (String, Array[String]) -> Unit,
-) -> Unit {
-  let lines = []
-  with_server(
-    name,
-    stream => {
-      let line = read_request(stream).unwrap_or("")
-      lines.push(line)
-      match rule(line) {
-        Some(reply) => stream.write(@utf8.encode(reply + "\n"))
-        // A bridge that does not answer keeps the connection open.
-        None => @async.sleep(60000)
-      }
-    },
-    path => body(path, lines),
-  )
-}
-
-///|
-fn bridge_env(path : String) -> @environment.Env {
-  @app_testkit.env_of([("HARNEXUS_CALL_SOCKET", path), ("HOME", "/nonexistent")])
-}
-
-///|
-async fn call_json(
-  env : @environment.Env,
-  tool : String,
-  args : Map[String, Json],
-  timeout_ms? : Int32,
-) -> String {
-  let answer = match timeout_ms {
-    Some(limit) => call_app(env, "w1", tool, args, timeout_ms=limit)
-    None => call_app(env, "w1", tool, args)
-  }
-  json_text(answer.to_json())
-}
-
-///|
 async test "a call is sent as one protocol 1 line naming the thread, tool and arguments" {
   with_bridge(
     "call-1",
@@ -226,6 +184,48 @@ test "a sandbox refusal gets the sandbox hint" {
 test "no error code, or an unknown one, gets the general hint" {
   assert_eq(socket_hint(None), SOCKET_HINT, msg="none")
   assert_eq(socket_hint(Some("EOTHER")), SOCKET_HINT, msg="EOTHER")
+}
+
+///|
+/// A bridge that records the lines it receives and answers each by `rule`, or not at all for None.
+async fn with_bridge(
+  name : String,
+  rule : (String) -> String?,
+  body : async (String, Array[String]) -> Unit,
+) -> Unit {
+  let lines = []
+  with_server(
+    name,
+    stream => {
+      let line = read_request(stream).unwrap_or("")
+      lines.push(line)
+      match rule(line) {
+        Some(reply) => stream.write(@utf8.encode(reply + "\n"))
+        // A bridge that does not answer keeps the connection open.
+        None => @async.sleep(60000)
+      }
+    },
+    path => body(path, lines),
+  )
+}
+
+///|
+fn bridge_env(path : String) -> @environment.Env {
+  @app_testkit.env_of([("HARNEXUS_CALL_SOCKET", path), ("HOME", "/nonexistent")])
+}
+
+///|
+async fn call_json(
+  env : @environment.Env,
+  tool : String,
+  args : Map[String, Json],
+  timeout_ms? : Int32,
+) -> String {
+  let answer = match timeout_ms {
+    Some(limit) => call_app(env, "w1", tool, args, timeout_ms=limit)
+    None => call_app(env, "w1", tool, args)
+  }
+  json_text(answer.to_json())
 }
 
 ///|

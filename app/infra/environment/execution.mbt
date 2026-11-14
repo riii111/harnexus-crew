@@ -1,13 +1,4 @@
 ///|
-const EXECUTION_VARIABLE : String = "HARNEXUS_EXECUTION_ENV"
-
-///|
-const CODEX_CLOUD_VARIABLE : String = "CODEX_ENVIRONMENT_ID"
-
-///|
-const CLAUDE_CLOUD_VARIABLE : String = "CLAUDE_CODE_REMOTE"
-
-///|
 pub enum CloudHost {
   CodexCloud
   ClaudeCloud
@@ -38,6 +29,23 @@ fn ExecutionEnvironment::name(self : ExecutionEnvironment) -> String {
 }
 
 ///|
+/// `InCloud(None)` is an explicit cloud that names no host.
+pub enum Runner {
+  Unnamed
+  InCloud(CloudHost?)
+  OnMachine(App)
+}
+
+///|
+const EXECUTION_VARIABLE : String = "HARNEXUS_EXECUTION_ENV"
+
+///|
+const CODEX_CLOUD_VARIABLE : String = "CODEX_ENVIRONMENT_ID"
+
+///|
+const CLAUDE_CLOUD_VARIABLE : String = "CLAUDE_CODE_REMOTE"
+
+///|
 /// Names a variable, never a value of the environment.
 priv enum Source {
   Explicit
@@ -58,14 +66,6 @@ fn Source::name(self : Source) -> String {
     HarnexusSocket => "harnexus-socket"
     NoSource => "none"
   }
-}
-
-///|
-/// `InCloud(None)` is an explicit cloud that names no host.
-pub enum Runner {
-  Unnamed
-  InCloud(CloudHost?)
-  OnMachine(App)
 }
 
 ///|
@@ -122,6 +122,35 @@ pub fn Detected::undetermined() -> Detected {
 }
 
 ///|
+pub enum Detection {
+  Settled(Detected)
+  /// Carries the call socket whose acceptance of a connection makes the answer local.
+  AskSocket(String)
+  /// The socket setting names no usable path.
+  NothingToAsk
+}
+
+///|
+pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
+  match parse_declared_environment(env) {
+    Some(declared) => return Settled(declared)
+    None => ()
+  }
+  if app_of(env) is T3 {
+    return Settled({
+      environment: Local,
+      source: T3ThreadVariable,
+      runner: OnMachine(T3),
+      note: "T3 Code sets \{T3_THREAD_VARIABLE} for its agents and the commands they run",
+    })
+  }
+  // A missing variable proves nothing, so local is claimed only once the socket answers.
+  AskSocket(resolve_call_socket_path(env)) catch {
+    @failure.TaskFailed(_) => NothingToAsk
+  }
+}
+
+///|
 /// None when the variables declare nothing.
 pub fn parse_declared_environment(
   env : Env,
@@ -163,35 +192,6 @@ pub fn parse_declared_environment(
           })
         None => None
       }
-  }
-}
-
-///|
-pub enum Detection {
-  Settled(Detected)
-  /// Carries the call socket whose acceptance of a connection makes the answer local.
-  AskSocket(String)
-  /// The socket setting names no usable path.
-  NothingToAsk
-}
-
-///|
-pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
-  match parse_declared_environment(env) {
-    Some(declared) => return Settled(declared)
-    None => ()
-  }
-  if app_of(env) is T3 {
-    return Settled({
-      environment: Local,
-      source: T3ThreadVariable,
-      runner: OnMachine(T3),
-      note: "T3 Code sets \{T3_THREAD_VARIABLE} for its agents and the commands they run",
-    })
-  }
-  // A missing variable proves nothing, so local is claimed only once the socket answers.
-  AskSocket(resolve_call_socket_path(env)) catch {
-    @failure.TaskFailed(_) => NothingToAsk
   }
 }
 

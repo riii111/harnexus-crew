@@ -7,18 +7,15 @@ pub enum OptionalText {
 }
 
 ///|
-priv enum CompletionTarget {
-  Implementation
-  DraftPr
-  Merge
-}
-
-///|
-fn CompletionTarget::name(self : CompletionTarget) -> String {
-  match self {
-    Implementation => "implementation"
-    DraftPr => "draft_pr"
-    Merge => "merge"
+fn add_optional(
+  members : Map[String, Json],
+  key : String,
+  value : OptionalText,
+) -> Unit {
+  match value {
+    Absent => ()
+    Null => members[key] = Json::null()
+    Text(text) => members[key] = Json::string(text)
   }
 }
 
@@ -33,5 +30,21 @@ pub fn WorkerAi::name(self : WorkerAi) -> String {
   match self {
     Claude => "Claude"
     Codex => "Codex"
+  }
+}
+
+///|
+priv enum CompletionTarget {
+  Implementation
+  DraftPr
+  Merge
+}
+
+///|
+fn CompletionTarget::name(self : CompletionTarget) -> String {
+  match self {
+    Implementation => "implementation"
+    DraftPr => "draft_pr"
+    Merge => "merge"
   }
 }
