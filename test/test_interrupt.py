@@ -8,7 +8,7 @@ import time
 import unittest
 from pathlib import Path
 
-from harness.binaries import binary
+from harness.binaries import require_binary
 from harness.rig import wait_for
 
 # A non-interactive shell makes a background job ignore SIGINT, so only the CLI's cleanup can end the sleeping grandchild.
@@ -27,7 +27,7 @@ def read_pid(path):
         return None
 
 
-def gone(pid):
+def wait_until_gone(pid):
     for _ in range(300):
         try:
             os.kill(pid, 0)
@@ -53,7 +53,7 @@ class InterruptTest(unittest.TestCase):
                 "PIDS": root,
             }
             cli = subprocess.Popen(
-                [binary("HARNEXUS_CREW_NATIVE"), "watch", "--status"],
+                [require_binary("HARNEXUS_CREW_NATIVE"), "watch", "--status"],
                 cwd=root,
                 env=env,
                 stdin=subprocess.DEVNULL,
@@ -72,8 +72,8 @@ class InterruptTest(unittest.TestCase):
                 os.kill(cli.pid, signal.SIGINT)
                 cli.communicate(timeout=30)
                 self.assertEqual(cli.returncode, -signal.SIGINT)
-                self.assertTrue(gone(leader), "the command is still running")
-                self.assertTrue(gone(grandchild), "the descendant is still running")
+                self.assertTrue(wait_until_gone(leader), "the command is still running")
+                self.assertTrue(wait_until_gone(grandchild), "the descendant is still running")
             finally:
                 if cli.poll() is None:
                     cli.kill()

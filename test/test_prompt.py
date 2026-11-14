@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 from harness import jsonvalue
-from harness.binaries import binary
+from harness.binaries import require_binary
 from harness.cases import REPO
 
 SKILLS = REPO / "test" / "fixtures" / "task-skills"
@@ -81,12 +81,12 @@ class Fixture:
     def use_worker(self, template):
         self.configure({"templates": {"worker": str(template)}})
 
-    def prompt(self, kind, fields=None):
+    def fill_prompt(self, kind, fields=None):
         """Returns (True, filled text) or (False, the refusal)."""
         fields = WORKER_FIELDS if fields is None else fields
         ran = subprocess.run(
             [
-                binary("HARNEXUS_PROMPT_PROBE"),
+                require_binary("HARNEXUS_PROMPT_PROBE"),
                 str(self.root),
                 str(self.home),
                 kind,
@@ -110,7 +110,7 @@ class NativeTemplateFilling(unittest.TestCase):
         def real(path):
             return os.path.realpath(SKILLS / path)
 
-        ok, text = fixture.prompt("reviewer", REVIEWER_FIELDS)
+        ok, text = fixture.fill_prompt("reviewer", REVIEWER_FIELDS)
 
         self.assertTrue(ok, text)
         self.assertIn(f"[$ai-code-review]({real('ai-code-review/SKILL.md')})", text)
@@ -135,7 +135,7 @@ class NativeTemplateFilling(unittest.TestCase):
         )
         fixture.use_worker(template)
 
-        ok, text = fixture.prompt("worker", {**WORKER_FIELDS, "task_id": "manual/TR1", "document_refs": f"- {document}"})
+        ok, text = fixture.fill_prompt("worker", {**WORKER_FIELDS, "task_id": "manual/TR1", "document_refs": f"- {document}"})
 
         self.assertEqual(
             (
@@ -165,7 +165,7 @@ class NativeTemplateFilling(unittest.TestCase):
         )
         fixture.use_worker(template)
 
-        ok, text = fixture.prompt("worker")
+        ok, text = fixture.fill_prompt("worker")
 
         self.assertEqual(
             (
@@ -183,7 +183,7 @@ class NativeTemplateFilling(unittest.TestCase):
                 template.write_text(text, encoding="utf-8")
                 fixture.use_worker(template)
 
-                ok, message = fixture.prompt("worker")
+                ok, message = fixture.fill_prompt("worker")
 
                 self.assertFalse(ok)
                 self.assertIn(
@@ -203,7 +203,7 @@ class NativeTemplateFilling(unittest.TestCase):
         template.symlink_to(source / "worker.md")
         fixture.use_worker(template)
 
-        ok, text = fixture.prompt("worker", {**WORKER_FIELDS, "task_id": "TR-42"})
+        ok, text = fixture.fill_prompt("worker", {**WORKER_FIELDS, "task_id": "TR-42"})
 
         self.assertEqual((True, f"[note]({source / 'notes' / 'task.md'}#TR-42) [id](TR-42)\n"), (ok, text))
 
@@ -212,19 +212,21 @@ class NativeTemplateFilling(unittest.TestCase):
             with self.subTest(name):
                 fixture = Fixture(self)
                 root = fixture.root
-                (root / "notes").mkdir()
-                (root / "notes" / "task.md").write_text("", encoding="utf-8")
-                (root / "My Skills").mkdir()
-                (root / "My Skills" / "SKILL.md").write_text("", encoding="utf-8")
+
+                def make_file_in(directory, name):
+                    (root / directory).mkdir()
+                    (root / directory / name).write_text("", encoding="utf-8")
+
+                make_file_in("notes", "task.md")
+                make_file_in("My Skills", "SKILL.md")
                 (root / "spaced").symlink_to(root / "My Skills")
-                (root / "c#").mkdir()
-                (root / "c#" / "SKILL.md").write_text("", encoding="utf-8")
+                make_file_in("c#", "SKILL.md")
                 (root / "hashed").symlink_to(root / "c#")
                 template = root / "worker.md"
                 template.write_text(f"{link}\n", encoding="utf-8")
                 fixture.use_worker(template)
 
-                ok, message = fixture.prompt("worker", {**WORKER_FIELDS, "task_id": task_id})
+                ok, message = fixture.fill_prompt("worker", {**WORKER_FIELDS, "task_id": task_id})
 
                 self.assertFalse(ok)
                 self.assertIn(error, message)
@@ -235,7 +237,7 @@ class NativeTemplateFilling(unittest.TestCase):
                 fixture = Fixture(self)
                 fixture.configure(config)
 
-                ok, message = fixture.prompt("worker")
+                ok, message = fixture.fill_prompt("worker")
 
                 self.assertFalse(ok)
                 self.assertIn(error, message)
