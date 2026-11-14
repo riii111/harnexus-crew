@@ -46,7 +46,7 @@ def load(group, name):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def expected_for(group, name, root):
+def load_expanded(group, name, root):
     recorded = load(group, name)
     keys = recorded.pop("keys")
     return expand_keys(recorded, keys, root)
