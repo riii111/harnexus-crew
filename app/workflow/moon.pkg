@@ -4,3 +4,12 @@ import {
 }
 
 supported_targets = "+native"
+
+import {
+  "moonbitlang/core/async",
+  "riii111/harnexus-crew/app/testkit",
+} for "wbtest"
+
+options(
+  "allow-experimental-packages": true,
+)

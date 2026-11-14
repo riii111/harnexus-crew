@@ -1,49 +1,56 @@
 ///|
-fn env_of(pairs : Array[(String, String)]) -> @environment.Env {
-  @environment.Env::new(Map::from_array(pairs))
+async test "refuse_in_cloud allows a command outside the Cloud" {
+  let env = @testkit.env_of([("HOME", "/h")])
+
+  assert_eq(@testkit.failure_of(() => refuse_in_cloud(env, "launch")), "")
 }
 
 ///|
-fn cloud_refusal(pairs : Array[(String, String)]) -> String {
-  try {
-    refuse_in_cloud(env_of(pairs), "launch")
-    "ok"
-  } catch {
-    @failure.TaskFailed(message) => message
-  }
+async test "refuse_in_cloud allows a command that is explicitly local" {
+  let env = @testkit.env_of([
+    ("HARNEXUS_EXECUTION_ENV", "local"),
+    ("CODEX_ENVIRONMENT_ID", "e"),
+  ])
+
+  assert_eq(@testkit.failure_of(() => refuse_in_cloud(env, "launch")), "")
 }
 
 ///|
-test "Cloud refusals point to what the Cloud allows" {
-  inspect(cloud_refusal([("HOME", "/h")]), content="ok")
-  inspect(
-    cloud_refusal([("HARNEXUS_EXECUTION_ENV", "cloud")]),
-    content="launch needs the Codex App and is unavailable in Cloud. Cloud cannot create or resume other tasks or threads from here; PR notifications are not built for Cloud, so check the PR with gh",
-  )
-  inspect(
-    cloud_refusal([("CLAUDE_CODE_REMOTE", "true")]),
-    content="launch needs the Codex App and is unavailable in Cloud. In a Claude Code cloud session, start a worker as a new cloud session with create_session, and follow its PR with subscribe_pr_activity from that session",
-  )
-  inspect(
-    cloud_refusal([
-      ("HARNEXUS_EXECUTION_ENV", "local"),
-      ("CODEX_ENVIRONMENT_ID", "e"),
-    ]),
-    content="ok",
+async test "refuse_in_cloud points to gh in an explicit Cloud" {
+  let env = @testkit.env_of([("HARNEXUS_EXECUTION_ENV", "cloud")])
+
+  assert_eq(
+    @testkit.failure_of(() => refuse_in_cloud(env, "launch")),
+    "launch needs the Codex App and is unavailable in Cloud. Cloud cannot create or resume other tasks or threads from here; PR notifications are not built for Cloud, so check the PR with gh",
   )
 }
 
 ///|
-test "T3 Code refuses what only the Codex App does" {
-  let refused = try {
-    refuse_in_t3(env_of([("T3CODE_THREAD_ID", "t")]), "cloud", "Use the App.")
-    "ok"
-  } catch {
-    @failure.TaskFailed(message) => message
-  }
-  inspect(
-    refused,
-    content="cloud needs the Codex App and is unavailable in T3 Code. Use the App.",
+async test "refuse_in_cloud points to create_session in a Claude Code cloud session" {
+  let env = @testkit.env_of([("CLAUDE_CODE_REMOTE", "true")])
+
+  assert_eq(
+    @testkit.failure_of(() => refuse_in_cloud(env, "launch")),
+    "launch needs the Codex App and is unavailable in Cloud. In a Claude Code cloud session, start a worker as a new cloud session with create_session, and follow its PR with subscribe_pr_activity from that session",
   )
-  refuse_in_t3(env_of([]), "cloud", "Use the App.")
+}
+
+///|
+async test "refuse_in_t3 refuses a command only the Codex App runs" {
+  let env = @testkit.env_of([("T3CODE_THREAD_ID", "t")])
+
+  assert_eq(
+    @testkit.failure_of(() => refuse_in_t3(env, "cloud", "Use the App.")),
+    "cloud needs the Codex App and is unavailable in T3 Code. Use the App.",
+  )
+}
+
+///|
+async test "refuse_in_t3 allows a command outside T3 Code" {
+  let env = @testkit.env_of([])
+
+  assert_eq(
+    @testkit.failure_of(() => refuse_in_t3(env, "cloud", "Use the App.")),
+    "",
+  )
 }
