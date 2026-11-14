@@ -184,6 +184,7 @@ async test "a launch request with an unknown completion target is refused" {
 async test "a task ID takes ASCII letters and digits and a few marks" {
   for id in ["T-1", "#12", "a/b:c.d"] {
     let text = launch_text(task_id=id)
+
     assert_eq(launch(text), "ok " + text, msg=id)
   }
 }
@@ -214,6 +215,7 @@ async test "a blank task ID or one with a line break is refused as not a single 
 async test "a document reference that is an HTTPS URL or an existing absolute path is accepted" {
   for reference in ["https://e.com/a", "HTTPS://E.com/a", "/fx/doc.md"] {
     let text = launch_text(refs="\"\{reference}\"")
+
     assert_eq(launch(text), "ok " + text, msg=reference)
   }
 }
@@ -249,6 +251,7 @@ async test "an empty list of document references is refused" {
 async test "a starting branch that is a name Git would take, or null, is kept as given" {
   for branch in ["\"main\"", "\"feature/x-1.y\"", "null"] {
     let text = launch_text(branch~)
+
     assert_eq(launch(text), "ok " + text, msg=branch)
   }
 }
@@ -301,6 +304,7 @@ async test "a checkout outside the app worktrees is refused for an app and accep
 ///|
 async test "a relative checkout is refused in Cloud" {
   let relative = REVIEW.replace_all(old="/fx/wt/ab12/repo", new="wt/ab12/repo")
+
   inspect(
     review(relative, Cloud, toplevel("/fx/outside")),
     content="refused: checkout must be the absolute path of a repository's top level",
@@ -310,6 +314,7 @@ async test "a relative checkout is refused in Cloud" {
 ///|
 async test "the checkout is saved as its real path" {
   let linked = REVIEW.replace_all(old="/fx/wt/ab12/repo", new="/fx/link")
+
   assert_eq(
     review(linked, Worktrees("/fx/wt"), toplevel("/fx/wt/ab12/repo")),
     accepted_review(),
@@ -319,6 +324,7 @@ async test "the checkout is saved as its real path" {
 ///|
 async test "in Cloud a review request may leave out the project" {
   let without = REVIEW.replace_all(old="\"projectId\":\"p\",", new="")
+
   assert_eq(
     review(without, Cloud, toplevel("/fx/wt/ab12/repo")),
     accepted_review(project=""),
@@ -328,6 +334,7 @@ async test "in Cloud a review request may leave out the project" {
 ///|
 async test "a review request that leaves out the project is refused outside Cloud" {
   let without = REVIEW.replace_all(old="\"projectId\":\"p\",", new="")
+
   inspect(
     review(without, Worktrees("/fx/wt"), toplevel("/fx/wt/ab12/repo")),
     content="refused: missing request fields: projectId",
@@ -340,6 +347,7 @@ async test "a null project is refused even in Cloud" {
     old="\"projectId\":\"p\"",
     new="\"projectId\":null",
   )
+
   inspect(
     review(null_project, Cloud, toplevel("/fx/wt/ab12/repo")),
     content="refused: projectId must be a nonempty single-line string",
@@ -354,6 +362,7 @@ async test "a pull request URL of any host, or null, is kept as given" {
       "null",
     ] {
     let text = REVIEW.replace_all(old="}", new=",\"prUrl\":\{literal}}")
+
     assert_eq(
       review(text, Worktrees("/fx/wt"), toplevel("/fx/wt/ab12/repo")),
       accepted_review(pr_url=literal),
@@ -370,6 +379,7 @@ async test "a URL that is not an HTTPS pull request is refused" {
       "http://github.com/o/r/pull/1", "https://github.com/o/pull/1", "https://git hub.com/o/r/pull/1",
     ] {
     let text = REVIEW.replace_all(old="}", new=",\"prUrl\":\"\{url}\"}")
+
     assert_eq(
       review(text, Worktrees("/fx/wt"), toplevel("/fx/wt/ab12/repo")),
       "refused: prUrl must be a pull request URL or null",
@@ -451,6 +461,7 @@ async test "a recorded candidate for another base branch is refused" {
     "baseBranch": Json::string("develop"),
     "base": Json::string("old"),
   }
+
   inspect(
     run_candidate(candidate_script({}), Some(moved), false),
     content="refused: baseBranch changed; use --update-base after integrating upstream",
@@ -460,6 +471,7 @@ async test "a recorded candidate for another base branch is refused" {
 ///|
 async test "a recorded candidate without a base is refused" {
   let unbased : Map[String, Json] = { "baseBranch": Json::string("main") }
+
   inspect(
     run_candidate(candidate_script({}), Some(unbased), false),
     content="refused: the recorded review candidate has no base",
@@ -469,6 +481,7 @@ async test "a recorded candidate without a base is refused" {
 ///|
 async test "a recorded candidate without a base branch keeps its base" {
   let unnamed : Map[String, Json] = { "base": Json::string("old") }
+
   inspect(
     run_candidate(
       candidate_script({ "merge-base old h1": "old" }),
@@ -535,6 +548,7 @@ async test "a failing git query refuses the review with the message git gave" {
 ///|
 async test "the saved candidate holds the request and its commits" {
   let found = resolved_candidate()
+
   inspect(
     found.to_json().stringify(),
     content="{\"taskId\":\"T-1\",\"workerAI\":\"Codex\",\"checkout\":\"/fx/wt/ab12/repo\",\"baseBranch\":\"main\",\"documentRefs\":[\"https://example.com/t\"],\"prUrl\":null,\"projectId\":\"p\",\"workerChatId\":\"w-1\",\"head\":\"h1\",\"base\":\"b1\"}",
@@ -544,6 +558,7 @@ async test "the saved candidate holds the request and its commits" {
 ///|
 async test "reviewer template fields come from the review candidate" {
   let found = resolved_candidate()
+
   inspect(
     fields_text(found.build_reviewer_fields("Cloud", probe())),
     content="task_id=T-1|document_refs=- https://example.com/t|worker_ai=Codex|reply_to=Cloud|worker_chat_id=w-1|checkout=/fx/wt/ab12/repo|pr_url=null|base=b1|head=h1",
@@ -553,6 +568,7 @@ async test "reviewer template fields come from the review candidate" {
 ///|
 async test "worker template fields come from the launch request" {
   let request = parsed_launch(launch_text(refs="\"/fx/doc.md\""))
+
   inspect(
     fields_text(request.build_worker_fields(probe())),
     content="task_id=T|document_refs=- /fx/doc.md|completion_target=merge",
@@ -563,6 +579,7 @@ async test "worker template fields come from the launch request" {
 async test "template fields are refused when a document reference has gone since the request was read" {
   let request = parsed_launch(launch_text(refs="\"/fx/doc.md\""))
   let gone : FileProbe = { ..probe(), path_exists: _ => false, }
+
   assert_eq(
     @testkit.failure_of(() => ignore(request.build_worker_fields(gone))),
     "document reference must be an existing absolute path or HTTPS URL: /fx/doc.md",
@@ -572,6 +589,7 @@ async test "template fields are refused when a document reference has gone since
 ///|
 async test "the sample worker fields have the fields a launch gives" {
   let request = parsed_launch(launch_text())
+
   assert_eq(
     field_names(sample_worker_fields()),
     field_names(request.build_worker_fields(probe())),
@@ -581,6 +599,7 @@ async test "the sample worker fields have the fields a launch gives" {
 ///|
 async test "the sample reviewer fields have the fields a review gives" {
   let found = resolved_candidate()
+
   assert_eq(
     field_names(sample_reviewer_fields("T3")),
     field_names(found.build_reviewer_fields("T3", probe())),
@@ -597,6 +616,7 @@ async test "a launch request names its session by project and task" {
   for entry in [("p", "p\nT"), ("\\ud800x", "\u{FFFD}x\nT")] {
     let (project, key) = entry
     let request = parsed_launch(launch_text(project~))
+
     assert_eq(request.session_key(), key, msg=project)
   }
 }
@@ -604,6 +624,7 @@ async test "a launch request names its session by project and task" {
 ///|
 async test "a review request names its session by checkout and worker chat" {
   let reviewed = parsed_review()
+
   for chat in ["w-1", "w\u{FFFD}"] {
     assert_eq(reviewed.session_key(chat), "/fx/wt/ab12/repo\n\{chat}", msg=chat)
   }
@@ -646,6 +667,7 @@ test "the caller is the thread of the app the command runs in" {
       "t-1",
     ),
   ]
+
   for entry in cases {
     let (app, vars, thread) = entry
     assert_eq(read_caller_id(@testkit.env_of(vars)), thread, msg=app)

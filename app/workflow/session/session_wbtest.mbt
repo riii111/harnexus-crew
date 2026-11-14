@@ -124,6 +124,7 @@ async test "a confirmed answer that cannot be recorded keeps the record with the
         @failure.fail("cannot write \{record} (EROFS)")
       }
     }
+
     let message = rig.launch_failure(path)
     assert_eq(message, "cannot write \{rig.launch_dir()}/state.json (EROFS)")
     let pending = read_state("\{rig.launch_dir()}/pending.json")
@@ -242,6 +243,7 @@ async test "a review in T3 Code refuses a worker that is not the thread it runs 
 async test "a request that keeps the recorded members is accepted whatever else it adds" {
   let recorded = recorded_session()
   let kept = kept_session()
+
   assert_eq(
     @apptestkit.failure_of(() => check_kept(recorded, kept, app_session_keys)),
     "",
@@ -254,6 +256,7 @@ async test "only the members named are compared, so a Cloud review may differ in
   let cloud = @jsonio.parse(
     "{\"taskId\":\"TR1\",\"workerAI\":\"Codex\",\"checkout\":\"/c\"}",
   )
+
   assert_eq(
     @apptestkit.failure_of(() => {
       check_kept(recorded, cloud, ["taskId", "workerAI", "checkout"])
@@ -270,6 +273,7 @@ async test "only the members named are compared, so a Cloud review may differ in
 async test "a request that changes the task, worker, chat, project or checkout is refused" {
   let recorded = recorded_session()
   let kept = kept_session()
+
   for key in ["taskId", "workerAI", "workerChatId", "projectId", "checkout"] {
     let changed = with_member(kept, key, Json::string("other"))
     assert_eq(
@@ -288,6 +292,7 @@ async test "a recorded session that has no project differs from one that names i
     "{\"taskId\":\"TR1\",\"workerAI\":\"Codex\",\"workerChatId\":\"w1\",\"checkout\":\"/c\"}",
   )
   let kept = kept_session()
+
   assert_eq(
     @apptestkit.failure_of(() => check_kept(legacy, kept, app_session_keys)),
     "review session must keep the original projectId",

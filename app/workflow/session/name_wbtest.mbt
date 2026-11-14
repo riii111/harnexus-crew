@@ -72,6 +72,7 @@ test "null is chosen when every value is null" {
 ///|
 test "a thread is titled by the display name when there is one" {
   let named = @jsonio.parse("{\"taskId\":\"TR1\",\"displayName\":\"Name\"}")
+
   assert_eq(thread_title("Impl", named), "Impl｜Name")
 }
 
@@ -94,6 +95,7 @@ test "a create keeps the settings it was given, named or not" {
   let create = @jsonio.parse(
     "{\"tool\":\"create_thread\",\"expected\":{\"model\":null,\"effort\":null},\"actual\":{\"model\":\"m\",\"effort\":\"e\"}}",
   )
+
   assert_eq(
     show(sent_settings(create)),
     "{\"requested\":{\"model\":null,\"effort\":null},\"actual\":{\"model\":\"m\",\"effort\":\"e\"}}",
@@ -105,6 +107,7 @@ test "a send keeps the settings it named" {
   let asked = @jsonio.parse(
     "{\"tool\":\"send_message_to_thread\",\"expected\":{\"model\":\"m\"}}",
   )
+
   assert_eq(
     show(sent_settings(asked)),
     "{\"requested\":{\"model\":\"m\",\"effort\":null},\"actual\":{\"model\":null,\"effort\":null}}",
@@ -116,6 +119,7 @@ test "a send that named no settings keeps none" {
   let plain = @jsonio.parse(
     "{\"tool\":\"send_message_to_thread\",\"expected\":{\"model\":null,\"effort\":null}}",
   )
+
   assert_eq(show(sent_settings(plain)), "null", msg="send without settings")
   assert_eq(show(sent_settings(Json::null())), "null", msg="no record")
 }
