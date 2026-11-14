@@ -7,6 +7,12 @@ priv struct Ports {
 }
 
 ///|
+type MakeConfirmedState = (String, Map[String, Json], Json, Map[String, Json]?) -> Map[
+  String,
+  Json,
+] raise @failure.TaskFailed
+
+///|
 /// state.json  : Confirmed state.
 /// pending.json: A send whose result is unknown; blocks resending.
 priv struct Session {
@@ -19,10 +25,7 @@ priv struct Session {
   state : Map[String, Json]?
   mut pending : Map[String, Json]?
   /// Makes the state a confirmed send leaves: the thread, the pending record, what was sent, and the state so far.
-  confirmed : (String, Map[String, Json], Json, Map[String, Json]?) -> Map[
-    String,
-    Json,
-  ] raise @failure.TaskFailed
+  confirmed : MakeConfirmedState
   /// The flat fields `state --request` shows for this kind of session.
   summarize : (Map[String, Json]?, Map[String, Json]?) -> Map[String, Json]
 }
@@ -39,10 +42,7 @@ fn ports_of(host : @host.Host) -> Ports {
 fn Session::open(
   directory : String,
   ports : Ports,
-  confirmed~ : (String, Map[String, Json], Json, Map[String, Json]?) -> Map[
-    String,
-    Json,
-  ] raise @failure.TaskFailed,
+  confirmed~ : MakeConfirmedState,
   summarize~ : (Map[String, Json]?, Map[String, Json]?) -> Map[String, Json],
 ) -> Session raise @failure.TaskFailed {
   let records = @store.read_records(directory)
@@ -92,21 +92,23 @@ async fn Session::send(
   } else {
     value_of(args, "threadId")
   }
-  if outcome == "done" {
-    match
-      (Ok(self.confirm(record, thread, Some(answer))) catch {
-        failed => Err(failed)
-      }) {
-      Ok(confirmed) => return confirmed
-      Err(failed) => {
-        // The thread exists, so a failed record is kept for resolve rather than released.
-        record["status"] = Json::string("unknown")
-        record["threadId"] = thread
-        record["answer"] = answer.to_json()
-        (self.ports.save)(self.pending_path, Json::object(record), false)
-        raise failed
-      }
+  fn keep_for_resolve(
+    status : String,
+    extra : Array[(String, Json)],
+  ) -> Unit raise @failure.TaskFailed {
+    record["status"] = Json::string(status)
+    record["threadId"] = thread
+    record["answer"] = answer.to_json()
+    for pair in extra {
+      record[pair.0] = pair.1
     }
+    (self.ports.save)(self.pending_path, Json::object(record), false)
+  }
+
+  if outcome == "done" {
+    // The thread exists, so a failed record is kept for resolve rather than released.
+    errdefer keep_for_resolve("unknown", [])
+    return self.confirm(record, thread, Some(answer))
   }
   // Either way the thread exists but never ran, so it is kept for resolve rather than sent again.
   let refusal : Array[(String, Json)]? = match outcome {
@@ -120,13 +122,7 @@ async fn Session::send(
     _ => None
   }
   if refusal is Some(refusal) {
-    record["status"] = Json::string("refused")
-    record["threadId"] = thread
-    record["answer"] = answer.to_json()
-    for pair in refusal {
-      record[pair.0] = pair.1
-    }
-    (self.ports.save)(self.pending_path, Json::object(record), false)
+    keep_for_resolve("refused", refusal)
     self.pending = Some(record)
     self.check_idle()
   }
@@ -135,10 +131,7 @@ async fn Session::send(
     @store.remove_record(self.pending_path)
     @failure.fail("\{tool} was not sent: \{text}")
   }
-  record["status"] = Json::string("unknown")
-  record["threadId"] = thread
-  record["answer"] = answer.to_json()
-  (self.ports.save)(self.pending_path, Json::object(record), false)
+  keep_for_resolve("unknown", [])
   @failure.fail(
     "\{tool} result is unknown (\{text}); never resend. Ask the user to check the App",
   )
@@ -222,7 +215,7 @@ fn Session::confirm(
     },
   })
   let id = match thread {
-    String(text) => @request.chat_id(text, "threadId")
+    String(text) => @request.check_chat_id(text, "threadId")
     _ => @failure.fail("threadId must be a nonempty single-line string")
   }
   let next = (self.confirmed)(id, record, sent, self.state)
@@ -305,14 +298,14 @@ fn refusal_text(expected : Json, actual : Json) -> String {
   // The app answers a refusal with the settings it checked; anything else is shown as it came.
   match (expected, actual) {
     (Object(_), Object(_)) =>
-      @host.refusal_of(checked_settings(expected), checked_settings(actual))
+      @host.refusal_of(turn_settings_of(expected), turn_settings_of(actual))
     _ =>
       "expected \{@jsonio.as_text(expected)}, actual \{@jsonio.as_text(actual)}"
   }
 }
 
 ///|
-fn checked_settings(settings : Json) -> @host.TurnSettings {
+fn turn_settings_of(settings : Json) -> @host.TurnSettings {
   fn text_of(value : Json) -> String? {
     match value {
       String(text) => Some(text)

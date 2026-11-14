@@ -1,5 +1,5 @@
 ///|
-pub fn single_line(
+pub fn check_single_line(
   value : String,
   name : String,
 ) -> String raise @failure.TaskFailed {
@@ -12,11 +12,11 @@ pub fn single_line(
 
 ///|
 /// A chat ID that the app confirmed: one line, no whitespace, and not the placeholder of a thread that does not exist yet.
-pub fn chat_id(
+pub fn check_chat_id(
   value : String,
   name : String,
 ) -> String raise @failure.TaskFailed {
-  let id = single_line(value, name)
+  let id = check_single_line(value, name)
   if @text.has_space(id) || id.has_prefix("client-new-thread:") {
     @failure.fail("\{name} must be a confirmed chat ID without whitespace")
   }
@@ -24,10 +24,12 @@ pub fn chat_id(
 }
 
 ///|
-pub fn caller_id(env : @environment.Env) -> String raise @failure.TaskFailed {
+pub fn read_caller_id(
+  env : @environment.Env,
+) -> String raise @failure.TaskFailed {
   let variable = @environment.thread_variable(@environment.app_of(env))
   match env.get_nonempty(variable) {
-    Some(value) => chat_id(value, variable)
+    Some(value) => check_chat_id(value, variable)
     None =>
       @failure.fail(
         "\{variable} is not set; run \{@environment.NAME} from a thread",
@@ -36,9 +38,9 @@ pub fn caller_id(env : @environment.Env) -> String raise @failure.TaskFailed {
 }
 
 ///|
-fn task_id_of(value : Json?) -> String raise @failure.TaskFailed {
+fn parse_task_id(value : Json?) -> String raise @failure.TaskFailed {
   // The task ID is an identifier in prompts, so reject whitespace and prose.
-  let id = json_single_line(value, "taskId")
+  let id = parse_single_line(value, "taskId")
   let points = units_of(id)
   let first_ok = @text.is_ascii_alphanumeric(points[0]) ||
     points[0] == 0x5F ||
@@ -57,22 +59,24 @@ fn task_id_of(value : Json?) -> String raise @failure.TaskFailed {
 }
 
 ///|
-fn display_name_of(value : Json?) -> OptionalText raise @failure.TaskFailed {
+fn parse_display_name(value : Json?) -> OptionalText raise @failure.TaskFailed {
   // The display name is used only in the thread title, so do not apply the ID character restrictions.
   match value {
     None => Absent
     Some(Null) => Null
-    other => Text(json_single_line(other, "displayName"))
+    other => Text(parse_single_line(other, "displayName"))
   }
 }
 
 ///|
-fn project_of(value : Json?, name : String) -> String raise @failure.TaskFailed {
-  json_single_line(value, name)
+fn parse_project_id(value : Json?) -> String raise @failure.TaskFailed {
+  parse_single_line(value, "projectId")
 }
 
 ///|
-fn starting_branch_of(value : Json?) -> OptionalText raise @failure.TaskFailed {
+fn parse_starting_branch(
+  value : Json?,
+) -> OptionalText raise @failure.TaskFailed {
   match value {
     None => Absent
     Some(Null) => Null
@@ -82,7 +86,7 @@ fn starting_branch_of(value : Json?) -> OptionalText raise @failure.TaskFailed {
 }
 
 ///|
-async fn document_refs_of(
+async fn parse_document_refs(
   value : Json?,
   probe : FileProbe,
 ) -> Array[String] raise @failure.TaskFailed {
@@ -92,7 +96,7 @@ async fn document_refs_of(
   }
   let refs = []
   for item in items {
-    let reference = json_single_line(Some(item), "documentRefs entry")
+    let reference = parse_single_line(Some(item), "documentRefs entry")
     if !is_https_url(reference) &&
       (!reference.has_prefix("/") || !(probe.path_exists)(reference)) {
       @failure.fail(
@@ -185,12 +189,12 @@ fn unique_count(refs : Array[String]) -> Int32 {
 }
 
 ///|
-fn json_single_line(
+fn parse_single_line(
   value : Json?,
   name : String,
 ) -> String raise @failure.TaskFailed {
   match value {
-    Some(String(text)) => single_line(text, name)
+    Some(String(text)) => check_single_line(text, name)
     _ => @failure.fail("\{name} must be a nonempty single-line string")
   }
 }

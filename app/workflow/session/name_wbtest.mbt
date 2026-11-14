@@ -3,7 +3,7 @@ async test "the launch of a thread is found among the launches by their state, s
   with_rig("n-7", [], rig => {
     let env = rig.env([])
     let launches = "\{rig.root}/state/harnexus-crew/launch"
-    assert_eq(launch_of_thread(env, "w1").map(show), None)
+    assert_eq(find_launch_request(env, "w1").map(show), None)
     write_text("\{launches}/aaaa/state.json", "{")
     write_text(
       "\{launches}/bbbb/state.json",
@@ -22,8 +22,11 @@ async test "the launch of a thread is found among the launches by their state, s
       "{\"threadId\":\"w1\",\"request\":{\"taskId\":\"E\"}}",
     )
     write_text("\{launches}/stray.json", "{}")
-    assert_eq(launch_of_thread(env, "w1").map(show), Some("{\"taskId\":\"D\"}"))
-    assert_eq(launch_of_thread(env, "w3").map(show), None)
+    assert_eq(
+      find_launch_request(env, "w1").map(show),
+      Some("{\"taskId\":\"D\"}"),
+    )
+    assert_eq(find_launch_request(env, "w3").map(show), None)
   })
 }
 

@@ -3,15 +3,15 @@
 `launch`・`review`（AppとT3 Code）・`state --request`・`resolve`・`name` と、それらが共有するセッションの状態遷移。
 Cloudでのレビュー（Codex CLI）と `cloud` コマンドは含まず、`review` が `cloud` 引数で受け取る関数（`cloud` パッケージ）に渡す。
 
-| 公開する関数・型                      | 内容                                              |
-| ------------------------------------- | ------------------------------------------------- |
-| `launch(args, env, which~)`           | `launch`                                          |
-| `review(args, env, which~, cloud~)`   | `review`                                          |
-| `state_request(path, env, which~)`    | `state --request`                                 |
-| `resolve(args, env, which~)`          | `resolve`                                         |
-| `name(args, env, which~)`             | `name`                                            |
-| `check_kept(previous, current, keys)` | `review` と `cloud-review` の「元の値を保つ」検査 |
-| `Ports`、`ports_of(host)`             | Appの呼び出しと状態の保存                         |
+| 公開する関数・型                        | 内容                                              |
+| --------------------------------------- | ------------------------------------------------- |
+| `launch(args, env, which~)`             | `launch`                                          |
+| `review(args, env, which~, cloud~)`     | `review`                                          |
+| `show_request_state(path, env, which~)` | `state --request`                                 |
+| `resolve(args, env, which~)`            | `resolve`                                         |
+| `name(args, env, which~)`               | `name`                                            |
+| `check_kept(previous, current, keys)`   | `review` と `cloud-review` の「元の値を保つ」検査 |
+| `Ports`、`ports_of(host)`               | Appの呼び出しと状態の保存                         |
 
 `which` は `cli/registry.mbt` の分岐が `@which.in_env(env)` を渡す。
 `review` の `cloud` は、`HARNEXUS_EXECUTION_ENV` などが Claude Code のCloudと宣言する場合だけ呼ばれ、それ以外のCloudは `review` の拒否になる。

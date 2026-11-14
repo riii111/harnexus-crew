@@ -17,7 +17,7 @@ async fn name_in(
   guard @watch.github_pr_number(args.pr) is Some(number) else {
     @failure.fail("\{args.pr} is not watched: \{@watch.NOT_LINKABLE}")
   }
-  let worker = @request.caller_id(ctx.env)
+  let worker = @request.read_caller_id(ctx.env)
   // Linked first and for any chat, so a worker the owner started by hand is still watched.
   // A worker naming its PR takes it over, as the latest worker on a PR is the one doing it; pr-wake keeps the start of a link the same chat renews.
   let linked = (ctx.pr_wake)(["link", args.pr, "--take-over"])
@@ -26,16 +26,15 @@ async fn name_in(
     _ => None
   }
   let request = if ctx.host.renames_threads {
-    launch_of_thread(ctx.env, worker)
+    find_launch_request(ctx.env, worker)
   } else {
     None
   }
   // Only a launched worker has a title to extend; another chat keeps its own.
   // The number goes last so the title still reads as the task, while a search for the PR finds the worker.
-  let title = match request {
-    Some(request) => Some("\{thread_title("Impl", request)} PR#\{number}")
-    None => None
-  }
+  let title = request.map(request => {
+    "\{thread_title("Impl", request)} PR#\{number}"
+  })
   let answer = match title {
     Some(title) =>
       Some(
@@ -43,15 +42,13 @@ async fn name_in(
       )
     None => None
   }
-  let renamed = match answer {
-    Some(answer) => answer.outcome == "done"
-    None => true
-  }
+  let renamed = answer.map(answer => answer.outcome == "done").unwrap_or(true)
+  let applied_title = if renamed { title } else { None }
   // Fails even after a rename, so a PR the watch cannot see is never taken as watched.
   guard watched is Some(watched) else {
-    let renamed_as = match title {
-      Some(title) if renamed => " (the thread is named \{title})"
-      _ => ""
+    let renamed_as = match applied_title {
+      Some(title) => " (the thread is named \{title})"
+      None => ""
     }
     @failure.fail(
       "\{args.pr} is not watched\{renamed_as}: \{@watch.NOT_LINKABLE}",
@@ -59,18 +56,16 @@ async fn name_in(
   }
   let shown : Map[String, Json] = {
     "threadId": Json::string(worker),
-    "title": match title {
-      Some(title) if renamed => Json::string(title)
-      _ => Json::null()
-    },
+    "title": applied_title
+    .map(title => Json::string(title))
+    .unwrap_or(Json::null()),
     "watched": Json::string(watched),
   }
   // A rename the app did not apply leaves the PR watched, which the result says rather than failing.
   if !renamed {
-    let applied = match answer {
-      Some(answer) => answer.to_json().stringify()
-      None => "null"
-    }
+    let applied = answer
+      .map(answer => answer.to_json().stringify())
+      .unwrap_or("null")
     shown["renameError"] = Json::string(
       "name_thread was not applied: \{applied}",
     )
@@ -83,13 +78,13 @@ async fn name_in(
 }
 
 ///|
-fn launch_of_thread(
+fn find_launch_request(
   env : @environment.Env,
   thread : String,
 ) -> Json? raise @failure.TaskFailed {
   // A worker is never told the request's path, so its launch is found from the thread it runs in.
   let root = @path.join([env.state_root(), "launch"])
-  let keys = names_in(root)
+  let keys = list_directory_names(root)
   keys.sort_by(String::lexical_compare)
   for key in keys {
     let directory = @path.join([root, key])
@@ -111,7 +106,9 @@ fn launch_of_thread(
 }
 
 ///|
-fn names_in(path : String) -> Array[String] raise @failure.TaskFailed {
+fn list_directory_names(
+  path : String,
+) -> Array[String] raise @failure.TaskFailed {
   let names = @store.list_directory_if_exists(path) catch {
     failed => @failure.fail(failed.user_message())
   }

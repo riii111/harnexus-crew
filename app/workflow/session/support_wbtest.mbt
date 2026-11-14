@@ -231,14 +231,14 @@ fn launch_request_text() -> String {
 }
 
 ///|
-fn Rig::launch_file(self : Rig, text? : String) -> String {
+fn Rig::write_launch_file(self : Rig, text? : String) -> String {
   let path = "\{self.root}/launch.json"
   write_text(path, text.unwrap_or(launch_request_text()))
   path
 }
 
 ///|
-fn Rig::review_file(self : Rig, extra? : String) -> String {
+fn Rig::write_review_file(self : Rig, extra? : String) -> String {
   let path = "\{self.root}/review.json"
   write_text(
     path,
@@ -258,7 +258,7 @@ fn Rig::review_dir(self : Rig) -> String {
 }
 
 ///|
-fn parsed(command : String, argv : Array[String]) -> @args.Command {
+fn parse_arguments(command : String, argv : Array[String]) -> @args.Command {
   match
     (@args.parse_command(command, argv[:]) catch {
       _ => abort("bad arguments")
@@ -275,7 +275,7 @@ fn launch_args(
 ) -> @workflow.LaunchInput {
   let argv = ["--request", request]
   argv.append(extra)
-  match parsed("launch", argv) {
+  match parse_arguments("launch", argv) {
     Launch(args) => args
     _ => abort("not a launch")
   }
@@ -288,7 +288,7 @@ fn review_args(
 ) -> @workflow.ReviewInput {
   let argv = ["--request", request]
   argv.append(extra)
-  match parsed("review", argv) {
+  match parse_arguments("review", argv) {
     Review(args) => args
     _ => abort("not a review")
   }
