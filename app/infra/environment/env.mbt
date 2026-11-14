@@ -65,10 +65,7 @@ pub fn Env::state_root(self : Env) -> String {
 
 ///|
 pub fn Env::t3_home(self : Env) -> String {
-  match self.get("T3CODE_HOME") {
-    Some(set) if is_absolute(set) => set
-    _ => @path.join([self.home(), ".t3"])
-  }
+  absolute_or(self.get("T3CODE_HOME"), @path.join([self.home(), ".t3"]))
 }
 
 ///|
@@ -87,13 +84,8 @@ fn Env::codex_home(self : Env) -> String {
 ///|
 fn absolute_or(value : String?, fallback : String) -> String {
   match value {
-    Some(set) if is_absolute(set) => set
+    Some(set) if @path.is_absolute(set) => set
     // Relative paths would let the working directory choose the storage location, so ignore them as XDG specifies.
     _ => fallback
   }
-}
-
-///|
-fn is_absolute(path : String) -> Bool {
-  @path.is_absolute(path)
 }

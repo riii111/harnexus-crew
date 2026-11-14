@@ -20,12 +20,7 @@ fn find(
     return None
   }
   if name.contains("/") {
-    let candidate = if name.has_prefix("/") {
-      Some(name)
-    } else {
-      cwd.map(dir => join_dir(dir, strip_dot_slash(name)))
-    }
-    return candidate.filter(runnable)
+    return anchor_path(strip_dot_slash(name), cwd).filter(runnable)
   }
   guard path_value is Some(value) else { return None }
   for entry in value.split(":") {
@@ -33,22 +28,23 @@ fn find(
     if entry == "" {
       continue
     }
-    let dir = if entry.has_prefix("/") {
-      Some(entry)
-    } else {
-      cwd.map(base => join_dir(base, entry))
-    }
-    match dir {
-      Some(dir) => {
-        let candidate = join_dir(dir, name)
-        if runnable(candidate) {
-          return Some(candidate)
-        }
+    if anchor_path(entry, cwd) is Some(dir) {
+      let candidate = join_dir(dir, name)
+      if runnable(candidate) {
+        return Some(candidate)
       }
-      None => ()
     }
   }
   None
+}
+
+///|
+fn anchor_path(path : String, cwd : String?) -> String? {
+  if path.has_prefix("/") {
+    Some(path)
+  } else {
+    cwd.map(dir => join_dir(dir, path))
+  }
 }
 
 ///|
