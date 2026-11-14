@@ -21,7 +21,7 @@ priv struct Baseline {
 }
 
 ///|
-/// A review waiting to be shown, with the chat whose session ran it.
+/// A review waiting to be shown, with the Cloud session that ran it and the thread that session belongs to.
 priv struct PendingReview {
   parent_thread_id : String
   session_id : String?
@@ -30,11 +30,11 @@ priv struct PendingReview {
 
 ///|
 /// A reviewer's chat asked for and not yet seen open: the review it opens with and the session that ran it, kept on disk so a restart neither asks again nor loses the text.
-/// `showing` is set before the text is shown, so a stop between showing it and removing the record never shows it twice.
 priv struct Opening {
   key : String
   text : String
   session_id : String?
+  /// Set before the text is shown, so a stop between showing it and removing the record never shows it twice.
   showing : Bool
 }
 
@@ -170,11 +170,11 @@ async fn Observations::remove_pending(
 }
 
 ///|
-/// The waiting list is shared by every adapter on the machine, so each change re-reads it under a lock and touches only its own entries.
 async fn Observations::change_pending(
   self : Observations,
   change : (Array[PendingReview]) -> Array[PendingReview],
 ) -> Unit raise @failure.TaskFailed {
+  // The waiting list is shared by every adapter on the machine, so each change re-reads it under a lock and touches only its own entries.
   @store.with_lock(self.locks_directory(), "pending", () => {
     let entries = self.read_pending()
     self.keep_pending(change(entries))

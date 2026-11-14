@@ -66,7 +66,6 @@ fn Fake::args(self : Fake, run : Int32) -> Array[String] {
 }
 
 ///|
-/// Whether t3 was run at all.
 fn Fake::ran(self : Fake) -> Bool {
   @store.path_exists("\{self.fake_dir}/count")
 }

@@ -123,7 +123,6 @@ async test "an answer reaches the request that asked, whatever the order they ar
       let texts = link
         .requests()
         .map(line => text_member(line, "text").unwrap_or(""))
-      // The third request is answered first and the first last.
       for index in [2, 1, 0] {
         link.adapter.receive(
           response_line(ids[index], "answer-\{texts[index]}"),

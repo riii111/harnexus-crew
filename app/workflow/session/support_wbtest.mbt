@@ -26,7 +26,7 @@ struct Rig {
   linked : Ref[Map[String, Json]?]
   /// The arguments pr-wake was run with.
   pr_wake_calls : Array[Array[String]]
-  /// The names the prompt template was asked to fill.
+  /// The kind of each prompt template filled and the reply it was filled for, as `kind:reply_to`.
   prompts : Array[String]
 }
 

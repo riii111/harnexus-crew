@@ -2,14 +2,12 @@
 /// Where a review request may take its checkout from.
 pub(all) enum ReviewScope {
   /// A worker worktree `<folder>/<id>/<name>` of an app, whose reviewer is started in that app.
-  /// The folder is the app's worktree folder, such as the one `Env::worktrees` names.
   Worktrees(String)
   /// A Claude Code cloud session reviews in its own checkout, so any repository's top level will do and no app project is involved.
   Cloud
 }
 
 ///|
-/// A request to review a worker's checkout against a base branch.
 pub struct ReviewRequest {
   task_id : String
   worker_ai : WorkerAi
@@ -25,7 +23,6 @@ pub struct ReviewRequest {
 }
 
 ///|
-/// A review request with the two commits it covers.
 pub struct ReviewCandidate {
   priv request : ReviewRequest
   head : String
@@ -92,7 +89,6 @@ pub fn ReviewRequest::session_key(
 }
 
 ///|
-/// Resolves the commits of a review.
 /// `previous` is the candidate recorded for the session, if any: its base is kept unless `update_base` asks for a new one, and a changed base branch is refused then.
 pub async fn ReviewRequest::resolve_candidate(
   self : ReviewRequest,
@@ -141,7 +137,6 @@ fn ReviewRequest::members(self : ReviewRequest) -> Map[String, Json] {
 }
 
 ///|
-/// The candidate as it is saved: the request with its commits.
 pub fn ReviewCandidate::to_json(self : ReviewCandidate) -> Json {
   let members = self.request.members()
   members["head"] = Json::string(self.head)

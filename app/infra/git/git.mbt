@@ -1,6 +1,6 @@
 ///|
-/// Runs a command and returns what it printed; a command that ran counts as a result whatever its exit status.
 pub(all) struct GitRunner {
+  /// Runs a command and returns what it printed; a command that ran counts as a result whatever its exit status.
   run : async (Array[String], Map[String, String]) -> @boundary.CommandOutput raise @boundary.CommandFailed
 }
 
@@ -11,7 +11,7 @@ pub struct Git {
 }
 
 ///|
-/// Repository config never starts helpers or transports, because the command runs unsandboxed.
+/// The command runs unsandboxed, so repository config must never start helpers or transports.
 let git_safety : Array[String] = [
   "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "protocol.allow=never",
 ]
@@ -30,7 +30,7 @@ pub fn Git::of_env(env : @environment.Env) -> Git {
 }
 
 ///|
-/// Runs `git -C checkout args` and returns its trimmed output; a failing status becomes the failure, with the reminder that nothing is fetched.
+/// Runs `git -C checkout args` and returns its trimmed output; a failing status becomes the failure.
 pub async fn Git::run(
   self : Git,
   checkout : String,

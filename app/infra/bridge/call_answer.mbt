@@ -18,9 +18,10 @@ fn CallOutcome::name(self : CallOutcome) -> String {
 }
 
 ///|
-/// The outcome stays the text the bridge wrote and every other member is kept, so an outcome or field added by a newer bridge reaches the records unchanged.
 pub struct CallAnswer {
+  // A newer bridge may write an outcome this program does not know, so the outcome stays the text the bridge wrote.
   outcome : String
+  // A newer bridge may add a field, so every member other than the outcome is kept to reach the records unchanged.
   fields : Map[String, Json]
 }
 
@@ -60,7 +61,7 @@ pub fn CallAnswer::to_json(self : CallAnswer) -> Json {
 }
 
 ///|
-/// Only outcomes after which the bridge surely did not act let the call be sent again; one this program does not know may have acted.
 pub fn CallAnswer::is_unsent(self : CallAnswer) -> Bool {
+  // An outcome this program does not know may have acted, so only outcomes after which the bridge surely did not act let the call be sent again.
   self.outcome is ("not_sent" | "rejected" | "invalid" | "unsupported")
 }

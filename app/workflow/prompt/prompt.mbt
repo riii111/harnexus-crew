@@ -9,7 +9,8 @@ pub(all) enum TemplateKind {
 let replies : Array[String] = ["Codex", "Claude", "Cloud"]
 
 ///|
-/// A worker in T3 Code, whose reply only T3 Code needs, so a template written before T3 Code is still installed and the review in T3 Code refuses it before sending.
+/// The reply of a worker in T3 Code.
+/// It stays out of `replies` so a template written before T3 Code can still be installed, and the review in T3 Code refuses that template before sending.
 const T3_REPLY : String = "T3"
 
 ///|

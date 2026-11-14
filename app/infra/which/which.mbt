@@ -1,6 +1,5 @@
 ///|
-/// Finds a program the way `Bun.which` does, so the TypeScript build and this one pick the same file.
-/// PATH is read from `env`.
+/// Same results as `Bun.which`, so the TypeScript build and this one pick the same file.
 /// A relative PATH entry or name is taken from the working directory, an empty entry is skipped, and a path that is not a runnable regular file is passed over.
 /// The result is the entry and the name joined as written, so it is neither normalised nor resolved through links.
 pub fn in_env(env : @environment.Env) -> (String) -> String? {

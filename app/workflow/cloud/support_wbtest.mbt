@@ -48,7 +48,7 @@ struct Rig {
   checkout : String
   /// The commit the checkout is at.
   head : Ref[String]
-  /// A record whose path ends so cannot be written.
+  /// A record whose path ends with this suffix cannot be written.
   unwritable : Ref[String?]
   /// The values the reviewer template was filled with.
   prompts : Array[Map[String, String]]
@@ -177,7 +177,6 @@ fn parsed_review(extra : Array[String]) -> @workflow.ReviewInput {
 }
 
 ///|
-/// Runs `review` for the rig's request with the options given.
 async fn Rig::review(
   self : Rig,
   extra~ : Array[String] = [],

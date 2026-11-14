@@ -46,7 +46,7 @@ fn log_text(entry : Array[(String, Json)]) -> String {
 }
 
 ///|
-/// Split CRLF, LF and lone CR the same way as Node's readline.
+/// Splits CRLF, LF and lone CR the same way as Node's readline.
 fn split_lines(chunk : String) -> Array[String] {
   let text = if chunk.has_suffix("\r") {
     chunk[:chunk.length() - 1].to_owned()

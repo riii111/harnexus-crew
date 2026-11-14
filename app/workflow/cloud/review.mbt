@@ -141,7 +141,7 @@ async fn run_review(
   ) catch {
     failed => Err(failed)
   }
-  // The pending record stays, so the review is not taken as done; its answer is still shown.
+  // A review whose result was not recorded must not count as done, so the pending record stays and the answer is still shown.
   if saved is Err(failed) {
     @failure.fail(
       "\{failed.message()}; reviewer \{thread} answered, but it was not recorded, \{recovery_hint}. Its answer:\n\{answer}",
@@ -161,7 +161,7 @@ async fn run_review(
 }
 
 ///|
-/// Passes a message, such as a question the user asked in the reviewer's chat, to the task's reviewer, answering with its reply.
+/// Passes a message to the task's reviewer, answering with its reply.
 /// The reviewer's verdict and the reviewed head stay as they were.
 async fn run_ask(
   ctx : Context,
@@ -239,8 +239,6 @@ async fn read_request(
 }
 
 ///|
-/// A review session keeps its task, worker AI and checkout.
-/// A head the reviewer could not judge is sent again once what it lacked is given, such as a document it could not read.
 fn check_continuation(
   state : Json?,
   previous : Map[String, Json],
@@ -249,6 +247,7 @@ fn check_continuation(
   @session.check_kept(Json::object(previous), data, [
     "taskId", "workerAI", "checkout",
   ])
+  // A head the reviewer could not judge is sent again once what it lacked is given, so only a judged head counts as reviewed.
   let judged = match field_of(state, "verdict") {
     String(verdict) => verdict != "判定保留"
     _ => false
@@ -274,7 +273,6 @@ fn reviewer_of(state : Json?) -> String? {
 }
 
 ///|
-/// What a finished Codex run answered.
 /// reviewed nothing: Clears the pending record so the candidate can be sent again.
 /// result unknown  : Leaves the pending record.
 fn take_review_reply(

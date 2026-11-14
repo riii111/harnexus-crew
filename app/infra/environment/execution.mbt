@@ -169,13 +169,13 @@ pub fn parse_declared_environment(
 ///|
 pub enum Detection {
   Settled(Detected)
+  /// Carries the call socket whose acceptance of a connection makes the answer local.
   AskSocket(String)
+  /// The socket setting names no usable path.
   NothingToAsk
 }
 
 ///|
-/// AskSocket   : Carries the call socket whose acceptance of a connection makes the answer local.
-/// NothingToAsk: The socket setting names no usable path.
 pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
   match parse_declared_environment(env) {
     Some(declared) => return Settled(declared)
@@ -198,7 +198,6 @@ pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
 ///|
 fn cloud_host_of(env : Env) -> CloudHost? {
   match env.get_nonempty(CODEX_CLOUD_VARIABLE) {
-    // When both variables are set, Codex Cloud takes precedence.
     Some(_) => Some(CodexCloud)
     None =>
       match env.get(CLAUDE_CLOUD_VARIABLE) {

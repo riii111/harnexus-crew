@@ -2,9 +2,8 @@
 let gate : @async.Mutex = @async.Mutex()
 
 ///|
-/// The test driver runs up to ten tests at once on one thread.
-/// A test that times a deadline or counts a child's runs holds the gate, so another test's sockets and sleeps do not show up in it.
 async fn serial(body : async () -> Unit) -> Unit {
+  // The test driver runs up to ten tests at once on one thread, so a test that times a deadline or counts a child's runs holds the gate to keep another test's sockets and sleeps out of it.
   gate.acquire()
   defer gate.release()
   body()

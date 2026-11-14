@@ -45,9 +45,8 @@ priv struct Place {
 let gate : @async.Mutex = @async.Mutex()
 
 ///|
-/// The test driver runs up to ten tests at once on one thread.
-/// A test that counts descriptors would see the others' cleanup children, so each test runs alone.
 async fn with_place(name : String, body : async (Place) -> Unit) -> Unit {
+  // The test driver runs up to ten tests at once on one thread, and a test that counts descriptors would see the others' cleanup children, so each test runs alone.
   gate.acquire()
   defer gate.release()
   let root = scratch(name)
@@ -251,7 +250,7 @@ async fn Adapter::receive(self : Adapter, raw : String) -> Unit noraise {
 }
 
 ///|
-/// One connection of a fake bridge with an adapter: the lines the adapter sent, and the bridge's answers to its requests.
+/// One connection of a fake bridge with an adapter: the adapter, the lines it sent, the log entries it wrote, and the count that numbers the events the bridge sends.
 priv struct Link {
   adapter : Adapter
   sent : Array[Json]

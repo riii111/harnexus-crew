@@ -11,8 +11,7 @@ pub async fn review(
 }
 
 ///|
-/// A review session keeps the members named, so a request that differs in one of them starts a session of its own.
-/// A Cloud review keeps fewer members than an app one, so the caller names them.
+/// A review session keeps the members named, so a request that differs in one of them is refused.
 pub fn check_kept(
   previous : Json,
   current : Json,
@@ -202,7 +201,7 @@ fn resolve_session_value(request : Json, key : String) -> Json {
 }
 
 ///|
-/// The members that make a review session the same session when a review is asked for again.
+/// The members an app review session keeps when a review is asked for again.
 let app_session_keys : Array[String] = [
   "taskId", "workerAI", "workerChatId", "projectId", "checkout",
 ]

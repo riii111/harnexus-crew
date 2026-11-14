@@ -10,8 +10,8 @@ pub fn errno_name(errno : Int32) -> String {
 }
 
 ///|
-/// Releases a descriptor the caller owns; a failure of close itself is not reported because the descriptor is gone either way.
 pub fn close_fd(fd : Int32) -> Unit {
+  // The descriptor is gone whether or not close fails, so its result is ignored.
   ignore(close_fd_raw(fd))
 }
 

@@ -3,10 +3,10 @@ const COMMAND_KILL_GRACE_MS : Int32 = 1000
 
 ///|
 /// Runs a short command and returns what it printed.
-/// exit status: Any status is a result; the caller decides what a failure means.
-/// raises     : When the command cannot start, is stopped by the timeout, prints more than 16 MiB in all, dies from a signal, or survives SIGKILL.
-/// stdin      : Closed at once, so a command that reads it sees the end of input.
-/// stop       : The command leads its own process group. At the timeout or the output limit the group gets SIGTERM, then SIGKILL after one second.
+/// raises       : When the command cannot start, is stopped by the timeout, prints more than 16 MiB in all, dies from a signal, or survives SIGKILL.
+/// stdin        : Closed at once, so a command that reads it sees the end of input.
+/// process group: The command leads its own process group.
+/// stop         : At the timeout or the output limit the group gets SIGTERM, then SIGKILL after one second.
 pub async fn run_command(
   file : String,
   args : ArrayView[String],
@@ -46,7 +46,6 @@ pub async fn run_command(
       )
     (Exit, Signaled(_)) => raise failed("cannot run \{file}", None)
     (Exit, Code(status)) =>
-      // To preserve UTF-8 characters split across chunks, decode only after collecting all output.
       {
         status,
         stdout: @utf8.decode_lossy(run.stdout),
@@ -56,7 +55,7 @@ pub async fn run_command(
 }
 
 ///|
-/// Runs a long-lived command on this process's own stdin, stdout and stderr and returns its exit status, for a program that hands its work to another.
+/// Runs a long-lived command on this process's own stdin, stdout and stderr and returns its exit status.
 /// A command killed by a signal answers 128 plus the signal number.
 /// Cancelling the wait leaves the command running.
 pub async fn run_inherited(

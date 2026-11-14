@@ -47,7 +47,7 @@ def _string_map(value):
 
 
 def parse_case(data):
-    """Checks a case as strictly as the schema did: an unknown member or a wrong type is refused."""
+    """Refuses an unknown member or a wrong type."""
     _check(isinstance(data, dict), "case", "must be an object")
     name = data.get("name")
     _check(isinstance(name, str) and name != "", "case", "name must be a non-empty string")

@@ -19,8 +19,8 @@ const T3_THREAD_VARIABLE : String = "T3CODE_THREAD_ID"
 const CODEX_THREAD_VARIABLE : String = "CODEX_THREAD_ID"
 
 ///|
-/// T3 Code sets its thread for every agent and job it starts, and runs Codex there with a thread ID of Codex's own, so its variable decides first.
 pub fn app_of(env : Env) -> App {
+  // T3 Code sets its thread for every agent and job it starts, and runs Codex there with a thread ID of Codex's own, so the T3 variable decides first.
   match env.get_nonempty(T3_THREAD_VARIABLE) {
     Some(_) => T3
     None => Codex

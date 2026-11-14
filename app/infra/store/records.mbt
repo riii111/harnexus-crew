@@ -1,5 +1,4 @@
 ///|
-/// What a directory of one session's records holds.
 /// state.json  : Confirmed state.
 /// pending.json: A send whose result is unknown; blocks resending.
 pub struct Records {
@@ -44,7 +43,6 @@ pub fn save_json(
 }
 
 ///|
-/// Reads a JSON file; a missing file reads as Null.
 pub fn read_json_or_null(path : String) -> Json raise @failure.TaskFailed {
   match lift_file_failure(() => read_text_if_exists(path)) {
     None => Json::null()
@@ -56,7 +54,7 @@ pub fn read_json_or_null(path : String) -> Json raise @failure.TaskFailed {
 }
 
 ///|
-/// Reads a regular JSON file, such as a request the user wrote.
+/// Refuses a FIFO or a device, as `read_regular_text` does.
 pub fn read_regular_json(path : String) -> Json raise @failure.TaskFailed {
   let text = lift_file_failure(() => read_regular_text(path))
   @jsonio.parse(text) catch {

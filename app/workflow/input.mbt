@@ -13,7 +13,7 @@ pub(all) struct ReviewInput {
   update_base : Bool
   /// `--recover discard`.
   discard_pending : Bool
-  /// A message for the task's reviewer, in a Claude Code cloud session.
+  /// The file holding a message for the task's reviewer, in a Claude Code cloud session.
   ask : String?
 }
 

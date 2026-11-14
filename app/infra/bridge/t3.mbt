@@ -1,5 +1,4 @@
 ///|
-/// `which` finds a program on PATH.
 priv struct T3Deps {
   env : @environment.Env
   which : (String) -> String?

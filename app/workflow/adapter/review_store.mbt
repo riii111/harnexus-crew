@@ -6,13 +6,11 @@ priv struct Chat {
 }
 
 ///|
-/// Where a review stands in the folder.
-/// Sent     : The review was sent.
-/// Held     : A file may stand over a sent review and holds it.
-/// Unsettled: The review is absent or kept but not sent.
 priv enum ReviewState {
   Sent
+  /// A file may stand over a sent review, so the review is held.
   Held
+  /// The review is absent or kept but not sent.
   Unsettled
 }
 
@@ -88,12 +86,12 @@ fn ReviewStore::read_chats(
 }
 
 ///|
-/// Records the chat that shows a reviewer, under the lock every adapter takes for the file, so two never overwrite each other's entries.
 async fn ReviewStore::keep_chat(
   self : ReviewStore,
   reviewer : String,
   chat : Chat,
 ) -> Unit raise @failure.TaskFailed {
+  // Every adapter takes this lock for the chats file, so two never overwrite each other's entries.
   @store.with_lock(self.locks, "chats", () => {
     let path = self.chats_path()
     let latest = match read_object(path) {

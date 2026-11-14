@@ -1,5 +1,6 @@
 ///|
 /// `connected` is false when the connection itself failed, so the line was never written.
+/// When it is true, whether the line was written is unknown.
 pub(all) suberror LineExchangeFailed {
   LineExchangeFailed(
     path~ : String,
@@ -35,7 +36,7 @@ pub(all) struct ProcessRun {
 }
 
 ///|
-/// `started` is false only when it never started, which is the only case in which it surely did not run.
+/// `started` is false only when the process never started, the only case in which it surely did not run.
 pub(all) suberror ProcessRunFailed {
   ProcessRunFailed(started~ : Bool, message~ : String)
 }
@@ -49,7 +50,7 @@ pub(all) struct CommandOutput {
 }
 
 ///|
-/// `code` is the error code Node attaches to the failure, such as `ENOENT`; callers that show it append it to the message in parentheses.
+/// `code` is the error code Node attaches to the failure, such as `ENOENT`.
 pub(all) suberror CommandFailed {
   CommandFailed(command~ : String, message~ : String, code~ : String?)
 }

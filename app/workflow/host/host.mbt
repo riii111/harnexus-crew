@@ -8,24 +8,23 @@ pub struct DefaultThinking {
 ///|
 /// What differs between the apps a worker and its reviewer run in; everything else a task does is the same in both.
 pub struct Host {
-  // The variable naming the thread a command runs in.
+  /// The variable naming the thread a command runs in.
   thread_variable : String
-  // Sends an App operation as the caller's thread: caller, tool, arguments.
+  /// Sends an App operation as the caller's thread: caller, tool, arguments.
   call : async (String, String, Map[String, Json]) -> @bridge.CallAnswer noraise
-  // The project a reviewer is started in, as the app's create_thread target names it.
+  /// The project a reviewer is started in, as the app's create_thread target names it.
   review_project : async (String) -> String raise @failure.TaskFailed
-  // The folder whose <id>/<name> folders are worker worktrees.
+  /// The folder whose <id>/<name> folders are worker worktrees.
   worktrees : String
-  // None when the app cannot be told a thinking.
+  /// None when the app cannot be told a thinking.
   thinking : DefaultThinking?
-  // Which reply template a reviewer follows to hand its result to the worker, by the worker's AI.
+  /// Which reply template a reviewer follows to hand its result to the worker, by the worker's AI.
   reply_to : (String) -> String
-  // Whether name --pr can rename the worker's thread to show its PR.
+  /// Whether name --pr can rename the worker's thread to show its PR.
   renames_threads : Bool
 }
 
 ///|
-/// `which` finds a program on PATH.
 pub fn host_of(env : @environment.Env, which~ : (String) -> String?) -> Host {
   let app = @environment.app_of(env)
   match app {
@@ -63,7 +62,7 @@ fn t3_host(
     thinking: None,
     // A reviewer in T3 Code answers through T3 Code's own thread tools, whichever AI the worker is.
     reply_to: _ => "T3",
-    // The t3 CLI cannot rename a thread; a worker renames its own with T3 Code's t3_thread_update.
+    // The t3 CLI cannot rename a thread.
     renames_threads: false,
   }
 }

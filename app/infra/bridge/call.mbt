@@ -2,7 +2,7 @@
 const PROTOCOL_VERSION : Int32 = 1
 
 ///|
-/// Longer than the longest wait_threads the bridge allows, so the bridge always answers first.
+/// The bridge must answer first, so the timeout exceeds the longest wait_threads it allows.
 const ANSWER_TIMEOUT_MS : Int32 = 900000
 
 ///|

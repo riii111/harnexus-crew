@@ -75,7 +75,7 @@ fn timeout_of(args : Array[String]) -> Int32 {
 }
 
 ///|
-/// The engine pr-wake installs beside itself, which its LaunchAgent runs; the long-running watch is handed to it.
+/// The engine pr-wake installs beside itself, which its LaunchAgent runs.
 fn resolve_engine(
   env : @environment.Env,
   which~ : (String) -> String?,
@@ -95,7 +95,7 @@ fn resolve_engine(
 }
 
 ///|
-/// The pr-wake command, found on PATH unless an absolute path is set, so the watch is owned and updated by pr-wake alone.
+/// The watch is owned and updated by pr-wake alone, so its command is found on PATH unless an absolute path is set.
 fn resolve_command(env : @environment.Env) -> String raise @failure.TaskFailed {
   match env.get_nonempty(PR_WAKE_VARIABLE) {
     None => "pr-wake"
