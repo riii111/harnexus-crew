@@ -3,7 +3,6 @@ package "riii111/harnexus-crew/app/workflow/session"
 
 import {
   "moonbitlang/core/json",
-  "riii111/harnexus-crew/app/infra/bridge",
   "riii111/harnexus-crew/app/infra/environment",
   "riii111/harnexus-crew/app/workflow",
   "riii111/harnexus-crew/share/failure",
@@ -25,10 +24,6 @@ pub async fn state_request(String, @environment.Env, which~ : (String) -> String
 // Errors
 
 // Types and methods
-pub(all) struct Ports {
-  call : async (String, String, Map[String, @json.Json]) -> @bridge.CallAnswer noraise
-  save : (String, @json.Json, Bool) -> Unit raise @failure.TaskFailed
-}
 
 // Type aliases
 

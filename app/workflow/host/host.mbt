@@ -1,6 +1,6 @@
 ///|
 /// The thinking a worker and a reviewer get when none is asked for.
-pub(all) struct DefaultThinking {
+pub struct DefaultThinking {
   worker : String
   reviewer : String
 }

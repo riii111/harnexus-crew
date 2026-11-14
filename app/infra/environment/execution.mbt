@@ -14,7 +14,7 @@ pub enum CloudHost {
 }
 
 ///|
-pub fn CloudHost::name(self : CloudHost) -> String {
+fn CloudHost::name(self : CloudHost) -> String {
   match self {
     CodexCloud => "codex"
     ClaudeCloud => "claude"
@@ -29,7 +29,7 @@ pub enum ExecutionEnvironment {
 }
 
 ///|
-pub fn ExecutionEnvironment::name(self : ExecutionEnvironment) -> String {
+fn ExecutionEnvironment::name(self : ExecutionEnvironment) -> String {
   match self {
     Cloud => "cloud"
     Local => "local"
@@ -39,7 +39,7 @@ pub fn ExecutionEnvironment::name(self : ExecutionEnvironment) -> String {
 
 ///|
 /// Names a variable, never a value of the environment.
-pub enum Source {
+priv enum Source {
   Explicit
   CodexCloudVariable
   ClaudeCloudVariable
@@ -49,7 +49,7 @@ pub enum Source {
 }
 
 ///|
-pub fn Source::name(self : Source) -> String {
+fn Source::name(self : Source) -> String {
   match self {
     Explicit => "explicit"
     CodexCloudVariable => CODEX_CLOUD_VARIABLE
@@ -71,9 +71,9 @@ pub enum Runner {
 ///|
 pub struct Detected {
   environment : ExecutionEnvironment
-  source : Source
+  priv source : Source
   runner : Runner
-  note : String
+  priv note : String
 }
 
 ///|

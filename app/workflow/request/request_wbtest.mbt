@@ -85,7 +85,7 @@ async fn review(text : String, scope : ReviewScope, script : Script) -> String {
   try {
     let git = @git.Git::new(script.runner(), env_of([("HOME", "/h")]))
     let request = ReviewRequest::from_json(parsed(text), scope, probe(), git)
-    "ok " + request.to_json().stringify()
+    "ok " + Json::object(request.members()).stringify()
   } catch {
     @failure.TaskFailed(message) => "refused: " + message
     _ => "not JSON"

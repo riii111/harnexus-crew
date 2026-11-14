@@ -5,7 +5,7 @@ pub enum App {
 }
 
 ///|
-pub fn App::name(self : App) -> String {
+fn App::name(self : App) -> String {
   match self {
     Codex => "codex"
     T3 => "t3"

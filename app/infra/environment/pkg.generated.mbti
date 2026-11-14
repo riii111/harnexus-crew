@@ -30,19 +30,16 @@ pub enum App {
   Codex
   T3
 }
-pub fn App::name(Self) -> String
 
 pub enum CloudHost {
   CodexCloud
   ClaudeCloud
 }
-pub fn CloudHost::name(Self) -> String
 
 pub struct Detected {
   environment : ExecutionEnvironment
-  source : Source
   runner : Runner
-  note : String
+  // private fields
 }
 pub fn Detected::socket_accepted() -> Self
 pub fn Detected::to_json(Self) -> @json.Json
@@ -72,23 +69,12 @@ pub enum ExecutionEnvironment {
   Local
   Unknown
 }
-pub fn ExecutionEnvironment::name(Self) -> String
 
 pub enum Runner {
   Unnamed
   InCloud(CloudHost?)
   OnMachine(App)
 }
-
-pub enum Source {
-  Explicit
-  CodexCloudVariable
-  ClaudeCloudVariable
-  T3ThreadVariable
-  HarnexusSocket
-  NoSource
-}
-pub fn Source::name(Self) -> String
 
 // Type aliases
 

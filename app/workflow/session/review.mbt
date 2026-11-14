@@ -32,7 +32,7 @@ async fn review_in(
   cloud : async (@workflow.ReviewInput) -> Json raise @failure.TaskFailed,
 ) -> Json raise @failure.TaskFailed {
   if @environment.declared_environment(ctx.env)
-    is Some({ environment: Cloud, runner: InCloud(Some(ClaudeCloud)), .. }) {
+    is Some({ environment: Cloud, runner: InCloud(Some(ClaudeCloud)), }) {
     return cloud(args)
   }
   @workflow.refuse_in_cloud(ctx.env, "review")

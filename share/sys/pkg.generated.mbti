@@ -4,8 +4,6 @@ package "riii111/harnexus-crew/share/sys"
 // Values
 pub fn c_string(String) -> Bytes?
 
-pub fn platform() -> Platform
-
 pub fn write_text(Int32, String) -> Unit raise WriteFailed
 
 // Errors
@@ -14,11 +12,6 @@ pub suberror WriteFailed {
 }
 
 // Types and methods
-pub enum Platform {
-  Darwin
-  Linux
-  Other
-}
 
 // Type aliases
 

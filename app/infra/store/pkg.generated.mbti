@@ -9,8 +9,6 @@ import {
 // Values
 pub fn acquire(String, String) -> String raise @failure.TaskFailed
 
-pub fn current_pid() -> Int32
-
 pub fn is_directory(String) -> Bool
 
 pub fn is_file(String) -> Bool
@@ -56,13 +54,13 @@ pub fn write_atomic(String, String) -> Unit raise FileFailed
 pub fn write_exclusive(String, String) -> Bool raise FileFailed
 
 // Errors
-pub(all) suberror FileFailed {
+pub suberror FileFailed {
   FileFailed(action~ : FileAction, path~ : String, code~ : String?, message~ : String)
 }
 pub fn FileFailed::user_message(Self) -> String
 
 // Types and methods
-pub(all) enum FileAction {
+pub enum FileAction {
   Read
   Write
   Sync

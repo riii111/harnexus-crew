@@ -41,7 +41,7 @@ pub(all) struct CloudReview {
   answer : String
 }
 
-pub(all) struct DefaultThinking {
+pub struct DefaultThinking {
   worker : String
   reviewer : String
 }

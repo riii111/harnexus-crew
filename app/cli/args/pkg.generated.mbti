@@ -16,7 +16,6 @@ pub fn parse_command(String, ArrayView[String]) -> Parsed raise UsageError
 pub suberror UsageError {
   UsageError(String)
 }
-pub fn UsageError::message(Self) -> String
 
 // Types and methods
 pub enum Command {

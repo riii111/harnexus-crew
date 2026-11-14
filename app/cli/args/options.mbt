@@ -29,12 +29,6 @@ pub suberror UsageError {
 }
 
 ///|
-pub fn UsageError::message(self : UsageError) -> String {
-  let UsageError(message) = self
-  message
-}
-
-///|
 fn parse_options(
   args : ArrayView[String],
   specs : Array[OptionSpec],

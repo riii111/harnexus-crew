@@ -142,3 +142,12 @@ void harnexus_testkit_restore_stdio(int32_t *saved) {
 // Whether the descriptor number is open in this process.
 MOONBIT_FFI_EXPORT
 int32_t harnexus_testkit_fd_open(int32_t fd) { return fcntl(fd, F_GETFD) != -1; }
+
+MOONBIT_FFI_EXPORT
+int32_t harnexus_testkit_is_macos(void) {
+#if defined(__APPLE__)
+  return 1;
+#else
+  return 0;
+#endif
+}
