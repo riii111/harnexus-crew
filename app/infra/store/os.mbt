@@ -1,4 +1,28 @@
 ///|
+let open_read : Int32 = 0
+
+///|
+let open_exclusive : Int32 = 1
+
+///|
+let open_directory : Int32 = 3
+
+///|
+let kind_file : Int32 = 1
+
+///|
+let kind_directory : Int32 = 2
+
+///|
+let enoent : Int32 = 2
+
+///|
+let eexist : Int32 = 17
+
+///|
+let enotdir : Int32 = 20
+
+///|
 let einval : Int32 = 22
 
 ///|

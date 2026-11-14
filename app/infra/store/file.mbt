@@ -20,33 +20,6 @@ pub suberror FileFailed {
 }
 
 ///|
-let open_read : Int32 = 0
-
-///|
-let open_exclusive : Int32 = 1
-
-///|
-let open_directory : Int32 = 3
-
-///|
-let kind_file : Int32 = 1
-
-///|
-let kind_directory : Int32 = 2
-
-///|
-let enoent : Int32 = 2
-
-///|
-let eexist : Int32 = 17
-
-///|
-let enotdir : Int32 = 20
-
-///|
-let owner_only_directory : Int32 = 0o700
-
-///|
 pub fn FileFailed::user_message(self : FileFailed) -> String {
   let FileFailed(code~, message~, ..) = self
   match code {
@@ -178,6 +151,25 @@ pub fn resolve_real_path_or_self(path : String) -> String {
 }
 
 ///|
+fn read_and_close(
+  fd : Int32,
+  path : String,
+  message : String,
+) -> Bytes raise FileFailed {
+  let read = read_to_end(fd)
+  let closed = close_raw(fd)
+  match read {
+    Err(errno) => raise failure(Read, path, errno, message)
+    Ok(bytes) => {
+      if closed < 0 {
+        raise failure(Read, path, -closed, message)
+      }
+      bytes
+    }
+  }
+}
+
+///|
 fn replace_file(path : String, content : String) -> Unit raise FileFailed {
   let temporary = write_temporary(path, content)
   // A reader must never see a half-written file, so the rename happens only after the temporary file is flushed to disk.
@@ -253,6 +245,9 @@ fn sync_directory(path : String) -> Int32 {
 }
 
 ///|
+let owner_only_directory : Int32 = 0o700
+
+///|
 fn make_directories(path : String) -> Int32 {
   let made = mkdir_path(path, owner_only_directory)
   if made == -eexist {
@@ -300,30 +295,6 @@ fn list_with_capacity(
 }
 
 ///|
-fn read_and_close(
-  fd : Int32,
-  path : String,
-  message : String,
-) -> Bytes raise FileFailed {
-  let read = read_to_end(fd)
-  let closed = close_raw(fd)
-  match read {
-    Err(errno) => raise failure(Read, path, errno, message)
-    Ok(bytes) => {
-      if closed < 0 {
-        raise failure(Read, path, -closed, message)
-      }
-      bytes
-    }
-  }
-}
-
-///|
-fn decode_text(bytes : Bytes) -> String {
-  @utf8.decode_lossy(bytes[:])
-}
-
-///|
 fn split_names(listing : Bytes) -> Array[String] {
   let names = []
   let mut start = 0
@@ -334,6 +305,11 @@ fn split_names(listing : Bytes) -> Array[String] {
     }
   }
   names
+}
+
+///|
+fn decode_text(bytes : Bytes) -> String {
+  @utf8.decode_lossy(bytes[:])
 }
 
 ///|

@@ -38,19 +38,32 @@ fn find(
 }
 
 ///|
+fn is_runnable_file(path : String) -> Bool {
+  match @sys.c_string(path) {
+    Some(terminated) => is_runnable_file_raw(terminated) == 1
+    None => false
+  }
+}
+
+///|
+#borrow(path)
+extern "C" fn is_runnable_file_raw(path : Bytes) -> Int32 = "harnexus_is_runnable_file"
+
+///|
+fn strip_dot_slash(name : String) -> String {
+  if name.has_prefix("./") {
+    name[2:].to_owned()
+  } else {
+    name
+  }
+}
+
+///|
 fn anchor_path(path : String, cwd : String?) -> String? {
   if path.has_prefix("/") {
     Some(path)
   } else {
     cwd.map(dir => join_dir(dir, path))
-  }
-}
-
-///|
-fn is_runnable_file(path : String) -> Bool {
-  match @sys.c_string(path) {
-    Some(terminated) => is_runnable_file_raw(terminated) == 1
-    None => false
   }
 }
 
@@ -66,16 +79,3 @@ fn join_dir(dir : String, name : String) -> String {
     "\{dir[:end]}/\{name}"
   }
 }
-
-///|
-fn strip_dot_slash(name : String) -> String {
-  if name.has_prefix("./") {
-    name[2:].to_owned()
-  } else {
-    name
-  }
-}
-
-///|
-#borrow(path)
-extern "C" fn is_runnable_file_raw(path : Bytes) -> Int32 = "harnexus_is_runnable_file"

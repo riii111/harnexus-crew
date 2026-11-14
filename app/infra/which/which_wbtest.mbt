@@ -1,9 +1,4 @@
 ///|
-fn only(files : Array[String]) -> (String) -> Bool {
-  path => files.contains(path)
-}
-
-///|
 test "the first runnable file on PATH wins" {
   let runnable = only(["/a/tool", "/b/tool"])
 
@@ -138,4 +133,9 @@ test "in_env searches the PATH of the environment it is given" {
   assert_eq(in_env(env)("sh"), Some("/bin/sh"))
   let empty = @environment.Env::new({})
   assert_eq(in_env(empty)("sh"), None)
+}
+
+///|
+fn only(files : Array[String]) -> (String) -> Bool {
+  path => files.contains(path)
 }

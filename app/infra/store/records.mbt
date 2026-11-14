@@ -68,20 +68,20 @@ pub fn remove_record(path : String) -> Unit raise @failure.TaskFailed {
 }
 
 ///|
-fn[T] lift_file_failure(
-  work : () -> T raise FileFailed,
-) -> T raise @failure.TaskFailed {
-  work() catch {
-    failed => @failure.fail(failed.user_message())
-  }
-}
-
-///|
 fn check_record(value : Json, path : String) -> Json? raise @failure.TaskFailed {
   match value {
     Null => None
     Object(members) if members.is_empty() => None
     Object(_) => Some(value)
     _ => @failure.fail("\{path} does not hold a JSON object")
+  }
+}
+
+///|
+fn[T] lift_file_failure(
+  work : () -> T raise FileFailed,
+) -> T raise @failure.TaskFailed {
+  work() catch {
+    failed => @failure.fail(failed.user_message())
   }
 }
