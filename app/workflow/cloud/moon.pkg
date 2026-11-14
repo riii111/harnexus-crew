@@ -18,6 +18,7 @@ import {
 import {
   "moonbitlang/core/async",
   "riii111/harnexus-crew/app/cli/args",
+  "riii111/harnexus-crew/app/testkit" @apptestkit,
   "riii111/harnexus-crew/share/os/testkit",
   "riii111/harnexus-crew/share/path",
 } for "wbtest"
