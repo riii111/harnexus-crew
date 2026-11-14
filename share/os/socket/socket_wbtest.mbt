@@ -87,7 +87,9 @@ async test "S4 a socket file with no server behind it is refused and not sent" {
     let path = socket_path("s4")
     @testkit.close_fd(@testkit.listen(path))
     defer @testkit.remove_file(path)
+
     let result = describe_exchange(path, "{\"x\":1}", 1000)
+
     assert_eq(result, "not_sent ECONNREFUSED")
   })
 }
@@ -96,11 +98,13 @@ async test "S4 a socket file with no server behind it is refused and not sent" {
 async test "S5 an empty line only probes: the server sees a connection and no bytes" {
   @testkit.serial(() => {
     let seen = Ref(-1)
+
     // Everything the server receives until the client closes, so a stray newline would show.
     with_server("s5", stream => seen.val = stream.read_all().length(), path => {
       assert_eq(exchange_line(path, "", 1000), "")
       @async.sleep(100)
     })
+
     assert_eq(seen.val, 0)
   })
 }
@@ -116,20 +120,26 @@ async test "C1 real full listen queue: macOS refuses at once, Linux holds the co
       for fd in held {
         @testkit.close_fd(fd)
       }
+
       @testkit.close_fd(listener)
       @testkit.remove_file(path)
     }
+
     for _ in 0..<64 {
       let fd = @testkit.connect_and_hold(path) catch { _ => -1 }
       if fd < 0 {
         break
       }
+
       held.push(fd)
     }
+
     @testkit.assert_between(held.length(), 1, 63)
+
     let (result, elapsed) = @testkit.timed(() => {
       describe_exchange(path, "{\"x\":1}", 1000)
     })
+
     if @testkit.is_macos() {
       assert_eq(result, "not_sent ECONNREFUSED")
       @testkit.assert_between(elapsed, 0, 500)
@@ -176,14 +186,17 @@ async test "C3 injected: a connect that answers EAGAIN 20 times then succeeds is
     with_server("c3", answer, path => {
       let attempts = Ref(0)
       let target = @sys.c_string(path).unwrap()
+
       let reply = exchange_with(path, "{\"x\":1}", 1000, fd => {
         attempts.val += 1
+
         if attempts.val <= 20 {
           @testkit.eagain()
         } else {
           connect_once(fd, target)
         }
       })
+
       assert_eq(reply, echoed_reply)
       assert_eq(attempts.val, 21)
     })
@@ -198,19 +211,24 @@ async test "C4 injected: connect, write and read share one deadline" {
       let connected_at = Ref(-1)
       let started = @async.now()
       let target = @sys.c_string(path).unwrap()
+
       let (result, elapsed) = @testkit.timed(() => {
         describe_exchange(path, "{\"x\":1}", 1000, connect=fd => {
           attempts.val += 1
+
           if attempts.val <= 50 {
             return @testkit.eagain()
           }
+
           let errno = connect_once(fd, target)
           if errno == 0 {
             connected_at.val = (@async.now() - started).to_int()
           }
+
           errno
         })
       })
+
       assert_eq(result, "unknown ETIMEDOUT")
       @testkit.assert_between(elapsed, 800, 1600)
       @testkit.assert_between(connected_at.val, 400, 800)
@@ -225,6 +243,7 @@ async test "C5 a slow answer past the deadline is unknown" {
       let (result, elapsed) = @testkit.timed(() => {
         describe_exchange(path, "{\"x\":1}", 1000)
       })
+
       assert_eq(result, "unknown ETIMEDOUT")
       @testkit.assert_between(elapsed, 800, 1600)
     })
@@ -383,6 +402,7 @@ async test "the failure carries the message callers show" {
 /// The real connect, which also records the descriptor the exchange opened so a test can check it is closed afterwards.
 fn tracked_connect(path : String, opened : Ref[Int32]) -> (Int32) -> Int32 {
   let target = @sys.c_string(path).unwrap()
+
   fd => {
     opened.val = fd
     connect_once(fd, target)
@@ -408,6 +428,7 @@ async fn with_server(
     @testkit.close_fd(listener)
     @testkit.remove_file(path)
   }
+
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => {
       while true {
@@ -422,6 +443,7 @@ async fn with_server(
         }
       }
     })
+
     body(path)
   })
 }
@@ -453,10 +475,12 @@ async fn stay_silent(stream : @raw_fd.RawFdStream) -> Unit {
 /// Answers in parts spaced so the whole answer arrives later than a one second deadline.
 async fn drip_answer(stream : @raw_fd.RawFdStream) -> Unit {
   ignore(read_request(stream))
+
   for i in 0..<5 {
     @async.sleep(300)
     stream.write(@utf8.encode("part\{i};"))
   }
+
   stream.write(@utf8.encode("\n"))
 }
 
@@ -485,6 +509,7 @@ async fn describe_exchange(
       Some(attempt) => exchange_with(path, line, timeout_ms, attempt)
       None => exchange_line(path, line, timeout_ms)
     }
+
     "done \{Json::string(reply).stringify()}"
   } catch {
     error => describe_failure(error)
@@ -506,6 +531,7 @@ async fn eagain_exchange() -> (String, Int32, Int32, Int32) {
   let outcome = Ref("")
   let elapsed = Ref(0)
   let before = @testkit.open_fds()
+
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => {
       while true {
@@ -513,14 +539,17 @@ async fn eagain_exchange() -> (String, Int32, Int32, Int32) {
         ticks.val += 1
       }
     })
+
     let (result, ms) = @testkit.timed(() => {
       describe_exchange(socket_path("c2"), "{\"x\":1}", 1000, connect=_ => {
         @testkit.eagain()
       })
     })
+
     outcome.val = result
     elapsed.val = ms
   })
+
   (outcome.val, elapsed.val, ticks.val, @testkit.open_fds() - before)
 }
 

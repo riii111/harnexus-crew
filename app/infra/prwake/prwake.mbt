@@ -16,9 +16,11 @@ pub async fn run_watch_engine(
   let exited = @process.run_inherited(engine, ["watch"], env.to_map()) catch {
     @boundary.CommandFailed(message~, ..) => @failure.fail(message)
   }
+
   if exited != 0 {
     @failure.fail("\{engine} watch exited with \{exited}")
   }
+
   { "watch": "stopped" }
 }
 
@@ -34,6 +36,7 @@ async fn call_within(
   let command = resolve_command(env)
   let argv = ["watch"]
   argv.append(args)
+
   let ran = @process.run_command(command, argv, env.to_map(), timeout_ms~) catch {
     @boundary.CommandFailed(message~, ..) =>
       @failure.fail(
@@ -41,15 +44,18 @@ async fn call_within(
       )
   }
   let stderr_text = @text.js_trim(ran.stderr)
+
   if ran.status != 0 {
     let detail = if stderr_text == "" { "" } else { ": \{stderr_text}" }
     @failure.fail(
       "pr-wake watch \{args.join(" ")} failed with exit \{ran.status}\{detail}",
     )
   }
+
   let parsed = @jsonio.parse(@text.js_trim(ran.stdout)) catch {
     _ => Json::null()
   }
+
   match parsed {
     Object(printed) => printed
     _ => @failure.fail("pr-wake watch \{args.join(" ")} printed no JSON object")
@@ -86,11 +92,13 @@ fn resolve_engine(
   } else {
     which(command)
   }
+
   guard found is Some(found) else {
     @failure.fail(
       "pr-wake is not on PATH; install pr-wake, or set \{PR_WAKE_VARIABLE} to its absolute path",
     )
   }
+
   @path.join([@path.dirname(@store.resolve_real_path_or_self(found)), ENGINE])
 }
 

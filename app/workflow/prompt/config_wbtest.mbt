@@ -9,10 +9,12 @@ test "absolute template paths are accepted" {
 ///|
 test "either template path may be left out" {
   inspect(read("{\"templates\":{}}"), content="ok worker=- reviewer=-")
+
   inspect(
     read("{\"templates\":{\"worker\":\"/w\"}}"),
     content="ok worker=/w reviewer=-",
   )
+
   inspect(
     read("{\"templates\":{\"reviewer\":\"/r\"}}"),
     content="ok worker=- reviewer=/r",
@@ -41,6 +43,7 @@ test "a template path must be an absolute string" {
     read("{\"templates\":{\"worker\":\"w\"}}"),
     content="/c/task.json is invalid: templates.worker must be an absolute path",
   )
+
   inspect(
     read("{\"templates\":{\"reviewer\":null}}"),
     content="/c/task.json is invalid: templates.reviewer must be an absolute path",
@@ -53,6 +56,7 @@ test "unknown keys are refused at both levels" {
     read("{\"templates\":{},\"other\":1}"),
     content="/c/task.json is invalid: unknown field \"other\"",
   )
+
   inspect(
     read("{\"templates\":{\"x\":1}}"),
     content="/c/task.json is invalid: unknown field \"templates.x\"",
@@ -62,6 +66,7 @@ test "unknown keys are refused at both levels" {
 ///|
 test "the config sits in harnexus's config directory" {
   let env = @environment.Env::new({ "XDG_CONFIG_HOME": "/xc/../y" })
+
   inspect(template_config_path(env), content="/y/harnexus/task.json")
 }
 

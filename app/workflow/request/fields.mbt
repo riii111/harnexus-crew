@@ -23,6 +23,7 @@ pub async fn ReviewCandidate::build_reviewer_fields(
     Some(id) => id
     None => @failure.fail("workerChatId must be the chat ID of the worker")
   }
+
   {
     "task_id": request.task_id,
     "document_refs": render_document_block(request.document_refs, probe),

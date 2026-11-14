@@ -3,6 +3,7 @@ test "letters and digits are ASCII only" {
   for unit in ['a', 'z', 'A', 'Z', '0', '9'] {
     assert_true(is_ascii_alphanumeric(unit.to_int()))
   }
+
   for unit in ['_', '-', '/', '@', '[', '`', '{', 'é', '²', '漢'] {
     assert_false(is_ascii_alphanumeric(unit.to_int()))
   }
@@ -13,6 +14,7 @@ test "is_space accepts JS whitespace including U+FEFF and rejects U+0085" {
   for unit in [0x20, 0x09, 0xA0, 0x3000, 0xFEFF] {
     assert_true(is_space(unit), msg="\{unit}")
   }
+
   for unit in [0x61, 0x85, 0x1F, 0x200B] {
     assert_false(is_space(unit), msg="\{unit}")
   }

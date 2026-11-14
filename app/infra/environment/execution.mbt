@@ -83,6 +83,7 @@ pub fn Detected::to_json(self : Detected) -> Json {
     ("environment", Json::string(self.environment.name())),
     ("source", Json::string(self.source.name())),
   ]
+
   match self.runner {
     Unnamed => ()
     InCloud(host) =>
@@ -97,6 +98,7 @@ pub fn Detected::to_json(self : Detected) -> Json {
       )
     OnMachine(app) => members.push(("app", Json::string(app.name())))
   }
+
   members.push(("note", Json::string(self.note)))
   Json::object(Map::from_array(members))
 }
@@ -136,6 +138,7 @@ pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
     Some(declared) => return Settled(declared)
     None => ()
   }
+
   if app_of(env) is T3 {
     return Settled({
       environment: Local,
@@ -144,6 +147,7 @@ pub fn detect(env : Env) -> Detection raise @failure.TaskFailed {
       note: "T3 Code sets \{T3_THREAD_VARIABLE} for its agents and the commands they run",
     })
   }
+
   // A missing variable proves nothing, so local is claimed only once the socket answers.
   AskSocket(resolve_call_socket_path(env)) catch {
     @failure.TaskFailed(_) => NothingToAsk

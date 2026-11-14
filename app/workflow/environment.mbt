@@ -11,6 +11,7 @@ pub fn refuse_in_cloud(
         _ =>
           "Cloud cannot create or resume other tasks or threads from here; PR notifications are not built for Cloud, so check the PR with gh"
       }
+
       @failure.fail(
         "\{command} needs the Codex App and is unavailable in Cloud. \{alternative}",
       )

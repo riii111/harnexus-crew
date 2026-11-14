@@ -24,6 +24,7 @@ class StoreBetweenProcesses(unittest.TestCase):
         self.counter += 1
         directory = self.root / f"case-{self.counter}"
         directory.mkdir()
+
         return directory
 
 
@@ -35,9 +36,12 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         replies = run_together(16, lambda _: ("acquire", str(lock), "review", "600", at))
 
         taken = [answer for answer in replies if answer["ok"] is True]
+
         self.assertEqual(1, len(taken))
+
         for answer in [item for item in replies if item["ok"] is False]:
             self.assertRegex(answer["message"], r"^another review( \(pid \d+\))? is using this session$")
+
         self.assertFalse(lock.exists())
 
     def test_runs_racing_for_a_dead_holders_lock_never_hold_it_together(self):
@@ -47,7 +51,9 @@ class LockBetweenProcesses(StoreBetweenProcesses):
             ([int(answer["from"]), int(answer["to"])] for answer in replies if answer["ok"] is True),
             key=lambda span: span[0],
         )
+
         self.assertGreaterEqual(len(spans), 1)
+
         for index in range(1, len(spans)):
             self.assertGreaterEqual(spans[index][0], spans[index - 1][1])
 
@@ -61,6 +67,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
     def test_a_killed_holders_lock_is_taken_over_with_a_new_token(self):
         lock = self.make_case_directory() / "lock.json"
         holder, held = hold(lock, "review")
+
         self.assertIs(True, held["ok"])
 
         stop(holder)
@@ -73,6 +80,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         lock = self.make_case_directory() / "lock.json"
         marker = Path(f"{lock}.reap")
         leave_lock(lock, make_dead_pid())
+
         self.assertIs(True, run("marker-die", str(lock))["ok"])
         at = shared_start_time()
 
@@ -81,9 +89,11 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         for answer in replies:
             self.assertIs(False, answer["ok"])
             self.assertIn(f"left {lock} and {marker}", answer["message"])
+
         self.assertEqual("dead", read_token(lock))
 
         marker.unlink()
+
         self.assertIs(True, run("acquire", str(lock), "review", "0", "0")["ok"])
 
     def test_work_under_the_lock_loses_no_update_across_processes(self):
@@ -91,6 +101,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
 
         for answer in replies:
             self.assertIs(True, answer["ok"])
+
         self.assertEqual("90", counter.read_text(encoding="utf-8"))
 
     def test_work_under_the_lock_leaves_no_lock_file_behind(self):
@@ -98,6 +109,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
 
         for answer in replies:
             self.assertIs(True, answer["ok"])
+
         self.assertEqual([], list(locks.iterdir()))
 
     def test_a_run_that_waits_longer_than_allowed_fails_and_names_the_holder(self):
@@ -121,6 +133,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         at = shared_start_time()
 
         replies = run_together(12, lambda _: ("acquire", str(lock), "review", "150", at))
+
         return replies, lock
 
     def work_under_the_lock(self):
@@ -130,6 +143,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         at = shared_start_time()
 
         replies = run_together(6, lambda _: ("with-lock", str(locks), "chats", str(counter), "15", at, "20000"))
+
         return replies, locks, counter
 
 
@@ -143,6 +157,7 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
         replies = run_together(16, lambda index: ("exclusive", str(target), str(index), "200000", at))
 
         winners = [index for index, answer in enumerate(replies) if answer["created"] is True]
+
         self.assertEqual(1, len(winners))
         self.assertEqual(contents[winners[0]], target.read_text(encoding="utf-8"))
         self.assertEqual(["created.json"], [path.name for path in directory.iterdir()])
@@ -161,14 +176,17 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
         while time.monotonic() < until:
             seen = target.read_text(encoding="utf-8")
             reads += 1
+
             if len(seen) != size or len(set(seen)) != 1:
                 torn.append(seen[:20])
+
             if not killed and reads > 20:
                 writers[1].kill()
                 writers[3].kill()
                 killed = True
 
         survivors = [read_reply(writers[0]), read_reply(writers[2])]
+
         for writer in (writers[1], writers[3]):
             writer.wait()
             writer.stdout.close()
@@ -176,9 +194,12 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
 
         for answer in survivors:
             self.assertGreater(int(answer["writes"]), 0)
+
         self.assertEqual([], torn)
         self.assertGreater(reads, 20)
+
         last = target.read_text(encoding="utf-8")
+
         self.assertEqual(size, len(last))
         self.assertEqual(1, len(set(last)))
         self.assertEqual(["state.json"], [path.name for path in directory.iterdir() if not path.name.endswith(".tmp")])
@@ -187,8 +208,10 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
 class ReadingAndWritingFiles(StoreBetweenProcesses):
     def test_text_is_read_as_node_reads_it_including_a_byte_order_mark_and_invalid_bytes(self):
         directory = self.make_case_directory()
+
         for sample in EXPECTATIONS["reads"]:
             path = directory / sample["name"]
+
             if sample["name"] == "large":
                 text = "0123456789" * 30000
                 path.write_bytes(text.encode("utf-8"))
@@ -247,6 +270,7 @@ def shared_start_time():
 def run_together(count, arguments):
     """Starts `count` probes at once and returns their replies; `arguments(index)` gives each one's arguments."""
     processes = [start(*arguments(index)) for index in range(count)]
+
     return [read_reply(process) for process in processes]
 
 
@@ -258,6 +282,7 @@ def hold(lock, kind):
     """Starts a holder and returns it with the line it printed once it holds the lock."""
     holder = start("hold", str(lock), kind)
     first = holder.stdout.readline()
+
     return holder, jsonvalue.loads(first.decode("utf-8"))
 
 
@@ -278,8 +303,10 @@ def read_token(lock):
 
 def read_reply(process):
     out, err = process.communicate()
+
     if process.returncode != 0:
         raise RuntimeError(f"probe exited {process.returncode}: {err.decode('utf-8', errors='replace')}")
+
     return jsonvalue.loads(out.decode("utf-8").strip().split("\n")[-1])
 
 

@@ -33,6 +33,7 @@ async fn Child::wait_exit(
     @async.sleep(if @async.now() - started < 50L { 1 } else { patience_ms })
     exit = self.poll()
   }
+
   exit.unwrap()
 }
 
@@ -42,6 +43,7 @@ fn Child::signal(self : Child, sig : Int32, group~ : Bool) -> Bool {
   if self.reaped && !group {
     return false
   }
+
   signal_raw(self.pid, if group { 1 } else { 0 }, sig) == 0
 }
 
@@ -57,9 +59,11 @@ fn Child::sweep_group(self : Child) -> Unit {
 ///|
 fn Child::stop_and_reap(self : Child) -> Unit {
   self.sweep_group()
+
   if self.reaped {
     return
   }
+
   ignore(self.signal(SIGKILL, group=false))
   // To keep collection from blocking failure reporting, bound the wait for the child.
   ignore(self.collect(2000))
@@ -77,16 +81,20 @@ fn Child::collect(self : Child, timeout_ms : Int32) -> Exit? {
   if self.reaped {
     return None
   }
+
   let out = FixedArray::make(2, 0)
   let state = wait_raw(self.pid, timeout_ms, out)
   if state == 0 {
     return None
   }
+
   self.reaped = true
+
   if state < 0 {
     // The child was reaped elsewhere, so its status is unknown.
     return Some(Code(1))
   }
+
   Some(if out[0] == 1 { Signaled(out[1]) } else { Code(out[1]) })
 }
 
@@ -160,14 +168,17 @@ fn spawn(
   let argv : Array[String] = [file]
   argv.append(args.to_owned())
   let entries : Array[String] = []
+
   for key, value in env {
     if key != "" {
       entries.push("\{key}=\{value}")
     }
   }
+
   let out = FixedArray::make(4, -1)
   let flags = (if new_session { SPAWN_NEW_SESSION } else { 0 }) |
     (if piped { SPAWN_PIPED } else { 0 })
+
   let errno = spawn_raw(
     encode_c_string(file),
     pack_c_strings(argv),
@@ -178,9 +189,11 @@ fn spawn(
     flags,
     out,
   )
+
   if errno != 0 {
     raise SpawnFailed(errno~)
   }
+
   {
     pid: out[0],
     new_session,
@@ -202,9 +215,11 @@ fn encode_c_string(text : String) -> Bytes raise SpawnFailed {
 ///|
 fn pack_c_strings(items : ArrayView[String]) -> Bytes raise SpawnFailed {
   let buffer = @buffer.Buffer()
+
   for item in items {
     buffer.write_bytes(encode_c_string(item))
   }
+
   buffer.to_bytes()
 }
 

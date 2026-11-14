@@ -1,10 +1,12 @@
 ///|
 fn object(pairs : Array[(String, Json)]) -> Json {
   let members : Map[String, Json] = Map([])
+
   for pair in pairs {
     let (name, value) = pair
     members[name] = value
   }
+
   Json::object(members)
 }
 
@@ -45,6 +47,7 @@ fn objects_in(value : Json?) -> Array[Json] {
 ///|
 fn strings_in(value : Json?) -> Array[String] {
   let texts = []
+
   if value is Some(Array(items)) {
     for item in items {
       if item is String(text) {
@@ -52,6 +55,7 @@ fn strings_in(value : Json?) -> Array[String] {
       }
     }
   }
+
   texts
 }
 

@@ -40,6 +40,7 @@ fn position_in(value : Json) -> SessionPosition? {
     members.get("parentThreadId") is Some(String(parent_thread_id)) else {
     return None
   }
+
   Some({
     session_id,
     parent_thread_id,
@@ -84,6 +85,7 @@ fn PendingReview::to_json(self : PendingReview) -> Json {
 fn pending_in(value : Json) -> Array[PendingReview] {
   let entries = []
   guard value is Array(items) else { return entries }
+
   for item in items {
     guard item is Object(members) &&
       members.get("review") is Some(Object(review)) else {
@@ -95,6 +97,7 @@ fn pending_in(value : Json) -> Array[PendingReview] {
       review.get("answer") is Some(String(answer)) else {
       continue
     }
+
     entries.push({
       parent_thread_id,
       session_id: text_or_none(members.get("sessionId")),
@@ -108,6 +111,7 @@ fn pending_in(value : Json) -> Array[PendingReview] {
       },
     })
   }
+
   entries
 }
 
@@ -150,11 +154,13 @@ fn Observations::read_position(
   if !is_session_id(session_id) {
     @failure.fail("\{session_id} is not a Cloud session id")
   }
+
   let path = self.session_path(session_id)
   let loaded = @store.read_json_or_null(path)
   if loaded is Null {
     return None
   }
+
   match position_in(loaded) {
     Some(found) => Some(found)
     None => @failure.fail("\{path} is not a session position")
@@ -183,11 +189,13 @@ fn Observations::read_opening(
   if loaded is Null {
     return None
   }
+
   guard loaded is Object(members) &&
     members.get("key") is Some(String(key)) &&
     members.get("text") is Some(String(text)) else {
     @failure.fail("\{path} is not an opening record")
   }
+
   Some({
     key,
     text,
@@ -226,9 +234,11 @@ fn Observations::read_pending(
   if loaded is Null {
     return []
   }
+
   if !(loaded is Array(_)) {
     @failure.fail("\{path} is not a list")
   }
+
   pending_in(loaded)
 }
 
@@ -239,15 +249,19 @@ async fn Observations::add_pending(
 ) -> Unit raise @failure.TaskFailed {
   self.change_pending(entries => {
     let keys : Map[String, Bool] = Map([])
+
     for entry in entries {
       keys[entry.review.key] = true
     }
+
     let next = entries.copy()
+
     for entry in added {
       if !keys.contains(entry.review.key) {
         next.push(entry)
       }
     }
+
     next
   })
 }
@@ -321,6 +335,7 @@ fn is_session_id(text : String) -> Bool {
   if units.length() < 1 || units.length() > 128 {
     return false
   }
+
   units
   .iter()
   .all(unit => {

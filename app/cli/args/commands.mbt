@@ -36,9 +36,11 @@ pub fn parse_command(
   let specs = specs_of(command)
   specs.push({ name: "help", kind: Flag, })
   let options = parse_options(rest, specs)
+
   if options.flag("help") {
     return Help
   }
+
   Run(build_command(command, options))
 }
 
@@ -54,6 +56,7 @@ pub fn parse_adapter_serve(
 fn specs_of(command : String) -> Array[OptionSpec] {
   let text = fn(name : String) -> OptionSpec { { name, kind: Text, } }
   let flag = fn(name : String) -> OptionSpec { { name, kind: Flag, } }
+
   match command {
     "launch" => [text("request"), text("model"), text("thinking")]
     "review" =>
@@ -119,6 +122,7 @@ fn parse_review_input(
   options : ParsedOptions,
 ) -> @workflow.ReviewInput raise UsageError {
   let ask = options.text("ask")
+
   // The reviewer keeps the model it was started with, so a question takes no model either.
   if ask is Some(_) &&
     (
@@ -131,12 +135,15 @@ fn parse_review_input(
       "--ask takes none of --update-base, --recover, --model and --thinking",
     )
   }
+
   let request = require_text(options, "request")
+
   let discard_pending = match options.text("recover") {
     None => false
     Some("discard") => true
     Some(_) => raise UsageError("--recover must be one of discard")
   }
+
   {
     request,
     model: options.text("model"),
@@ -152,9 +159,11 @@ fn parse_resolve_input(
   options : ParsedOptions,
 ) -> @workflow.ResolveInput raise UsageError {
   let request = require_text(options, "request")
+
   if options.flag("sent") == options.flag("not-sent") {
     raise UsageError("exactly one of --sent and --not-sent is required")
   }
+
   { request, sent: options.flag("sent"), thread_id: options.text("thread-id"), }
 }
 
@@ -170,9 +179,11 @@ fn parse_watch_input(
     sender: options.flag("sender"),
     link: options.text("link"),
   }
+
   if !args.prs.is_empty() && !args.dry_run {
     raise UsageError("--pr is only for --dry-run")
   }
+
   let modes = [
     args.release is Some(_),
     args.dry_run,
@@ -180,11 +191,13 @@ fn parse_watch_input(
     args.sender,
     args.link is Some(_),
   ]
+
   if modes.filter(fn(on) { on }).length() > 1 {
     raise UsageError(
       "use only one of --dry-run, --release, --status, --sender and --link",
     )
   }
+
   args
 }
 
@@ -194,9 +207,11 @@ fn parse_cloud_input(
 ) -> @workflow.CloudInput raise UsageError {
   let link = options.text("link")
   let prompt_file = options.text("prompt-file")
+
   if (link is None) == (prompt_file is None) {
     raise UsageError("exactly one of --link and --prompt-file is required")
   }
+
   {
     link,
     prompt_file,

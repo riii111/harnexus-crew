@@ -24,7 +24,9 @@ class NativeAdapterProcess(unittest.TestCase):
         adapter, (_, _, rest, unreadable_line) = self.close_after_many_requests()
 
         self.assertEqual((b"", None), (rest, unreadable_line))
+
         answered = [line["id"] for line in adapter.snapshot() if line.get("type") == "response"]
+
         self.assertEqual(sorted(f"h{index}" for index in range(MANY_REQUESTS)), sorted(answered))
 
     def test_ends_with_exit_code_0_and_no_error_output_when_the_bridge_closes_its_end_after_many_requests(self):
@@ -46,6 +48,7 @@ class NativeAdapterProcess(unittest.TestCase):
         self.close_with_a_request_unanswered()
 
         waiting = jsonvalue.loads((self.observe_directory() / "pending.json").read_text(encoding="utf-8"))
+
         self.assertEqual(["aaa1111"], [entry["review"]["head"] for entry in waiting])
 
     def test_releases_its_locks_when_the_bridge_closes_its_end_with_a_request_unanswered(self):
@@ -54,6 +57,7 @@ class NativeAdapterProcess(unittest.TestCase):
         pending = self.observe_directory() / "pending.json"
         locks = self.observe_directory() / "locks"
         names = [path.name for path in locks.iterdir()] if locks.is_dir() else []
+
         self.assertTrue(pending.is_file())
         self.assertEqual([], [name for name in names if name.endswith(".lock")])
 
@@ -61,6 +65,7 @@ class NativeAdapterProcess(unittest.TestCase):
         reviews = Path(self.root) / "home" / ".local" / "state" / "harnexus" / "cloud-reviews"
         reviews.mkdir(parents=True)
         (reviews / "chats.json").write_text('{"R1":"chat-r1"}', encoding="utf-8")
+
         adapter = self.spawn()
         adapter.send(HELLO + READY + records_frame("e0", "linked", []))
         adapter.wait_for(2)
@@ -70,17 +75,22 @@ class NativeAdapterProcess(unittest.TestCase):
             # The last record of the previous event leads, so the adapter finds its cursor again.
             lead = [review_records(f"h{index - 1}")[1]] if index > 1 else []
             adapter.send(records_frame(f"e{index}", "continued", [*lead, *review_records(f"h{index}")]))
+
             adapter.wait_for(handled[0] + 2)
             handled[0] += 2
+
             request = adapter.snapshot()[-1]
             self.assertEqual("post", request.get("op"))
             adapter.send(frame({"type": "response", "id": request.get("id"), "outcome": "done"}))
 
         for index in range(1, 11):
             round_trip(index)
+
         before = count_open_fds(adapter.process.pid)
+
         for index in range(11, 161):
             round_trip(index)
+
         after = count_open_fds(adapter.process.pid)
 
         self.assertEqual(160, len([line for line in adapter.snapshot() if line.get("op") == "post"]))
@@ -93,17 +103,20 @@ class NativeAdapterProcess(unittest.TestCase):
         ]
         adapter.send(HELLO + "".join(requests))
         adapter.close_input()
+
         return adapter, adapter.finish()
 
     def close_with_a_request_unanswered(self):
         adapter = self.spawn()
         adapter.send(HELLO + READY + records_frame("e1", "linked", []) + records_frame("e2", "continued", review_records("aaa1111")))
         adapter.wait_for(4)
+
         self.assertEqual("list_projects", adapter.snapshot()[-1].get("op"))
         adapter.close_input()
         code = adapter.wait_exit_code(15)
         if code is None:
             adapter.kill()
+
         return adapter, code
 
     def observe_directory(self):
@@ -113,6 +126,7 @@ class NativeAdapterProcess(unittest.TestCase):
         adapter = Adapter(self.root)
         self.adapters.append(adapter)
         self.addCleanup(adapter.dispose)
+
         return adapter
 
 
@@ -163,6 +177,7 @@ def count_open_fds(pid):
     proc = Path(f"/proc/{pid}/fd")
     if proc.is_dir():
         return len(list(proc.iterdir()))
+
     listed = subprocess.run(["lsof", "-p", str(pid)], capture_output=True)
     return len([line for line in listed.stdout.decode("utf-8", errors="replace").split("\n") if line])
 
@@ -186,15 +201,18 @@ class Adapter:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+
         self.lines = []
         self.rest = b""
         self.unreadable_line = None
         self._errors = []
         self._lock = threading.Lock()
+
         self._readers = [
             threading.Thread(target=self._read_lines, daemon=True),
             threading.Thread(target=self._read_errors, daemon=True),
         ]
+
         for reader in self._readers:
             reader.start()
 
@@ -215,9 +233,11 @@ class Adapter:
 
     def wait_for(self, count):
         started = time.monotonic()
+
         while self.count() < count:
             if time.monotonic() - started > LINE_TIMEOUT_SECONDS:
                 raise TimeoutError(f"only {self.count()} of {count} lines arrived")
+
             time.sleep(0.002)
 
     def wait_exit_code(self, timeout=None):
@@ -229,19 +249,26 @@ class Adapter:
     def finish(self):
         """Waits for the adapter to end and returns (code, stderr, unterminated output, unreadable line)."""
         code = self.process.wait()
+
         for reader in self._readers:
             reader.join()
+
         self.process.stdout.close()
         self.process.stderr.close()
+
         return code, b"".join(self._errors).decode("utf-8", errors="replace"), self.rest, self.unreadable_line
 
     def dispose(self):
         """Stops an adapter a test left running, and closes its pipes."""
+
         if self.process.poll() is None:
             self.process.kill()
+
         self.process.wait()
+
         for reader in self._readers:
             reader.join()
+
         for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
             if not stream.closed:
                 try:
@@ -257,12 +284,15 @@ class Adapter:
             chunk = self.process.stdout.read1(65536)
             if chunk == b"":
                 return
+
             with self._lock:
                 self.rest += chunk
+
                 while True:
                     end = self.rest.find(b"\n")
                     if end == -1:
                         break
+
                     text = self.rest[:end]
                     self.rest = self.rest[end + 1 :]
                     parsed = jsonvalue.try_loads(text.decode("utf-8", errors="replace"))

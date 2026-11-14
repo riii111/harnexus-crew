@@ -8,6 +8,7 @@ pub async fn exchange_line(
   timeout_ms : Int32,
 ) -> String raise @boundary.LineExchangeFailed {
   let target = @sys.c_string(path)
+
   // exchange_with refuses a path with a NUL before any attempt, so the unwrap only meets a path that has its C form.
   exchange_with(path, line, timeout_ms, fd => connect_once(fd, target.unwrap()))
 }
@@ -34,21 +35,26 @@ async fn exchange_with(
       message="cannot reach \{path}",
     )
   }
+
   if path.contains("\u{0}") {
     raise failed(Some("ERR_INVALID_ARG_VALUE"), false)
   }
+
   let fd = open_raw()
   if fd < 0 {
     raise failed(Some(@unix.errno_name(-fd)), false)
   }
+
   let connected = Ref(false)
   // The descriptor is ours until a stream takes it, so an early timeout or failure closes it here.
   let taken = Ref(false)
   defer close_unless_taken(fd, taken)
+
   @async.with_timeout(timeout_ms, () => {
     connect_until_done(fd, attempt)
     connected.val = true
     taken.val = true
+
     let stream = @raw_fd.RawFdStream(fd)
     defer stream.close()
     if line == "" {
@@ -76,9 +82,11 @@ async fn connect_until_done(
     if errno == 0 {
       break
     }
+
     if connect_pending_raw(errno) == 0 {
       raise ConnectFailed(errno)
     }
+
     // A Unix socket with a full listen queue gives no readiness notification, so retry after a short sleep.
     @async.sleep(10)
   }

@@ -4,6 +4,7 @@ test "an option value follows after a space or an equals sign" {
     describe_parse("launch", ["--request", "a"]),
     content="launch request=a model=(none) thinking=(none)",
   )
+
   inspect(
     describe_parse("launch", ["--request=a=b", "--model", "-"]),
     content="launch request=a=b model=- thinking=(none)",
@@ -21,16 +22,19 @@ test "the last occurrence of a repeated option wins" {
 ///|
 test "help wins over a missing option" {
   inspect(describe_parse("launch", ["-h"]), content="help")
+
   inspect(describe_parse("launch", ["--help"]), content="help")
 }
 
 ///|
 test "help does not win over a bad option" {
   inspect(describe_parse("launch", ["-h"]), content="help")
+
   inspect(
     describe_parse("launch", ["-hh"]),
     content="usage: Unknown option '-hh'",
   )
+
   inspect(
     describe_parse("launch", ["-h", "--nope"]),
     content="usage: Unknown option '--nope'",
@@ -49,6 +53,7 @@ test "an unknown option is refused with its name" {
     ("---x", "---x"),
     ("--req", "--req"),
   ]
+
   for option in unknown {
     assert_eq(
       describe_parse("check", [option.0]),
@@ -72,6 +77,7 @@ test "a stray argument is refused" {
 ///|
 test "a lone double dash ends the options" {
   inspect(describe_parse("check", ["--"]), content="check")
+
   inspect(
     describe_parse("launch", ["--request", "a", "--"]),
     content="launch request=a model=(none) thinking=(none)",
@@ -81,6 +87,7 @@ test "a lone double dash ends the options" {
 ///|
 test "an argument after a lone double dash is refused as a stray argument" {
   inspect(describe_parse("check", ["--"]), content="check")
+
   for arg in ["--", "--help"] {
     assert_eq(
       describe_parse("check", ["--", arg]),
@@ -93,6 +100,7 @@ test "an argument after a lone double dash is refused as a stray argument" {
 ///|
 test "a value that looks like an option is ambiguous" {
   let ambiguous = "usage: Option '--request' argument is ambiguous.\nDid you forget to specify the option argument for '--request'?\nTo specify an option argument starting with a dash use '--request=-XYZ'."
+
   for value in ["--model", "-1", "--"] {
     assert_eq(
       describe_parse("launch", ["--request", value]),
@@ -124,6 +132,7 @@ test "a flag takes no value" {
     (["--request", "a", "--update-base=1"], "--update-base"),
     (["--help=1"], "--help"),
   ]
+
   for flag in flags {
     assert_eq(
       describe_parse("review", flag.0),
@@ -149,6 +158,7 @@ test "review recovers only by discarding" {
     ]),
     content="review request=a update_base=true discard=true ask=(none)",
   )
+
   inspect(
     describe_parse("review", ["--request", "a", "--recover", "other"]),
     content="usage: --recover must be one of discard",
@@ -167,6 +177,7 @@ test "a review needs --request even when it asks a question" {
 test "resolve refuses neither or both of sent and not-sent" {
   let both = ["--request", "a", "--sent", "--not-sent"]
   let neither = ["--request", "a"]
+
   for argv in [neither, both] {
     assert_eq(
       describe_parse("resolve", argv),
@@ -222,6 +233,7 @@ test "watch without options takes no mode" {
 test "cloud refuses neither or both of link and prompt file" {
   let neither = []
   let both = ["--link", "s", "--prompt-file", "p"]
+
   for argv in [neither, both] {
     assert_eq(
       describe_parse("cloud", argv),
@@ -242,6 +254,7 @@ test "cloud takes a prompt file with a project" {
 ///|
 test "a missing required option is named" {
   inspect(describe_parse("launch", []), content="usage: --request is required")
+
   inspect(describe_parse("name", []), content="usage: --pr is required")
 }
 
@@ -253,6 +266,7 @@ test "name takes its required option" {
 ///|
 test "state and environment take no option" {
   inspect(describe_parse("state", []), content="state request=(none)")
+
   inspect(describe_parse("environment", []), content="environment")
 }
 
@@ -270,6 +284,7 @@ test "an unknown option name is cut at the first equals sign by code unit" {
     describe_parse("check", ["--\u{1F600}=1"]),
     content="usage: Unknown option '--\u{1F600}'",
   )
+
   inspect(
     describe_parse("check", ["--\u{E9}=1"]),
     content="usage: Unknown option '--\u{E9}'",

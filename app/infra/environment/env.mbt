@@ -29,9 +29,11 @@ pub fn Env::get_nonempty(self : Env, name : String) -> String? {
 ///|
 pub fn Env::to_map(self : Env) -> Map[String, String] {
   let copy = Map([])
+
   for name, value in self.vars {
     copy[name] = value
   }
+
   copy
 }
 

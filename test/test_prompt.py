@@ -34,8 +34,10 @@ class NativeTemplateFilling(unittest.TestCase):
         linked = root / "linked.md"
         document = root / "a](linked.md)"
         escaped = root / "{task_id}.md"
+
         for path in (linked, escaped, document):
             path.write_text("", encoding="utf-8")
+
         template = root / "templates" / "worker.md"
         template.parent.mkdir()
         template.write_text(
@@ -176,6 +178,7 @@ class Fixture:
     def configure(self, config):
         if config is None:
             return
+
         (self.home / "harnexus").mkdir(parents=True, exist_ok=True)
         (self.home / "harnexus" / "task.json").write_text(json.dumps(config), encoding="utf-8")
 
@@ -185,6 +188,7 @@ class Fixture:
     def fill_prompt(self, kind, fields=None):
         """Returns (True, filled text) or (False, the refusal)."""
         fields = WORKER_FIELDS if fields is None else fields
+
         ran = subprocess.run(
             [
                 require_binary("HARNEXUS_PROMPT_PROBE"),
@@ -195,11 +199,14 @@ class Fixture:
             ],
             capture_output=True,
         )
+
         if ran.returncode != 0:
             raise RuntimeError(f"probe exited {ran.returncode}: {ran.stderr.decode('utf-8', errors='replace')}")
+
         reply = jsonvalue.loads(ran.stdout.decode("utf-8"))
         if "prompt" in reply:
             return True, reply["prompt"]
+
         return False, reply.get("error", "")
 
 

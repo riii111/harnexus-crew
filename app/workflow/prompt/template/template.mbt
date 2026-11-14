@@ -29,6 +29,7 @@ pub fn format(
       if close < 0 {
         @failure.fail("single '{' in template")
       }
+
       let name = template[at + 1:close].to_owned()
       out.write_string(field_value(name, fields, refuse))
       at = close + 1
@@ -36,12 +37,15 @@ pub fn format(
       @failure.fail("single '}' in template")
     } else {
       let start = at
+
       while at < units.length() && units[at] != OPEN && units[at] != CLOSE {
         at += 1
       }
+
       out.write_view(template[start:at])
     }
   }
+
   out.to_string()
 }
 
@@ -73,11 +77,14 @@ fn closing_brace(units : ArrayView[UInt16], from : Int32) -> Int32 {
     if units[index] == CLOSE {
       return index
     }
+
     if units[index] == OPEN {
       return -1
     }
+
     index += 1
   }
+
   -1
 }
 
@@ -90,8 +97,10 @@ fn field_value(
   guard fields.get(name) is Some(value) else {
     @failure.fail("unknown template field {\{name}}")
   }
+
   if refuse(value) is Some(reason) {
     @failure.fail("{\{name}} \{reason}")
   }
+
   value
 }

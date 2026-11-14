@@ -39,18 +39,22 @@ pub async fn ReviewRequest::from_json(
     ["prUrl", "workerChatId", "displayName"] +
     (if cloud { project } else { [] }),
   )
+
   let task_id = parse_task_id(members.get("taskId"))
   let display_name = parse_display_name(members.get("displayName"))
   let document_refs = parse_document_refs(members.get("documentRefs"), probe)
+
   let project_id = match members.get("projectId") {
     None if cloud => None
     value => Some(parse_project_id(value))
   }
+
   let requested = parse_single_line(members.get("checkout"), "checkout")
   let base_branch = parse_single_line(members.get("baseBranch"), "baseBranch")
   let worker_ai = parse_worker_ai(members.get("workerAI"))
   let pr_url = parse_pr_url(members.get("prUrl"))
   let checkout = resolve_checkout(requested, scope, probe, git)
+
   {
     task_id,
     worker_ai,
@@ -90,15 +94,18 @@ pub async fn ReviewRequest::resolve_candidate(
   git : @git.Git,
 ) -> ReviewCandidate raise @failure.TaskFailed {
   let head = git.run(self.checkout, ["rev-parse", "HEAD"])
+
   let base = match previous {
     Some(recorded) if !recorded.is_empty() && !update_base =>
       read_recorded_base(recorded, self.base_branch)
     _ => resolve_base(self, git)
   }
+
   let merged = git.run(self.checkout, ["merge-base", base, head])
   if merged != base {
     @failure.fail("review base must be an ancestor of head")
   }
+
   { request: self, head, base, }
 }
 
@@ -117,15 +124,19 @@ fn ReviewRequest::members(self : ReviewRequest) -> Map[String, Json] {
       None => Json::null()
     },
   }
+
   match self.project_id {
     Some(id) => members["projectId"] = Json::string(id)
     None => ()
   }
+
   match self.worker_chat_id {
     Some(id) => members["workerChatId"] = Json::string(id)
     None => ()
   }
+
   add_optional(members, "displayName", self.display_name)
+
   members
 }
 
@@ -141,6 +152,7 @@ pub fn ReviewCandidate::to_json(self : ReviewCandidate) -> Json {
   let members = self.request.members()
   members["head"] = Json::string(self.head)
   members["base"] = Json::string(self.base)
+
   Json::object(members)
 }
 
@@ -170,6 +182,7 @@ async fn resolve_checkout(
   git : @git.Git,
 ) -> String raise @failure.TaskFailed {
   let checkout = (probe.resolve_real_path_or_self)(requested)
+
   let (refused, in_place) = match scope {
     Cloud =>
       ("checkout must be the absolute path of a repository's top level", true)
@@ -181,13 +194,16 @@ async fn resolve_checkout(
       )
     }
   }
+
   if !requested.has_prefix("/") || !in_place || !(probe.is_directory)(checkout) {
     @failure.fail(refused)
   }
+
   let top = git.run(checkout, ["rev-parse", "--show-toplevel"])
   if top != checkout {
     @failure.fail(refused)
   }
+
   checkout
 }
 
@@ -213,6 +229,7 @@ fn read_recorded_base(
         "baseBranch changed; use --update-base after integrating upstream",
       )
   }
+
   match recorded.get("base") {
     Some(String(base)) => base
     _ => @failure.fail("the recorded review candidate has no base")
@@ -231,9 +248,11 @@ async fn resolve_base(
     "--end-of-options",
     request.base_branch,
   ])
+
   if !reference.has_prefix("refs/heads/") &&
     !reference.has_prefix("refs/remotes/") {
     @failure.fail("baseBranch must name a local or remote branch")
   }
+
   git.run(request.checkout, ["rev-parse", "--verify", "\{reference}^{commit}"])
 }

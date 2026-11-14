@@ -35,10 +35,13 @@ def expand_keys(value, keys, root):
     def walk(node):
         if isinstance(node, str):
             return text(node)
+
         if isinstance(node, list):
             return [walk(item) for item in node]
+
         if isinstance(node, dict):
             return {text(name): walk(item) for name, item in node.items()}
+
         return node
 
     return walk(value)

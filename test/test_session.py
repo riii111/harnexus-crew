@@ -31,13 +31,16 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                 rig.run(["name", "--pr", "https://github.com/o/r/pull/3"]),
             ],
         )
+
         steps = native["result"]
+
         self.assertEqual([0, 0, 0, 0], codes(steps))
         self.assertMatches(steps[1]["stdout"], {"existing": "w1"})
         self.assertMatches(
             steps[3]["stdout"], {"title": "Impl TR1 PR#3", "watched": "https://github.com/o/r/pull/3"}
         )
         created = [r for r in native["requests"] if isinstance(r, dict) and r.get("tool") == "create_thread"]
+
         self.assertEqual(1, len(created))
 
     def test_launch_is_held_after_a_lost_answer_until_the_user_settles_it(self):
@@ -51,12 +54,15 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                 rig.run(LAUNCH),
             ],
         )
+
         steps = native["result"]
+
         self.assertEqual([1, 1, 0, 0], codes(steps))
         self.assertIn("previous create_thread ended as unknown; never resend", steps[1]["stderr"])
         self.assertMatches(steps[3]["stdout"], {"existing": "w9"})
         self.assertEqual(1, len(native["requests"]))
         recorded_state = sorted(path.rsplit("/", 1)[-1] for path in native["files"] if path.startswith("state/"))
+
         self.assertEqual(["state.json"], recorded_state)
 
     def test_launch_creates_a_new_worker_once_a_lost_launch_is_resolved_as_not_sent(self):
@@ -78,6 +84,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             ],
         )
         steps = native["result"]
+
         self.assertEqual([1, 0, 0], codes(steps))
         self.assertEqual({"released": "create_thread", "status": "unknown"}, steps[1]["stdout"])
         self.assertMatches(steps[2]["stdout"], {"threadId": "w2"})
@@ -89,6 +96,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             rig.commit("test: candidate 2", REPO_PATH)
             second = rig.run(REVIEW)
             shown = rig.run(["state", "--request", "review.json"])
+
             return [first, again, second, shown]
 
         native = self.run_scenario(
@@ -106,6 +114,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([0, 1, 0, 0], codes(steps))
         self.assertIn("was already sent to reviewer r1; wait for its result", steps[1]["stderr"])
         self.assertMatches(steps[2]["stdout"], {"tool": "send_message_to_thread", "threadId": "r1"})
@@ -122,6 +131,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             rig.write_work("review.json", jsonvalue.dumps({**REVIEW_REQUEST, "baseBranch": "other"}))
             refused = rig.run(REVIEW)
             updated = rig.run([*REVIEW, "--update-base"])
+
             return [refused, updated]
 
         native = self.run_scenario(
@@ -136,6 +146,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertIn("baseBranch changed; use --update-base after integrating upstream", steps[0]["stderr"])
         self.assertEqual(0, steps[1]["code"])
 
@@ -147,6 +158,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             resolved = rig.run(["resolve", "--request", "review.json", "--sent"])
             rig.commit("test: candidate 3", REPO_PATH)
             resent = rig.run(REVIEW)
+
             return [lost, blocked, resolved, resent]
 
         native = self.run_scenario(
@@ -163,6 +175,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([1, 1, 0, 0], codes(steps))
         self.assertIn("previous create_thread ended as unknown; never resend", steps[1]["stderr"])
         self.assertMatches(steps[3]["stdout"], {"tool": "send_message_to_thread", "threadId": "r1"})
@@ -175,6 +188,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             released = rig.run(["resolve", "--request", "review.json", "--not-sent"])
             shown = rig.run(["state", "--request", "review.json"])
             again = rig.run(REVIEW)
+
             return [refused, blocked, sent, released, shown, again]
 
         native = self.run_scenario(
@@ -201,6 +215,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([1, 1, 1, 0, 0, 0], codes(steps))
         self.assertIn("a refused first turn never ran; use --not-sent", steps[2]["stderr"])
         self.assertMatches(steps[4]["stdout"], {"refusedThreadIds": ["r1"]})
@@ -212,15 +227,18 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                 lambda: any('"create_thread"' in line for line in rig.requests()),
                 "the first run to send",
             )
+
             before_second = time.monotonic()
             second = rig.run(LAUNCH)
             second_took = int((time.monotonic() - before_second) * 1000)
+
             # The run dies without an answer, so nothing releases its record.
             first.kill()
             first.wait_for_end()
             third = rig.run(LAUNCH)
             released = rig.run(["resolve", "--request", "launch.json", "--not-sent"])
             fourth = rig.run(LAUNCH)
+
             return {"steps": [second, third, released, fourth], "secondTook": second_took}
 
         def steps_only(seen):
@@ -233,10 +251,13 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                 answer("create_thread", {"outcome": "done", "threadId": "w2"}),
             ]
         )
+
         done = with_rig({"name": "session-launch-sending", **fields}, body)
         native = observed(done)
+
         self.assertSameJson(steps_only(read_recorded("session-launch-sending", done)), steps_only(native))
         steps = native["result"]["steps"]
+
         self.assertEqual([1, 1, 0, 0], codes(steps))
         self.assertIn("previous create_thread ended as sending; never resend", steps[0]["stderr"])
         # Busy is answered at once, not after a wait on the first run.
@@ -255,10 +276,13 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                 ]
             ),
         }
+
         for _ in range(5):
             done = with_rig(fields, lambda rig: [started.wait_for_end() for started in [rig.start(LAUNCH) for _ in range(4)]])
+
             created = [line for line in done.requests if '"create_thread"' in line]
             self.assertEqual(1, len(created), f"runs: {done.result!r}; requests: {done.requests!r}; files: {done.files!r}")
+
             # Every run either sent, found that worker, or was refused because another run was sending.
             unexplained = [
                 ran["stderr"]
@@ -273,8 +297,10 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                     )
                 )
             ]
+
             self.assertEqual([], unexplained)
             self.assertIn(0, codes(done.result))
+
             kept = [(path, content) for path, content in done.files.items() if path.endswith("/state.json")]
             self.assertEqual(1, len(kept))
             self.assertMatches(jsonvalue.loads(kept[0][1]), {"threadId": "w1"})
@@ -285,6 +311,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         done = with_rig({"name": name, **fields}, body)
         native = observed(done)
         self.assertSameJson(strip(read_recorded(name, done)), strip(native))
+
         return native
 
 

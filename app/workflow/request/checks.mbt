@@ -7,6 +7,7 @@ pub fn check_single_line(
     value.code_units().iter().any(fn(unit) { unit < 32 }) {
     @failure.fail("\{name} must be a nonempty single-line string")
   }
+
   value
 }
 
@@ -20,6 +21,7 @@ pub fn check_chat_id(
   if @text.has_space(id) || id.has_prefix("client-new-thread:") {
     @failure.fail("\{name} must be a confirmed chat ID without whitespace")
   }
+
   id
 }
 
@@ -47,21 +49,26 @@ fn read_request(
     Object(members) => members
     _ => @failure.fail("request must be a JSON object")
   }
+
   let unknown = []
+
   for key, _ in members {
     if !required.contains(key) && !optional.contains(key) {
       unknown.push(key)
     }
   }
+
   if !unknown.is_empty() {
     unknown.sort_by(String::lexical_compare)
     @failure.fail("unknown request fields: \{unknown.join(", ")}")
   }
+
   let missing = required.filter(fn(key) { !members.contains(key) })
   if !missing.is_empty() {
     missing.sort_by(String::lexical_compare)
     @failure.fail("missing request fields: \{missing.join(", ")}")
   }
+
   members
 }
 
@@ -78,11 +85,13 @@ fn parse_task_id(value : Json?) -> String raise @failure.TaskFailed {
     .all(fn(point) {
       @text.is_ascii_alphanumeric(point) || is_one_of(point, "_.#/:-")
     })
+
   if !(first_ok && rest_ok) {
     @failure.fail(
       "taskId must start with a letter, digit, _ or # and contain only letters, digits and _ . # / : -",
     )
   }
+
   id
 }
 
@@ -122,7 +131,9 @@ async fn parse_document_refs(
     Some(Array(items)) if !items.is_empty() => items
     _ => @failure.fail("documentRefs must be a nonempty list of paths or URLs")
   }
+
   let refs = []
+
   for item in items {
     let reference = parse_single_line(Some(item), "documentRefs entry")
     if !is_https_url(reference) &&
@@ -131,11 +142,14 @@ async fn parse_document_refs(
         "document reference must be an existing absolute path or HTTPS URL: \{reference}",
       )
     }
+
     refs.push(reference)
   }
+
   if refs.length() != unique_count(refs) {
     @failure.fail("documentRefs must not contain duplicate references")
   }
+
   refs
 }
 
@@ -155,6 +169,7 @@ fn is_pull_request_url(value : String) -> Bool {
   if !value.has_prefix("https://") {
     return false
   }
+
   let parts = value["https://".length():]
     .to_owned()
     .split("/")
@@ -164,11 +179,13 @@ fn is_pull_request_url(value : String) -> Bool {
   if count != 5 && count != 6 {
     return false
   }
+
   for index in 0..<3 {
     if parts[index] == "" || @text.has_space(parts[index]) {
       return false
     }
   }
+
   parts[3] == "pull" &&
   is_positive_number(parts[4]) &&
   (count == 5 || parts[5] == "")
@@ -195,22 +212,28 @@ fn is_https_url(value : String) -> Bool {
   if @text.has_space(value) {
     return false
   }
+
   let units = value.code_units()
   let mut at = 0
+
   if units.length() == 0 || !is_ascii_letter(units[0].to_int()) {
     return false
   }
+
   while at < units.length() && is_scheme_unit(units[at].to_int()) {
     at += 1
   }
+
   if at + 2 >= units.length() ||
     units[at] != 0x3A ||
     units[at + 1] != 0x2F ||
     units[at + 2] != 0x2F {
     return false
   }
+
   let scheme = value[:at].to_owned().to_lower()
   let host_start = at + 3
+
   scheme == "https" &&
   host_start < units.length() &&
   units[host_start] != 0x2F &&
@@ -221,9 +244,11 @@ fn is_https_url(value : String) -> Bool {
 ///|
 fn unique_count(refs : Array[String]) -> Int32 {
   let seen = Map([])
+
   for reference in refs {
     seen[reference] = true
   }
+
   seen.length()
 }
 

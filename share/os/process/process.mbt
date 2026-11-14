@@ -22,6 +22,7 @@ pub async fn run_process(
       message="\{file} did not finish: \{reason}",
     )
   }
+
   let child = spawn(file, args, env, cwd, piped=true, new_session=true) catch {
     err =>
       raise @boundary.ProcessRunFailed(
@@ -33,11 +34,13 @@ pub async fn run_process(
     child.stop_and_reap()
     child.release_pipes()
   }
+
   let run = supervise(child, input, timeout_ms~, kill_grace_ms~) catch {
     StillAlive =>
       raise failed(true, "pid \{child.pid} did not exit after SIGKILL")
     err => raise failed(true, err.to_string())
   }
+
   {
     status: match run.exit {
       Code(code) => code
@@ -69,10 +72,12 @@ async fn supervise(
   let ended = Ref(@boundary.ProcessEnd::Exit)
   let exited = Ref(false)
   let exit = Ref(Exit::Code(0))
+
   @async.with_task_group(group => {
     let stop = (reason : @boundary.ProcessEnd) => {
       if ended.val is Exit && !exited.val {
         ended.val = reason
+
         group.spawn_bg(no_wait=true, () => {
           ignore(child.signal(SIGTERM, group=true))
           @async.sleep(kill_grace_ms)
@@ -82,27 +87,35 @@ async fn supervise(
         })
       }
     }
+
     group.spawn_bg(no_wait=true, () => {
       @async.sleep(timeout_ms)
       stop(Timeout)
     })
+
     // To keep the input out of the process list, it goes through stdin.
     group.spawn_bg(no_wait=true, () => feed_input(child.stdin, input))
+
     // One count over both streams: the limit bounds what a run keeps in memory.
     let size = Ref(0)
+
     let reading_out = group.spawn(() => {
       drain(child.stdout, capture.stdout, size, () => stop(OutputLimit))
     })
+
     let reading_err = group.spawn(() => {
       drain(child.stderr, capture.stderr, size, () => stop(OutputLimit))
     })
+
     let waiting = group.spawn(() => child.wait_exit())
     reading_out.wait()
     reading_err.wait()
     exit.val = waiting.wait()
     exited.val = true
   })
+
   child.sweep_group()
+
   {
     exit: exit.val,
     ended: ended.val,

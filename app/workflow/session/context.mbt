@@ -17,6 +17,7 @@ fn Context::of_env(
   which~ : (String) -> String?,
 ) -> Context {
   let host = @host.host_of(env, which~)
+
   {
     env,
     host,

@@ -19,6 +19,7 @@ pub fn read_records(directory : String) -> Records raise @failure.TaskFailed {
   let loaded = read_json_or_null(state_path)
   let state = check_record(loaded, state_path)
   let pending = check_record(read_json_or_null(pending_path), pending_path)
+
   { state_path, pending_path, loaded, state, pending, }
 }
 
@@ -32,10 +33,12 @@ pub fn save_json(
 ) -> Unit raise @failure.TaskFailed {
   lift_file_failure(() => prepare_directory(@path.dirname(path)))
   let content = data.stringify(indent=1)
+
   if !exclusive {
     lift_file_failure(() => write_atomic(path, content))
     return
   }
+
   let created = lift_file_failure(() => write_exclusive(path, content))
   if !created {
     @failure.fail("another harnexus-crew run is sending; inspect \{path}")

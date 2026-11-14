@@ -8,6 +8,7 @@ async test "a usage error is reported without reading the environment" {
 ///|
 async test "help is printed without reading the environment" {
   let refusing : () -> @environment.Env raise = () => fail("env was read")
+
   for argv in [["check", "-h"], ["-h"]] {
     assert_eq(run(argv[:], refusing).code, 0, msg=argv.join(" "))
   }
@@ -48,6 +49,7 @@ async test "environment needs no home when the declaration settles it" {
 async test "a command that needs the home fails when HOME is not set" {
   for argv in [["environment"], ["state"], ["adapter", "serve", "--id", "a"]] {
     let result = run(argv[:], homeless_env([]))
+
     assert_eq(result.code, 1, msg=argv.join(" "))
     assert_eq(
       result.stderr,

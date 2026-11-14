@@ -166,6 +166,7 @@ async test "a checkout outside the app worktrees is refused for an app and accep
     review(outside, Worktrees("/fx/wt"), top),
     content="refused: checkout must be the top level of a worker worktree /fx/wt/<id>/<name>",
   )
+
   assert_eq(
     review(outside, Cloud, top),
     accepted_review(checkout="/fx/outside"),
@@ -303,6 +304,7 @@ async test "a new review resolves its base from the branch" {
   let script = candidate_script({})
 
   inspect(run_candidate(script, None, false), content="ok base=b1 head=h1")
+
   assert_eq(script.queries(), [
     "rev-parse --show-toplevel", "rev-parse HEAD", "rev-parse --symbolic-full-name --verify --end-of-options main",
     "rev-parse --verify refs/heads/main^{commit}", "merge-base b1 h1",
@@ -316,10 +318,12 @@ async test "a recorded base is kept until it is updated explicitly" {
     "base": Json::string("old"),
   }
   let script = candidate_script({ "merge-base old h1": "old" })
+
   inspect(
     run_candidate(script, Some(recorded), false),
     content="ok base=old head=h1",
   )
+
   inspect(
     run_candidate(candidate_script({}), Some(recorded), true),
     content="ok base=b1 head=h1",
@@ -621,6 +625,7 @@ fn launch_text(
     Some(literal) => ",\"startingBranch\":\{literal}"
     None => ""
   }
+
   "{\"taskId\":\"\{task_id}\",\"documentRefs\":[\{refs}],\"completionTarget\":\"merge\",\"projectId\":\"\{project}\"\{starting}}"
 }
 
@@ -634,6 +639,7 @@ async fn review(text : String, scope : ReviewScope, script : Script) -> String {
       probe(),
       git,
     )
+
     "ok " + Json::object(request.members()).stringify()
   } catch {
     @failure.TaskFailed(message) => "refused: " + message
@@ -676,6 +682,7 @@ async fn run_candidate(
       git,
     )
     let found = request.resolve_candidate(previous, update_base, git)
+
     "ok base=\{found.base} head=\{found.head}"
   } catch {
     @failure.TaskFailed(message) => "refused: " + message
@@ -692,9 +699,11 @@ fn candidate_script(extra : Map[String, String]) -> Script {
     "rev-parse --verify refs/heads/main^{commit}": "b1",
     "merge-base b1 h1": "b1",
   }
+
   for key, value in extra {
     answers[key] = value
   }
+
   Script::new(answers)
 }
 
@@ -723,18 +732,22 @@ async fn resolved_candidate() -> ReviewCandidate {
 ///|
 fn field_names(fields : Map[String, String]) -> Array[String] {
   let names = []
+
   for name, _ in fields {
     names.push(name)
   }
+
   names
 }
 
 ///|
 fn fields_text(fields : Map[String, String]) -> String {
   let entries = []
+
   for name, value in fields {
     entries.push("\{name}=\{value}")
   }
+
   entries.join("|")
 }
 
@@ -753,6 +766,7 @@ fn probe() -> FileProbe {
       absolute
     }
   }
+
   {
     path_exists: path => {
       let real = resolved(path)

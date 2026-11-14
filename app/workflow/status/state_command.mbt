@@ -2,9 +2,11 @@
 /// Every state file of the owned kinds, by path.
 pub fn state_command(env : @environment.Env) -> Json raise @failure.TaskFailed {
   let listed : Array[(String, Json)] = []
+
   for path in list_state_paths(env.state_root()) {
     listed.push((path, @store.read_json_or_null(path)))
   }
+
   Json::object(Map::from_array(listed))
 }
 
@@ -15,6 +17,7 @@ let owned_kinds : Array[String] = ["cloud-review", "launch", "review"]
 ///|
 fn list_state_paths(root : String) -> Array[String] raise @failure.TaskFailed {
   let paths : Array[String] = []
+
   for kind in owned_kinds {
     for key_path in list_subdirectories(@path.join([root, kind])) {
       for name in list_names(key_path) {
@@ -24,7 +27,9 @@ fn list_state_paths(root : String) -> Array[String] raise @failure.TaskFailed {
       }
     }
   }
+
   paths.sort_by(String::lexical_compare)
+
   paths
 }
 
@@ -33,6 +38,7 @@ fn list_subdirectories(
   path : String,
 ) -> Array[String] raise @failure.TaskFailed {
   let subdirectories : Array[String] = []
+
   if @store.is_directory(path) {
     for name in list_names(path) {
       let child = @path.join([path, name])
@@ -41,6 +47,7 @@ fn list_subdirectories(
       }
     }
   }
+
   subdirectories
 }
 
@@ -49,5 +56,6 @@ fn list_names(path : String) -> Array[String] raise @failure.TaskFailed {
   let names = @store.list_directory_if_exists(path) catch {
     failed => @failure.fail(failed.user_message())
   }
+
   names.unwrap_or([])
 }

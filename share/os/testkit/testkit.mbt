@@ -10,6 +10,7 @@ pub fn listen(path : String, backlog~ : Int32 = 16) -> Int32 raise Errno {
   if fd < 0 {
     raise Errno(-fd)
   }
+
   fd
 }
 
@@ -20,10 +21,12 @@ pub fn accept(listener : Int32) -> Int32? raise Errno {
   if fd >= 0 {
     return Some(fd)
   }
+
   // EBADF is 9 on both systems; any other failure means no connection is waiting.
   if -fd == 9 {
     raise Errno(-fd)
   }
+
   None
 }
 
@@ -34,6 +37,7 @@ pub fn connect_and_hold(path : String) -> Int32 raise Errno {
   if fd < 0 {
     raise Errno(-fd)
   }
+
   fd
 }
 
@@ -86,6 +90,7 @@ pub fn close_stdio() -> FixedArray[Int32] raise Errno {
   if err != 0 {
     raise Errno(err)
   }
+
   saved
 }
 
@@ -110,6 +115,7 @@ pub async fn serial(body : async () -> Unit) -> Unit {
 pub async fn[T] timed(work : async () -> T) -> (T, Int32) {
   let started = @async.now()
   let value = work()
+
   (value, (@async.now() - started).to_int())
 }
 
@@ -140,6 +146,7 @@ pub async fn scratch(name : String) -> String {
   scratch_count.val += 1
   let path = "\{temp_base()}/hx-\{name}.\{pid()}.\{@async.now()}.\{scratch_count.val}"
   @fs.mkdir(path)
+
   path
 }
 

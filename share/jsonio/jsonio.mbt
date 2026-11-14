@@ -38,6 +38,7 @@ fn replace_unpaired_escapes(text : String) -> String {
   let mut copied = 0
   let mut in_string = false
   let mut at = 0
+
   while at < units.length() {
     let unit = units[at]
     if unit == '"' {
@@ -58,11 +59,14 @@ fn replace_unpaired_escapes(text : String) -> String {
       }
       continue
     }
+
     at += 1
   }
+
   if copied == 0 {
     return text
   }
+
   out.write_view(text.exact_view(start=copied))
   out.to_string()
 }
@@ -72,7 +76,9 @@ fn surrogate_escape(units : ArrayView[UInt16], at : Int32) -> Int32? {
   guard at + 6 <= units.length() && units[at] == '\\' && units[at + 1] == 'u' else {
     return None
   }
+
   let mut code = 0
+
   for unit in units[at + 2:at + 6] {
     let digit = match unit.to_int().unsafe_to_char() {
       '0'..<='9' as c => c.to_int() - '0'.to_int()
@@ -80,8 +86,10 @@ fn surrogate_escape(units : ArrayView[UInt16], at : Int32) -> Int32? {
       'A'..<='F' as c => c.to_int() - 'A'.to_int() + 10
       _ => return None
     }
+
     code = code * 16 + digit
   }
+
   if code is (0xD800..<=0xDFFF) {
     Some(code)
   } else {

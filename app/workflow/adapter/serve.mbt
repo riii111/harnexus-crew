@@ -16,18 +16,23 @@ pub async fn serve(
     review_home: @path.join([env.home(), "review-home"]),
     log,
   })
+
   @async.with_task_group(outer => {
     outer.spawn_bg(() => adapter.run_jobs())
+
     @async.with_task_group(handlers => {
       while true {
         guard read_line() is Some(line) else { break }
+
         match adapter.accept(line) {
           Handled => ()
           Later(work) => handlers.spawn_bg(() => work())
         }
       }
+
       adapter.close_input()
     })
+
     adapter.finish()
   })
 }
@@ -43,6 +48,7 @@ priv struct Parts {
 fn build_parts(env : @environment.Env) -> Parts raise @failure.TaskFailed {
   let observations = Observations::new(observation_root(env))
   let locks = observations.locks_directory()
+
   {
     store: ReviewStore::new(resolve_reviews_directory(env), locks),
     observations,

@@ -5,6 +5,7 @@
 pub fn in_env(env : @environment.Env) -> (String) -> String? {
   let path_value = env.get("PATH")
   let cwd = @env.current_dir()
+
   name => find(name, path_value, cwd, is_runnable_file)
 }
 
@@ -18,15 +19,19 @@ fn find(
   if name == "" {
     return None
   }
+
   if name.contains("/") {
     return anchor_path(strip_dot_slash(name), cwd).filter(runnable)
   }
+
   guard path_value is Some(value) else { return None }
+
   for entry in value.split(":") {
     let entry = entry.to_owned()
     if entry == "" {
       continue
     }
+
     if anchor_path(entry, cwd) is Some(dir) {
       let candidate = join_dir(dir, name)
       if runnable(candidate) {
@@ -34,6 +39,7 @@ fn find(
       }
     }
   }
+
   None
 }
 
@@ -73,6 +79,7 @@ fn join_dir(dir : String, name : String) -> String {
   while end > 1 && dir[end - 1] == '/' {
     end -= 1
   }
+
   if end == 1 && dir[0] == '/' {
     "/\{name}"
   } else {

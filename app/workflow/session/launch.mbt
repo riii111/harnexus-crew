@@ -14,6 +14,7 @@ async fn launch_in(
   args : @workflow.LaunchInput,
 ) -> Json raise @failure.TaskFailed {
   @workflow.refuse_in_cloud(ctx.env, "launch")
+
   let request = @request.LaunchRequest::from_json(
     @store.read_regular_json(args.request),
     ctx.probe,
@@ -26,29 +27,35 @@ async fn launch_in(
         "\{request.task_id} already has worker \{@jsonio.as_text(value_of(state, "threadId"))} launched with a different request",
       )
     }
+
     return Json::object({
       "existing": value_of(state, "threadId"),
       "state": Json::string(session.state_path),
     })
   }
+
   let environment : Map[String, Json] = { "type": Json::string("worktree") }
   let target : Map[String, Json] = {
     "type": Json::string("project"),
     "projectId": Json::string(request.project_id),
     "environment": Json::object(environment),
   }
+
   if request.starting_branch is Text(branch) && branch != "" {
     environment["startingState"] = Json::object({
       "type": Json::string("branch"),
       "branchName": Json::string(branch),
     })
   }
+
   let fields = request.build_worker_fields(ctx.probe)
   let prompt = (ctx.prompt)(Worker, fields)
+
   let thinking = match @text.nonempty(args.thinking) {
     Some(thinking) => Some(thinking)
     None => ctx.host.thinking.map(thinking => thinking.worker)
   }
+
   let sent : Map[String, Json] = {
     "prompt": Json::string(prompt),
     "target": Json::object(target),
@@ -57,9 +64,11 @@ async fn launch_in(
       @text.nonempty(args.model).unwrap_or("claude-sonnet-5-5"),
     ),
   }
+
   if thinking is Some(thinking) {
     sent["thinking"] = Json::string(thinking)
   }
+
   let caller = @request.read_caller_id(ctx.env)
   session.send(caller, "create_thread", sent, [
     ("request", data),
@@ -106,11 +115,13 @@ fn without_name(request : Json) -> Json {
   match request {
     Object(members) => {
       let kept : Map[String, Json] = Map([])
+
       for key, item in members {
         if key != "displayName" {
           kept[key] = item
         }
       }
+
       Json::object(kept)
     }
     other => other

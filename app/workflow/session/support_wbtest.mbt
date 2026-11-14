@@ -23,10 +23,12 @@ fn Rig::env(self : Rig, extra : Array[(String, String)]) -> @environment.Env {
   vars["XDG_STATE_HOME"] = "\{self.root}/state"
   vars["CODEX_HOME"] = "\{self.root}/codex"
   vars["CODEX_THREAD_ID"] = "w1"
+
   for pair in extra {
     let (name, value) = pair
     vars[name] = value
   }
+
   @environment.Env::new(vars)
 }
 
@@ -47,9 +49,11 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
   let host = @host.host_of(env, which=_ => None)
   let checkout = self.checkout()
   let head = self.head
+
   let ports : Ports = {
     call: (caller, tool, args) => {
       self.calls.push((caller, tool, args))
+
       if self.answers.is_empty() {
         @bridge.CallAnswer::failed(NotSent, error="no answer planned")
       } else {
@@ -61,6 +65,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
       @store.save_json(path, data, exclusive~)
     },
   }
+
   {
     env,
     host,
@@ -82,6 +87,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
             .find("-C \{checkout} ")
             .map(at => at + checkout.length() + 4)
             .unwrap_or(0)
+
           let out = match words[after:].to_owned() {
             "rev-parse --show-toplevel" => checkout
             "rev-parse HEAD" => head.val
@@ -95,6 +101,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
               other.split(" ").collect()[1].to_owned()
             other => abort("git was asked for \{other}")
           }
+
           { status: 0, stdout: "\{out}\n", stderr: "", }
         },
       },
@@ -105,6 +112,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
         Worker => "worker"
         Reviewer => "reviewer"
       }
+
       self.prompts.push("\{name}:\{fields.get("reply_to").unwrap_or("-")}")
       "\{name} prompt for \{fields.get("task_id").unwrap_or("?")}"
     },
@@ -116,6 +124,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
 fn Rig::write_launch_file(self : Rig) -> String {
   let path = "\{self.root}/launch.json"
   write_text(path, launch_request_text())
+
   path
 }
 
@@ -126,6 +135,7 @@ fn Rig::write_review_file(self : Rig, extra? : String) -> String {
     path,
     "{\"taskId\":\"TR1\",\"workerAI\":\"Codex\",\"projectId\":\"project\",\"checkout\":\"\{self.checkout()}\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null\{extra.unwrap_or("")}}",
   )
+
   path
 }
 
@@ -166,8 +176,10 @@ async fn with_rig(
   @store.prepare_directory(made) catch {
     failed => abort(failed.user_message())
   }
+
   let root = @store.resolve_real_path_or_self(made)
   errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
+
   let rig = {
     root,
     answers,
@@ -177,6 +189,7 @@ async fn with_rig(
     checkout_path: "\{root}/codex/worktrees/ab12/repo",
     prompts: [],
   }
+
   body(rig)
   @testkit.remove_tree(root)
 }
@@ -207,6 +220,7 @@ fn launch_args(
 ) -> @workflow.LaunchInput {
   let argv = ["--request", request]
   argv.append(extra)
+
   match parse_arguments("launch", argv) {
     Launch(args) => args
     _ => abort("not a launch")
@@ -220,6 +234,7 @@ fn review_args(
 ) -> @workflow.ReviewInput {
   let argv = ["--request", request]
   argv.append(extra)
+
   match parse_arguments("review", argv) {
     Review(args) => args
     _ => abort("not a review")
@@ -242,6 +257,7 @@ fn write_text(path : String, text : String) -> Unit {
   @store.prepare_directory(@path.dirname(path)) catch {
     failed => abort(failed.user_message())
   }
+
   @store.write_atomic(path, text) catch {
     failed => abort(failed.user_message())
   }

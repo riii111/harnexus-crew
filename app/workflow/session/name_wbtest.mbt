@@ -33,6 +33,7 @@ async test "the launch of a thread is found among the launches by their state, s
       find_launch_request(env, "w1").map(show),
       Some("{\"taskId\":\"D\"}"),
     )
+
     assert_eq(find_launch_request(env, "w3").map(show), None)
   })
 }
@@ -50,6 +51,7 @@ test "a value counts as present unless it is null, false, zero or empty" {
     (Json::array([Json::null()]), true),
     (Json::number(-1.0), true),
   ]
+
   for entry in cases {
     let (value, present) = entry
     assert_eq(truthy(value), present, msg=value.stringify())
@@ -121,5 +123,6 @@ test "a send that named no settings keeps none" {
   )
 
   assert_eq(show(sent_settings(plain)), "null", msg="send without settings")
+
   assert_eq(show(sent_settings(Json::null())), "null", msg="no record")
 }

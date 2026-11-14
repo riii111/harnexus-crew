@@ -56,16 +56,20 @@ fn parse_options(
 ) -> ParsedOptions raise UsageError {
   let values : Map[String, OptionValue] = Map([])
   let mut at = 0
+
   while at < args.length() {
     let arg = args[at]
     at += 1
+
     if arg == "--" {
       // No command takes a positional argument, so anything after a lone `--` is a stray one.
       if at < args.length() {
         raise unexpected_argument(args[at])
       }
+
       break
     }
+
     if arg.has_prefix("--") {
       let (name, inline) = split_long(arg)
       let spec = find_long(specs, name)
@@ -78,6 +82,7 @@ fn parse_options(
       raise unexpected_argument(arg)
     }
   }
+
   { values, }
 }
 
@@ -90,28 +95,34 @@ fn take_option(
   at : Int32,
 ) -> Int32 raise UsageError {
   let shown = "--\{spec.name}"
+
   if spec.kind is Flag {
     if inline is Some(_) {
       raise UsageError("Option '\{shown}' does not take an argument")
     }
+
     values[spec.name] = On
     return 0
   }
+
   let (value, taken) = match inline {
     Some(text) => (text, 0)
     None => {
       if at >= args.length() {
         raise UsageError("Option '\{shown} <value>' argument missing")
       }
+
       let next = args[at]
       if next.length() > 1 && next.has_prefix("-") {
         raise UsageError(
           "Option '\{shown}' argument is ambiguous.\nDid you forget to specify the option argument for '\{shown}'?\nTo specify an option argument starting with a dash use '\{shown}=-XYZ'.",
         )
       }
+
       (next, 1)
     }
   }
+
   match spec.kind {
     TextList =>
       match values.get(spec.name) {
@@ -120,6 +131,7 @@ fn take_option(
       }
     _ => values[spec.name] = One(value)
   }
+
   taken
 }
 
@@ -133,6 +145,7 @@ fn find_long(
       return spec
     }
   }
+
   raise UsageError("Unknown option '--\{name}'")
 }
 

@@ -48,6 +48,7 @@ async fn start_thread(
   if args.get("thinking") is Some(_) {
     return unsupported(NO_THINKING)
   }
+
   let target = object_of(args.get("target"))
   guard text_of(args, "prompt") is Some(prompt) &&
     text_of(args, "title") is Some(title) &&
@@ -55,6 +56,7 @@ async fn start_thread(
     text_of(target, "projectId") is Some(project) else {
     return not_sent("create_thread needs prompt, title, model and a project")
   }
+
   let argv = [
     "thread",
     "start",
@@ -67,21 +69,26 @@ async fn start_thread(
     "--model",
     model,
   ]
+
   if worktree_base(target) is Some(base) {
     argv.push("--worktree")
     argv.push(base)
   }
+
   argv.push("--json")
+
   let stdout = match run_t3(deps, argv, prompt, START_TIMEOUT_MS) {
     Ran(stdout) => stdout
     Refused(answer) => return answer
   }
+
   guard printed_object_of(stdout) is Some(started) &&
     started.get("threadId") is Some(String(thread_id)) else {
     return unknown(
       "t3 thread start answered without a thread: \{@text.excerpt(stdout)}",
     )
   }
+
   CallAnswer::new(Done, [
     ("threadId", Json::string(thread_id)),
     ("model", show_thread_model(deps, thread_id)),
@@ -101,15 +108,18 @@ async fn send_message(
   if args.get("thinking") is Some(_) {
     return unsupported(NO_THINKING)
   }
+
   if args.get("model") is Some(_) {
     return unsupported(
       "T3 Code's t3 CLI cannot change a thread's model; leave out --model, and change it in T3 Code instead",
     )
   }
+
   guard text_of(args, "threadId") is Some(thread_id) &&
     text_of(args, "prompt") is Some(prompt) else {
     return not_sent("send_message_to_thread needs threadId and prompt")
   }
+
   match
     run_t3(
       deps,
@@ -134,6 +144,7 @@ async fn show_thread_model(deps : T3Deps, thread_id : String) -> Json noraise {
     object_of(shown.get("thread")).get("model") is Some(String(_) as model) else {
     return Json::null()
   }
+
   model
 }
 
@@ -169,6 +180,7 @@ async fn run_t3(
     Ok(path) => path
     Err(message) => return Refused(not_sent(message))
   }
+
   let run = @process.run_process(
     path,
     args,
@@ -189,6 +201,7 @@ async fn run_t3(
         },
       )
   }
+
   if !(run.ended is Exit) {
     return Refused(
       unknown(
@@ -196,15 +209,18 @@ async fn run_t3(
       ),
     )
   }
+
   if run.status == 0 {
     return Ran(run.stdout)
   }
+
   let brief_stderr = @text.excerpt(run.stderr)
   let reason = if brief_stderr == "" {
     "t3 exited with \{run.status}"
   } else {
     brief_stderr
   }
+
   for rule in before_sending {
     let (patterns, hint) = rule
     if patterns.any(pattern => run.stderr.contains(pattern)) {
@@ -218,6 +234,7 @@ async fn run_t3(
       )
     }
   }
+
   Refused(unknown(reason))
 }
 
@@ -249,6 +266,7 @@ const DEFAULT_WORKTREE_BASE : String = "HEAD"
 fn worktree_base(target : Map[String, Json]) -> String? {
   let environment = object_of(target.get("environment"))
   guard environment.get("type") is Some(String("worktree")) else { return None }
+
   let state = object_of(environment.get("startingState"))
   match state.get("branchName") {
     Some(String(branch)) => Some(branch)
@@ -273,6 +291,7 @@ fn printed_object_of(stdout : String) -> Map[String, Json]? {
     Some(at) => trimmed[at + 1:].to_owned()
     None => trimmed
   }
+
   match (@jsonio.parse(last) catch { _ => Json::null() }) {
     Object(members) => Some(members)
     _ => None

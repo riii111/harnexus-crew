@@ -28,6 +28,7 @@ test "the Codex App host replies in the template named after the worker's AI" {
   let host = codex_app_host()
 
   inspect((host.reply_to)("Claude"), content="Claude")
+
   inspect((host.reply_to)("Codex"), content="Codex")
 }
 
@@ -66,6 +67,7 @@ test "the T3 Code host replies in the T3 template whichever AI the worker is" {
   let host = t3_code_host()
 
   inspect((host.reply_to)("Claude"), content="T3")
+
   inspect((host.reply_to)("Codex"), content="T3")
 }
 
@@ -106,6 +108,7 @@ async test "a Codex App reviewer runs in the project whose id is text and whose 
 async test "a Codex App reviewer's project is found by asking the app for its projects as the worker's thread" {
   with_review_projects("review-request", (host, lines) => {
     assert_eq(resolve_review_project(host), "p1")
+
     assert_eq(lines, [
       "{\"version\":1,\"threadId\":\"w1\",\"tool\":\"list_projects\",\"arguments\":{}}",
     ])
@@ -132,6 +135,7 @@ async fn with_review_projects(
 ) -> Unit {
   with_home(name, home => {
     let projects = "[{\"projectId\":\"p0\",\"path\":\"/elsewhere\"},{\"projectId\":3,\"path\":\"\{home}/review-home\"},{\"projectId\":\"p1\",\"path\":\"\{home}/review-home\"},{\"projectId\":\"p2\",\"path\":\"\{home}/review-home\"}]"
+
     with_bridge(
       name,
       _ => {
@@ -165,6 +169,7 @@ async fn with_home(name : String, body : async (String) -> Unit) -> Unit {
   @store.prepare_directory(review_home) catch {
     failed => abort(failed.user_message())
   }
+
   errdefer @async.protect_from_cancel(() => @testkit.remove_tree(home))
   body(home)
   @testkit.remove_tree(home)
@@ -178,11 +183,13 @@ async fn with_bridge(
   body : async (String, Array[String]) -> Unit,
 ) -> Unit {
   let lines = []
+
   with_server(
     name,
     stream => {
       let line = read_request(stream).unwrap_or("")
       lines.push(line)
+
       match rule(line) {
         Some(reply) => stream.write(@utf8.encode(reply + "\n"))
         // A bridge that does not answer keeps the connection open.
@@ -207,6 +214,7 @@ async fn with_server(
     @testkit.close_fd(listener)
     @testkit.remove_file(path)
   }
+
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => {
       while true {
@@ -221,6 +229,7 @@ async fn with_server(
         }
       }
     })
+
     body(path)
   })
 }

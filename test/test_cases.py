@@ -23,6 +23,7 @@ def _make_test(case):
             expected.load_expanded("cases", case.name, root),
             normalize(observed, root),
         )
+
         self.assertEqual([], differences, json.dumps(differences, ensure_ascii=False, indent=1))
 
     return run

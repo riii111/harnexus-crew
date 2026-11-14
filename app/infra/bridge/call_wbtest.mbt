@@ -43,6 +43,7 @@ async test "a bridge's answer keeps every field" {
     },
     (path, _) => {
       let answer = call_json(bridge_env(path), "create_thread", {})
+
       assert_eq(
         @jsonio.parse(answer),
         @jsonio.parse(
@@ -63,6 +64,7 @@ async test "a call sent without an answer in time is unknown" {
         {},
         timeout_ms=50,
       )
+
       assert_eq(
         answer, "{\"outcome\":\"unknown\",\"error\":\"no answer: ETIMEDOUT\"}",
       )
@@ -76,6 +78,7 @@ async test "an answer without an outcome is unknown" {
   for reply in ["{\"version\":1}", "{\"outcome\":3}", "[]", "nope", ""] {
     with_bridge("call-7", _ => Some(reply), (path, _) => {
       let answer = call_json(bridge_env(path), "create_thread", {})
+
       assert_eq(
         answer,
         "{\"outcome\":\"unknown\",\"error\":\"no answer: answer without outcome\"}",
@@ -89,6 +92,7 @@ async test "an answer without an outcome is unknown" {
 async test "a bridge that hangs up on the call leaves it unknown" {
   with_server("call-8", stream => ignore(read_request(stream)), path => {
     let answer = call_json(bridge_env(path), "create_thread", {})
+
     assert_eq(
       answer, "{\"outcome\":\"unknown\",\"error\":\"no answer: answer without outcome\"}",
     )
@@ -183,6 +187,7 @@ test "a sandbox refusal gets the sandbox hint" {
 ///|
 test "no error code, or an unknown one, gets the general hint" {
   assert_eq(socket_hint(None), SOCKET_HINT, msg="none")
+
   assert_eq(socket_hint(Some("EOTHER")), SOCKET_HINT, msg="EOTHER")
 }
 
@@ -194,11 +199,13 @@ async fn with_bridge(
   body : async (String, Array[String]) -> Unit,
 ) -> Unit {
   let lines = []
+
   with_server(
     name,
     stream => {
       let line = read_request(stream).unwrap_or("")
       lines.push(line)
+
       match rule(line) {
         Some(reply) => stream.write(@utf8.encode(reply + "\n"))
         // A bridge that does not answer keeps the connection open.
@@ -225,6 +232,7 @@ async fn call_json(
     Some(limit) => call_app(env, "w1", tool, args, timeout_ms=limit)
     None => call_app(env, "w1", tool, args)
   }
+
   json_text(answer.to_json())
 }
 
@@ -242,6 +250,7 @@ async fn with_server(
     @testkit.close_fd(listener)
     @testkit.remove_file(path)
   }
+
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => {
       while true {
@@ -256,6 +265,7 @@ async fn with_server(
         }
       }
     })
+
     body(path)
   })
 }

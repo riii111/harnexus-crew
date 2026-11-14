@@ -27,6 +27,7 @@ class InterruptTest(unittest.TestCase):
                 "HARNEXUS_CREW_PR_WAKE": pr_wake,
                 "PIDS": root,
             }
+
             cli = subprocess.Popen(
                 [require_binary("HARNEXUS_CREW_NATIVE"), "watch", "--status"],
                 cwd=root,
@@ -37,11 +38,13 @@ class InterruptTest(unittest.TestCase):
                 start_new_session=True,
             )
             leader = grandchild = None
+
             try:
                 wait_for(
                     lambda: read_pid(os.path.join(root, "leader")) and read_pid(os.path.join(root, "grandchild")),
                     "the command to start its descendant",
                 )
+
                 leader = read_pid(os.path.join(root, "leader"))
                 grandchild = read_pid(os.path.join(root, "grandchild"))
                 self.assertEqual([True, True], [is_running(leader), is_running(grandchild)])
@@ -55,7 +58,9 @@ class InterruptTest(unittest.TestCase):
             finally:
                 if cli.poll() is None:
                     cli.kill()
+
                 cli.communicate()
+
                 for pid in (leader, grandchild):
                     if pid:
                         try:
@@ -75,7 +80,9 @@ def wait_until_gone(pid):
     for _ in range(300):
         if not is_running(pid):
             return True
+
         time.sleep(0.01)
+
     return False
 
 
@@ -84,6 +91,7 @@ def is_running(pid):
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
+
     return True
 
 

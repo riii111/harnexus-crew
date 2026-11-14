@@ -56,6 +56,7 @@ test "a value can be refused at the place it goes" {
     outcome("x/{task_id}/y", fields, refuse=refuse_unless_name),
     content="x/T-1/y",
   )
+
   inspect(
     outcome("x/{checkout}", fields, refuse=refuse_unless_name),
     content="refused: {checkout} may hold only letters, digits, _ and - inside a link target",
@@ -65,6 +66,7 @@ test "a value can be refused at the place it goes" {
 ///|
 test "a name may hold only ASCII letters and digits, _ and -" {
   assert_eq(refuse_unless_name("Name_2-x"), None)
+
   for value in ["名前", "", "a.b"] {
     assert_eq(
       refuse_unless_name(value),
@@ -77,6 +79,7 @@ test "a name may hold only ASCII letters and digits, _ and -" {
 ///|
 test "braces are escaped for a later fill" {
   inspect(escape_braces("a{b}c"), content="a{{b}}c")
+
   inspect(outcome(escape_braces("a{b}c"), fields), content="a{b}c")
 }
 

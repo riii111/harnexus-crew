@@ -23,6 +23,7 @@ async fn drain(
   defer stream.close()
   while stream.read() is Some(chunk) {
     size.val += chunk.length()
+
     // To keep a child being stopped from blocking on a full pipe, keep draining after the limit.
     if size.val > OUTPUT_LIMIT {
       on_limit()

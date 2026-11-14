@@ -19,4 +19,5 @@ def require_binary(variable):
     path = os.environ.get(variable) or str(_DEFAULTS[variable])
     if not os.access(path, os.X_OK):
         raise FileNotFoundError(f"{path} is missing; run `moon build --target native --release` or set {variable}")
+
     return path

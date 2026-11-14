@@ -19,12 +19,15 @@ pub fn links(
   let marked = replace_with_markers(template, candidates, nonce)
   // A comment spanning blocks would be split by the parser, so its text is blanked first, keeping the lines.
   let seen = find_destinations(blank_comments(marked))
+
   let found = []
+
   for candidate in candidates {
     if seen.contains(marker_of(nonce, candidate.index)) {
       found.push(candidate)
     }
   }
+
   found
 }
 
@@ -61,6 +64,7 @@ fn candidates_of(template : String) -> Array[Candidate] {
             units[end] != BACKTICK {
         end += 1
       }
+
       if end < units.length() && units[end] == CLOSE_PAREN {
         found.push({
           index: found.length(),
@@ -72,8 +76,10 @@ fn candidates_of(template : String) -> Array[Candidate] {
         continue
       }
     }
+
     at += 1
   }
+
   found
 }
 
@@ -85,11 +91,13 @@ fn replace_with_markers(
 ) -> String {
   let out = StringBuilder()
   let mut last = 0
+
   for candidate in candidates {
     out.write_view(template[last:candidate.start])
     out.write_string(marker_of(nonce, candidate.index))
     last = candidate.end
   }
+
   out.write_view(template[last:])
   out.to_string()
 }
@@ -111,16 +119,20 @@ fn blank_comments(text : String) -> String {
       if close < 0 {
         break
       }
+
       out.write_view(text[copied:at])
+
       for index in at..<(close + 3) {
         out.write_char(if units[index] == NEWLINE { '\n' } else { ' ' })
       }
+
       copied = close + 3
       at = copied
     } else {
       at += 1
     }
   }
+
   out.write_view(text[copied:])
   out.to_string()
 }
@@ -140,8 +152,10 @@ fn find_comment_close(units : ArrayView[UInt16], from : Int32) -> Int32 {
     if units[at] == '-' && units[at + 1] == '-' && units[at + 2] == '>' {
       return at
     }
+
     at += 1
   }
+
   -1
 }
 
@@ -168,9 +182,11 @@ fn read_destinations(
   if status == STATUS_PARSE_FAILED {
     @failure.fail("the Markdown parser (md4c) failed")
   }
+
   if status != STATUS_OK {
     @failure.fail("the Markdown parser (md4c) ran out of memory")
   }
+
   let found = @hashset.HashSet([])
   let mut at = 1
   while at < reply.length() {
@@ -179,9 +195,11 @@ fn read_destinations(
     if start + size > reply.length() {
       @failure.fail("the Markdown parser (md4c) returned a truncated record")
     }
+
     found.add(@utf8.decode_lossy(reply[start:start + size]))
     at = start + size
   }
+
   found
 }
 

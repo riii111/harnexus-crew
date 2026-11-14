@@ -37,6 +37,7 @@ async fn Rig::review(
   let path = self.request_file(task~, extra?=request)
   let argv = ["--request", path]
   argv.append(extra)
+
   review_in(self.context(env), parsed_review(argv))
 }
 
@@ -62,9 +63,11 @@ fn Rig::plan(
 ) -> Unit {
   write_text("\{self.fake}/out.\{run}", out)
   write_text("\{self.fake}/exit.\{run}", exit.to_string())
+
   if stderr is Some(text) {
     write_text("\{self.fake}/stderr.\{run}", text)
   }
+
   if sleep is Some(seconds) {
     write_text("\{self.fake}/sleep.\{run}", seconds)
   }
@@ -73,9 +76,11 @@ fn Rig::plan(
 ///|
 fn Rig::count_runs(self : Rig) -> Int32 {
   let mut count = 0
+
   while @store.path_exists("\{self.fake}/args.\{count + 1}") {
     count += 1
   }
+
   count
 }
 
@@ -104,6 +109,7 @@ fn Rig::request_file(
     path,
     "{\"taskId\":\"\{task}\",\"workerAI\":\"Claude\",\"checkout\":\"\{self.checkout}\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null\{extra.unwrap_or("")}}",
   )
+
   path
 }
 
@@ -113,6 +119,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
   let env = self.env(extra)
   let checkout = self.checkout
   let head = self.head
+
   {
     env,
     probe: {
@@ -128,6 +135,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
             .find("-C \{checkout} ")
             .map(at => at + checkout.length() + 4)
             .unwrap_or(0)
+
           let out = match words[after:].to_owned() {
             "rev-parse --show-toplevel" => checkout
             "rev-parse HEAD" => head.val
@@ -138,6 +146,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
               other.split(" ").collect()[1].to_owned()
             other => abort("git was asked for \{other}")
           }
+
           { status: 0, stdout: "\{out}\n", stderr: "", }
         },
       },
@@ -150,6 +159,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
       if self.unwritable.val is Some(suffix) && path.has_suffix(suffix) {
         @failure.fail("cannot write \{path}")
       }
+
       @store.save_json(path, data, exclusive=false)
     },
   }
@@ -165,10 +175,12 @@ fn Rig::env(self : Rig, extra : Array[(String, String)]) -> @environment.Env {
   vars["CLAUDE_CODE_SESSION_ID"] = "worker-session"
   vars["HARNEXUS_CODEX_BIN"] = "\{@env.current_dir().unwrap()}/test/native/mocks/fake-cli.sh"
   vars["FAKE_DIR"] = self.fake
+
   for pair in extra {
     let (name, value) = pair
     vars[name] = value
   }
+
   @environment.Env::new(vars)
 }
 
@@ -181,8 +193,10 @@ async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
   @store.prepare_directory("\{made}/fake") catch {
     failed => abort(failed.user_message())
   }
+
   let root = @store.resolve_real_path_or_self(made)
   errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
+
   body({
     root,
     fake: "\{root}/fake",
@@ -190,6 +204,7 @@ async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
     head: Ref(HEAD_1),
     unwritable: Ref(None),
   })
+
   @testkit.remove_tree(root)
 }
 
@@ -238,6 +253,7 @@ fn write_text(path : String, text : String) -> Unit {
   @store.prepare_directory(@path.dirname(path)) catch {
     failed => abort(failed.user_message())
   }
+
   @store.write_atomic(path, text) catch {
     failed => abort(failed.user_message())
   }

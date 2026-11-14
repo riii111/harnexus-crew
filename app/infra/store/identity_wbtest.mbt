@@ -34,6 +34,7 @@ test "sha256 matches the digests of Node's crypto" {
       "日本語", "77710aedc74ecfa33685e33a6c7df5cc83004da1bdcef7fb280f5c2b2e97e0a5",
     ),
   ]
+
   for case in cases {
     assert_eq(sha256_hex(case.0), case.1, msg=case.0)
   }
@@ -43,10 +44,13 @@ test "sha256 matches the digests of Node's crypto" {
 test "new_uuid writes a version 4 UUID" {
   for _ in 0..<2 {
     let uuid = new_uuid()
+
     assert_eq(uuid.length(), 36)
+
     for at in [8, 13, 18, 23] {
       assert_eq(uuid[at], '-')
     }
+
     assert_eq(uuid[14], '4')
     assert_true(["8", "9", "a", "b"].contains(uuid[19:20].to_owned()))
   }
@@ -74,6 +78,7 @@ test "iso_time matches Date#toISOString" {
     (1234567890123L, "2009-02-13T23:31:30.123Z"),
     (1709251199999L, "2024-02-29T23:59:59.999Z"),
   ]
+
   for case in cases {
     assert_eq(iso_time(case.0), case.1, msg=case.0.to_string())
   }
@@ -96,12 +101,14 @@ test "now_iso is a current UTC time" {
 ///|
 test "is_process_alive tells this process from one that does not exist" {
   assert_true(is_process_alive(current_pid().to_double()))
+
   assert_false(is_process_alive(dead_pid))
 }
 
 ///|
 test "is_process_alive refuses a pid that is not a signed 32-bit integer" {
   assert_true(is_process_alive(current_pid().to_double()))
+
   for pid in [1.5, 2147483648.0, -2147483649.0] {
     assert_false(is_process_alive(pid), msg=pid.to_string())
   }
@@ -110,5 +117,6 @@ test "is_process_alive refuses a pid that is not a signed 32-bit integer" {
 ///|
 test "is_process_alive counts the process group ids 0 and -1 as alive" {
   assert_true(is_process_alive(0.0))
+
   assert_true(is_process_alive(-1.0))
 }

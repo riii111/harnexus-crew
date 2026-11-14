@@ -37,6 +37,7 @@ pub async fn Git::run(
   argv.append(args)
   let env = self.env.to_map()
   env["GIT_NO_LAZY_FETCH"] = "1"
+
   let output = (self.runner.run)(argv, env) catch {
     @boundary.CommandFailed(message~, code~, ..) =>
       @failure.fail(
@@ -46,11 +47,13 @@ pub async fn Git::run(
         },
       )
   }
+
   if output.status != 0 {
     @failure.fail(
       "\{@text.js_trim(output.stderr)}; \{@environment.NAME} never fetches, so fetch any missing commit in the worktree",
     )
   }
+
   @text.js_trim(output.stdout)
 }
 

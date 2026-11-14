@@ -20,6 +20,7 @@ pub fn c_string(text : String) -> Bytes? {
   if text.contains("\u{0}") {
     return None
   }
+
   Some(@utf8.encode(text + "\u{0}"))
 }
 

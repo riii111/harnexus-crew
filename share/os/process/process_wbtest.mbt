@@ -5,6 +5,7 @@ async test "E1 a missing command is reported as not started with ENOENT" {
       describe_run("/nonexistent/cmd", []),
       "failed started=false: cannot run /nonexistent/cmd (ENOENT)",
     )
+
     assert_eq(
       describe_run("nonexistent-cmd", []),
       "failed started=false: cannot run nonexistent-cmd (ENOENT)",
@@ -113,6 +114,7 @@ async test "P1 a run feeds stdin to the command and returns its stdout, stderr a
 async test "a character split across chunks is whole on stdout and on stderr" {
   @testkit.serial(() => {
     let script = "printf '{\"text\":\"\\343'; sleep 0.2; printf '\\201\\202\"}'; printf '\\343' >&2; sleep 0.2; printf '\\201\\202' >&2"
+
     assert_eq(
       describe_run(
         "/bin/sh",
@@ -221,6 +223,7 @@ async test "P5 output past 16 MiB keeps at most 16 MiB" {
 async test "a command that exits without reading its input is not an error" {
   @testkit.serial(() => {
     let input = String::make(2 * 1024 * 1024, 'x')
+
     assert_eq(
       describe_run("/usr/bin/true", [], input~),
       "started ended=exit status=0",
@@ -260,9 +263,11 @@ async test "a bare command name is looked up in the PATH of the given environmen
       describe_run("sh", ["-c", "exit 4"], env={ "PATH": "/bin" }),
       "started ended=exit status=4",
     )
+
     let missing = describe_run("sh", ["-c", "exit 4"], env={
       "PATH": "/nonexistent",
     })
+
     assert_eq(missing, "failed started=false: cannot run sh (ENOENT)")
   })
 }
@@ -279,6 +284,7 @@ async test "a megabyte of output is read whole" {
       timeout_ms=10000,
       kill_grace_ms=500,
     )
+
     assert_eq(run.stdout.length(), 1048576)
   })
 }
@@ -287,6 +293,7 @@ async test "a megabyte of output is read whole" {
 async test "several commands started at once keep their own results" {
   @testkit.serial(() => {
     let results : Array[String] = Array::make(12, "")
+
     @async.with_task_group(group => {
       for i in 0..<12 {
         group.spawn_bg(() => {
@@ -298,6 +305,7 @@ async test "several commands started at once keep their own results" {
         })
       }
     })
+
     for i in 0..<12 {
       if i % 2 == 0 {
         assert_eq(
@@ -320,23 +328,29 @@ async test "a command started while another's stdin is still open does not inher
     // `cat` sees EOF only when every copy of its stdin's write end is closed, so a sleeper that inherited the parent's end would hold it for as long as it lives.
     let cat_ended = Ref(-1)
     let sleeper_ms = Ref(-1)
+
     @async.with_task_group(group => {
       group.spawn_bg(() => {
         let (result, ms) = @testkit.timed(() => {
           describe_run("/bin/cat", [], input="hello", output=true)
         })
+
         assert_eq(
           result, "started ended=exit status=0 stdout=\"hello\" stderr=\"\"",
         )
+
         cat_ended.val = ms
       })
+
       group.spawn_bg(() => {
         let (_, ms) = @testkit.timed(() => {
           describe_run("/bin/sleep", ["1.5"], timeout_ms=5000)
         })
+
         sleeper_ms.val = ms
       })
     })
+
     @testkit.assert_between(cat_ended.val, 0, 699)
     @testkit.assert_between(sleeper_ms.val, 1400, 5000)
   })
@@ -347,13 +361,16 @@ async test "a command sees only the descriptors it was given, whatever else is s
   @testkit.serial(() => {
     let alone = describe_run("/bin/ls", ["/dev/fd"], output=true)
     let crowded = Ref("")
+
     @async.with_task_group(group => {
       group.spawn_bg(() => ignore(describe_run("/bin/cat", [], input="x")))
       group.spawn_bg(() => ignore(describe_run("/bin/sleep", ["0.5"])))
+
       group.spawn_bg(() => {
         crowded.val = describe_run("/bin/ls", ["/dev/fd"], output=true)
       })
     })
+
     assert_eq(crowded.val, alone)
   })
 }
@@ -385,6 +402,7 @@ async test "cancelling a run closes every descriptor" {
     let dir = @testkit.scratch("cancel-fds")
     defer @async.protect_from_cancel(() => @testkit.remove_tree(dir))
     let pidfile = "\{dir}/pid"
+
     // The runtime's own descriptors exist only after a first start, so start once before counting.
     ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
@@ -407,9 +425,11 @@ async test "every finished run leaves no descriptor behind" {
   @testkit.serial(() => {
     ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
+
     ignore(describe_run("/bin/sh", ["-c", "exit 2"]))
     ignore(describe_run("/nonexistent/cmd", []))
     ignore(describe_run("/bin/sleep", ["5"], timeout_ms=200, kill_grace_ms=200))
+
     assert_eq(@testkit.open_fds(), before)
   })
 }
@@ -418,6 +438,7 @@ async test "every finished run leaves no descriptor behind" {
 async test "run_command returns the status and output of a failing command" {
   @testkit.serial(() => {
     let ran = run_command("/bin/sh", ["-c", "echo no >&2; exit 3"], plain_env())
+
     assert_eq(ran.status, 3)
     assert_eq(ran.stdout, "")
     assert_eq(ran.stderr, "no\n")
@@ -458,6 +479,7 @@ async test "run_command reports a command that dies from a signal without a code
 async test "run_command ends a command that reads stdin to its end instead of waiting for the timeout" {
   @testkit.serial(() => {
     let ran = run_command("/bin/cat", [], plain_env(), timeout_ms=5000)
+
     assert_eq(ran.status, 0)
     assert_eq(ran.stdout, "")
   })
@@ -470,6 +492,7 @@ async test "run_command kills a command that ignores SIGTERM after a grace" {
       "trap '' TERM; sleep 5",
       timeout_ms=100,
     )
+
     assert_eq(
       result, "command=/bin/sh message=/bin/sh was stopped after 100 ms code=none",
     )
@@ -483,10 +506,12 @@ async test "run_command stops a grandchild that keeps the output open after the 
     let dir = @testkit.scratch("stop-grandchild")
     defer @async.protect_from_cancel(() => @testkit.remove_tree(dir))
     let pidfile = "\{dir}/pid"
+
     let (result, elapsed) = describe_command_run(
       "sleep 30 & echo $! > \{pidfile}; exit 0",
       timeout_ms=300,
     )
+
     assert_eq(
       result, "command=/bin/sh message=/bin/sh was stopped after 300 ms code=none",
     )
@@ -502,6 +527,7 @@ async test "run_command gives up on a grandchild that left the group and keeps t
       "perl -MPOSIX -e 'POSIX::setsid(); exec q(sleep), q(4)' & exit 0",
       timeout_ms=300,
     )
+
     assert_eq(
       mask_pid(result),
       "command=/bin/sh message=/bin/sh did not finish: pid <pid> did not exit after SIGKILL code=none",
@@ -555,6 +581,7 @@ async test "cancelling run_command closes every descriptor" {
     let dir = @testkit.scratch("cancel-command-fds")
     defer @async.protect_from_cancel(() => @testkit.remove_tree(dir))
     let pidfile = "\{dir}/pid"
+
     ignore(run_shell("true"))
     let before = @testkit.open_fds()
 
@@ -586,6 +613,7 @@ async test "run_command fails on output past 16 MiB" {
 async test "run_inherited returns the exit status, and 128 plus the signal for a killed command" {
   @testkit.serial(() => {
     assert_eq(run_inherited("/bin/sh", ["-c", "exit 7"], plain_env()), 7)
+
     assert_eq(run_inherited("/bin/sh", ["-c", "kill -9 $$"], plain_env()), 137)
   })
 }
@@ -608,9 +636,11 @@ async test "a command that cannot be stopped makes the run fail as started" {
   @testkit.serial(() => {
     // The grandchild leaves the process group, so only the deadline can end the run, and it keeps the output pipes open.
     let script = "perl -MPOSIX -e 'POSIX::setsid(); exec q(sleep), q(3)' & exit 0"
+
     let (result, elapsed) = @testkit.timed(() => {
       describe_run("/bin/sh", ["-c", script], timeout_ms=300, kill_grace_ms=200)
     })
+
     assert_eq(
       mask_pid(result),
       "failed started=true: /bin/sh did not finish: pid <pid> did not exit after SIGKILL",
@@ -666,6 +696,7 @@ async test "B1 cancelling a run whose leader already exited still closes every d
     let dir = @testkit.scratch("b1-fds")
     defer @async.protect_from_cancel(() => @testkit.remove_tree(dir))
     let pidfile = "\{dir}/pid"
+
     ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
 
@@ -689,6 +720,7 @@ async test "B2 run_command counts both streams against one 16 MiB limit" {
       "head -c 10000000 /dev/zero; head -c 10000000 /dev/zero >&2",
       timeout_ms=20000,
     )
+
     assert_eq(
       result, "command=/bin/sh message=cannot run /bin/sh code=ERR_CHILD_PROCESS_STDIO_MAXBUFFER",
     )
@@ -706,6 +738,7 @@ async test "B3 a relative PATH entry is looked up under the working directory" {
       describe_run("hxc-cmd", [], cwd=dir, env={ "PATH": "./bin" }, output=true),
       found_output,
     )
+
     assert_eq(
       describe_run("hxc-cmd", [], cwd="/", env={ "PATH": "./bin" }),
       "failed started=false: cannot run hxc-cmd (ENOENT)",
@@ -740,6 +773,7 @@ async test "run_command keeps the error code Node attaches for a command that ca
       run_command_failure("git-not-here", []),
       "command=git-not-here message=cannot run git-not-here code=ENOENT",
     )
+
     assert_eq(
       run_command_failure(
         "/bin/sh",
@@ -758,6 +792,7 @@ async test "run_command attaches no error code to a timeout or a signal death" {
       run_command_failure("/bin/sleep", ["5"], timeout_ms=50),
       "command=/bin/sleep message=/bin/sleep was stopped after 50 ms code=none",
     )
+
     assert_eq(
       run_command_failure("/bin/sh", ["-c", "kill -9 $$"]),
       "command=/bin/sh message=cannot run /bin/sh code=none",
@@ -797,6 +832,7 @@ async fn describe_run(
       kill_grace_ms~,
     )
     let head = "started ended=\{run.ended.name()} status=\{run.status}"
+
     if output {
       "\{head} stdout=\{Json::string(run.stdout).stringify()} stderr=\{Json::string(run.stderr).stringify()}"
     } else {
@@ -821,8 +857,10 @@ async fn wait_until_gone(pid : Int32) -> Bool {
     if !@testkit.alive(pid) {
       return true
     }
+
     @async.sleep(10)
   }
+
   false
 }
 
@@ -837,6 +875,7 @@ async fn read_pid(file : String) -> Int32 {
 fn spawn_missing_with_stdio_closed() -> (Int32, Int32, Int32) raise {
   let saved = @testkit.close_stdio()
   let before = @testkit.open_fds()
+
   // A print or a wait while descriptors 0 to 2 are closed would hit the test runner's own output, so the synchronous `spawn` is called directly.
   let errno = try {
     let child = spawn(
@@ -854,8 +893,10 @@ fn spawn_missing_with_stdio_closed() -> (Int32, Int32, Int32) raise {
     SpawnFailed(errno~) => errno
     InvalidArgument => -1
   }
+
   let after = @testkit.open_fds()
   @testkit.restore_stdio(saved)
+
   (errno, before, after)
 }
 
@@ -921,15 +962,18 @@ async fn run_command_failure(
 ///|
 fn mask_pid(message : String) -> String {
   guard message.find("pid ") is Some(at) else { return message }
+
   let digits_start = at + 4
   let mut digits_end = digits_start
   while digits_end < message.length() &&
         message.code_unit_at(digits_end).to_int() is (0x30..<=0x39) {
     digits_end += 1
   }
+
   if digits_end == digits_start {
     return message
   }
+
   "\{message[:digits_start]}<pid>\{message[digits_end:]}"
 }
 

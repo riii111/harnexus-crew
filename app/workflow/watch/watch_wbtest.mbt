@@ -13,6 +13,7 @@ async test "without an option the watch is handed to pr-wake's engine" {
         sender: false,
         link: None,
       }
+
       let found = name => {
         if name == "pr-wake" {
           Some("\{rig.bin}/pr-wake")

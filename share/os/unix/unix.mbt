@@ -6,6 +6,7 @@ pub fn errno_name(errno : Int32) -> String {
   if len <= 0 {
     return "errno \{errno}"
   }
+
   @utf8.decode_lossy(Bytes::from_array(out[:len]))
 }
 

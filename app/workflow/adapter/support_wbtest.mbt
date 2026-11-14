@@ -25,6 +25,7 @@ async fn with_place(name : String, body : async (Place) -> Unit) -> Unit {
     @store.prepare_directory(at.review_home) catch {
       failed => abort(failed.user_message())
     }
+
     body(at)
   })
 }
@@ -72,9 +73,11 @@ async fn Link::say_records(
     ("shownBefore", text_or_null(shown_before)),
     ("records", Json::array(records)),
   ]
+
   if phase == "linked" {
     line.push(("linkedAt", text_or_null(linked_at)))
   }
+
   self.say(line)
 }
 
@@ -107,26 +110,32 @@ fn connect(
   let logs = []
   let cell : Ref[Adapter?] = Ref(None)
   let locks = "\{at.observe}/locks"
+
   let adapter = Adapter::new({
     adapter_id: "taskctl",
     send: text => {
       let line = json_of(text)
       sent.push(line)
+
       if text_member(line, "type") == Some("request") && !silent {
         let reply = answer(line)
+
         group.spawn_bg(no_wait=true, () => {
           @async.sleep(1)
+
           let members = [
             ("v", Json::number(1.0)),
             ("type", str("response")),
             ("id", field(line, "id").unwrap()),
             ("bridgeId", str("b1")),
           ]
+
           if reply is Object(fields) {
             for name, value in fields {
               members.push((name, value))
             }
           }
+
           cell.val.unwrap().receive(text_of(object(members)))
         })
       }
@@ -137,8 +146,10 @@ fn connect(
     review_home: at.review_home,
     log: entry => logs.push(object(entry)),
   })
+
   cell.val = Some(adapter)
   group.spawn_bg(no_wait=true, () => adapter.run_jobs())
+
   { adapter, sent, logs, events: 0, }
 }
 
@@ -321,6 +332,7 @@ fn write_file(path : String, text : String) -> Unit {
   @store.prepare_directory(@path.dirname(path)) catch {
     failed => abort(failed.user_message())
   }
+
   @store.write_atomic(path, text) catch {
     failed => abort(failed.user_message())
   }

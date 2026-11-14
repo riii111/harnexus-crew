@@ -45,18 +45,22 @@ pub fn CallAnswer::of_json(value : Json) -> CallAnswer? {
     members.get("outcome") is Some(String(outcome)) else {
     return None
   }
+
   let fields = Map::from_iter(
     members.iter().filter(pair => pair.0 != "outcome"),
   )
+
   Some({ outcome, fields, })
 }
 
 ///|
 pub fn CallAnswer::to_json(self : CallAnswer) -> Json {
   let members = { "outcome": Json::string(self.outcome) }
+
   for name, item in self.fields {
     members[name] = item
   }
+
   Json::object(members)
 }
 

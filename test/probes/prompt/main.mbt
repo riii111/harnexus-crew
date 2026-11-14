@@ -11,23 +11,28 @@ fn main {
     "HOME": arg(args, 1),
     "XDG_CONFIG_HOME": arg(args, 2),
   })
+
   let kind : @prompts.TemplateKind = if arg(args, 3) == "reviewer" {
     Reviewer
   } else {
     Worker
   }
+
   let fields : Map[String, String] = Map([])
+
   for field in args[4:] {
     if field.find("=") is Some(at) {
       fields[field[:at].to_owned()] = field[at + 1:].to_owned()
     }
   }
+
   let reply = Json::object({
     "prompt": Json::string(@prompts.render_task_prompt(env, kind, fields)),
   }) catch {
     @failure.TaskFailed(message) =>
       Json::object({ "error": Json::string(message) })
   }
+
   @sys.write_text(1, reply.stringify() + "\n") catch {
     _ => abort("cannot write")
   }

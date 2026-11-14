@@ -188,6 +188,7 @@ let stop_quickly_limits : Array[(String, String)] = [
 ///|
 async fn Rig::start_review(self : Rig) -> Unit {
   self.plan(1, out=events(REVIEWER, "判定: 修正必要"))
+
   let started = self.review()
   assert_eq(@jsonio.as_text(@jsonio.field(started, "status")), "completed")
 }

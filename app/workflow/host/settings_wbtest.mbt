@@ -5,16 +5,19 @@ test "a turn that ran as asked is not refused" {
     "",
     msg="same model",
   )
+
   assert_eq(
     refusal_of(settings(None, Some("high")), settings(Some("x"), Some("high"))),
     "",
     msg="model nobody asked for",
   )
+
   assert_eq(
     refusal_of(settings(None, None), settings(Some("a"), Some("b"))),
     "",
     msg="nothing asked",
   )
+
   assert_eq(
     refusal_of(settings(Some("m"), None), settings(Some("n"), None)),
     "asked for model n instead of m",
@@ -40,6 +43,7 @@ test "each setting the app did not say is named with what was expected" {
     "did not say which model (expected m) and did not say which effort (expected high)",
     msg="both",
   )
+
   assert_eq(
     refusal_of(settings(Some("m"), None), settings(None, Some("x"))),
     "did not say which model (expected m)",

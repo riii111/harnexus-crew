@@ -7,6 +7,7 @@ async test "a review is shown once when two adapters take it at the same time" {
       let two = connect(at, group)
       one.start("write")
       two.start("write")
+
       let entry = {
         parent_thread_id: parent,
         session_id: Some(session),
@@ -15,10 +16,12 @@ async test "a review is shown once when two adapters take it at the same time" {
       one.adapter.deps.observations.keep_pending([entry]) catch {
         failed => abort(failed.message())
       }
+
       let first = group.spawn(() => one.say(ready_line([])))
       let second = group.spawn(() => two.say(ready_line([])))
       first.wait()
       second.wait()
+
       assert_eq(
         one.requests(op="post").length() + two.requests(op="post").length(),
         1,
@@ -38,6 +41,7 @@ async test "a message in a reviewer's chat is sent to the session that ran the r
       link.say(turn_line("t1", "chat-r1", "R1", "input", text="B1 は？"))
 
       let asked = link.requests(op="cloud_send")
+
       assert_eq(asked.length(), 1)
       assert_eq(text_member(asked[0], "sessionId"), Some(session))
       assert_eq(
@@ -94,9 +98,11 @@ async test "a message sent from a reviewer's chat is kept in the chat's history 
           text_member(line, "type") == Some("response") &&
           text_member(line, "id") == Some("h1")
         })[0]
+
       guard field(history, "entries") is Some(Array(entries)) else {
         abort("no entries")
       }
+
       assert_eq(
         entries.map(entry => {
           (text_member(entry, "role"), text_member(entry, "text"))
@@ -122,11 +128,14 @@ async test "the session that ran a review shown in a chat kept from before is re
       link.say_records("linked", [])
       link.say_records("continued", judged("aaa1111"))
       link.say(turn_line("t1", "chat-r1", "R1", "input", text="B1 は？"))
+
       assert_eq(
         text_of(read_json_file("\{at.reviews}/chats.json")),
         "{\"R1\":{\"threadId\":\"chat-r1\",\"session\":\"session_01AbC\"}}",
       )
+
       let asked = link.requests(op="cloud_send")
+
       assert_eq(asked.length(), 1)
       assert_eq(text_member(asked[0], "sessionId"), Some(session))
     })
@@ -147,9 +156,11 @@ async test "reviews queued by two adapters at once are all shown and none is lef
       two.start("write")
       one.say_records("linked", [], session_id="session_A")
       two.say_records("linked", [], session_id="session_B")
+
       let first = group.spawn(() => {
         one.say_records("continued", judged("aaa1111"), session_id="session_A")
       })
+
       let second = group.spawn(() => {
         two.say_records(
           "continued",
@@ -157,13 +168,17 @@ async test "reviews queued by two adapters at once are all shown and none is lef
           session_id="session_B",
         )
       })
+
       first.wait()
       second.wait()
       @async.sleep(20)
+
       let posted = [..one.requests(op="post"), ..two.requests(op="post")].map(line => {
         text_member(line, "conversationId").unwrap_or("")
       })
+
       posted.sort_by(String::lexical_compare)
+
       assert_eq(posted, ["R1", "R2"])
       assert_eq(read_pending_keys(one), [])
     })
@@ -218,15 +233,18 @@ async test "while a chat's first review waits for its first turn, a later review
           _ => done_with_chat("chat-r1")
         }
       })
+
       link.start("write")
       let first = review_of_head("aaa1111")
       let second = review_of_head("bbb2222")
+
       link.say_records("linked", [])
       link.say_records("continued", two_reviews())
       let posts_before_turn = link.requests(op="post").length()
       link.say(bound_line("R1", "chat-r1"))
       link.say(turn_line("t1", "chat-r1", "R1", "opened"))
       @async.sleep(20)
+
       assert_eq(link.requests(op="create_conversation").length(), 1)
       assert_eq(posts_before_turn, 0)
       assert_eq(
@@ -250,14 +268,18 @@ async test "the first review is posted after a restart when the bridge bound its
           outcome_answer("unknown", reason=Some("pending_create"))
         }
       })
+
       before.start("write")
       let first = review_of_head("aaa1111")
       let second = review_of_head("bbb2222")
+
       before.say_records("linked", [])
       before.say_records("continued", two_reviews())
+
       let after = connect(at, group, answer=_ => done_with_chat("chat-r1"))
       after.say(hello_line("write"))
       after.say(ready_line([binding("R1", "chat-r1")]))
+
       assert_eq(after.requests(op="create_conversation").length(), 0)
       assert_eq(after.texts("post"), [
         @host.review_text(first),
@@ -279,6 +301,7 @@ async test "a chat's first review is posted by one of two adapters reconnecting 
       let second = group.spawn(() => reconnect(two))
       first.wait()
       second.wait()
+
       assert_eq([..one.texts("post"), ..two.texts("post")], ["first review"])
       assert_eq(@store.path_exists(opening_path(at, "R1")), false)
     })
@@ -291,11 +314,15 @@ async test "a chat's first review is never posted again when an earlier adapter 
     @async.with_task_group(group => {
       save_opening(at, true)
       let link = connect(at, group)
+
       reconnect(link)
+
       assert_eq(link.requests(op="post").length(), 0)
+
       let noted = link.logs.filter(entry => {
         text_member(entry, "step") == Some("opening_maybe_shown")
       })
+
       assert_eq(noted.length(), 1)
       assert_eq(text_member(noted[0], "reviewer"), Some("R1"))
       assert_eq(text_member(noted[0], "key"), Some("k1"))
@@ -309,12 +336,17 @@ async test "a chat's first review stays for the next connection when the bridge 
   with_place("opening-not-sent", at => {
     @async.with_task_group(group => {
       save_opening(at, false)
+
       let link = connect(at, group, answer=_ => {
         outcome_answer("not_sent", reason=Some("busy"))
       })
+
       reconnect(link)
+
       assert_eq(link.requests(op="post").length(), 1)
+
       let kept = read_json_file(opening_path(at, "R1"))
+
       assert_eq(field(kept, "showing"), Some(Json::boolean(false)))
     })
   })
@@ -327,9 +359,11 @@ fn write_sent_file(
   thread_id : String,
 ) -> Unit {
   guard review_json(review) is Object(members) else { return }
+
   members["sent"] = Json::boolean(true)
   members["threadId"] = str(thread_id)
   members["shownAt"] = str("2026-11-01T00:00:00.000Z")
+
   write_file("\{at.reviews}/\{review.key}.json", text_of(Json::object(members)))
 }
 

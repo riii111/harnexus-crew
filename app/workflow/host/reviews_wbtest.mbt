@@ -34,7 +34,9 @@ test "only a line start with a number loses its prefix" {
     strip_line_numbers("  1\tab\n23\tcd\r45\tef\u{2028}6\tg\n 7 \th"),
     content="ab\ncd\ref\u{2028}g\n 7 \th",
   )
+
   inspect(strip_line_numbers("x 1\ty\n\t1\n12 "), content="x 1\ty\n\t1\n12 ")
+
   inspect(strip_line_numbers("1\t2\t3"), content="2\t3")
 }
 
@@ -49,6 +51,7 @@ test "a review read twice is taken once, while a different review is taken too" 
     ),
     content="8f96d328f91be933ee7aed2c324d6875 r1 LGTM TR1 0123456789abcdef \"Looks good.\\n\"",
   )
+
   inspect(
     summary(reviews_in([first, second])),
     content="8f96d328f91be933ee7aed2c324d6875 r1 LGTM TR1 0123456789abcdef \"Looks good.\\n\"; 0ac6e09193aa9513d7fd0420db43b7e6 r1 LGTM TR1 ffffffffffffffff \"Looks good.\\n\"",
@@ -64,6 +67,7 @@ test "the range limits which records are read" {
     summary(reviews_in([first, second], from=1)),
     content="0ac6e09193aa9513d7fd0420db43b7e6 r1 LGTM TR1 ffffffffffffffff \"Looks good.\\n\"",
   )
+
   inspect(
     summary(reviews_in([first, second], to=1)),
     content="8f96d328f91be933ee7aed2c324d6875 r1 LGTM TR1 0123456789abcdef \"Looks good.\\n\"",
@@ -115,6 +119,7 @@ test "a tool result whose text is not a finished review is skipped" {
   for case in texts {
     let (reason, text) = case
     let block = "{\"type\":\"tool_result\",\"content\":\{quoted(text)}}"
+
     assert_eq(
       summary_beside_review(block_record(block)),
       BESIDE_REVIEW,
@@ -205,6 +210,7 @@ test "a head of seven units or fewer is shown whole" {
     review_text(review),
     content="ok\n\n_Codex reviewer `r1` on `abc`, run in a Cloud session. Ask for changes in the worker's chat._",
   )
+
   inspect(
     review_text({ ..review, head: Some("abcdefg"), }),
     content="ok\n\n_Codex reviewer `r1` on `abcdefg`, run in a Cloud session. Ask for changes in the worker's chat._",
@@ -222,26 +228,33 @@ test "a question for a reviewer asks the session to pass it on" {
 ///|
 test "a session record's uuid is read only from an object with a string uuid" {
   inspect(or_none(uuid_of(None)), content="none")
+
   inspect(or_none(uuid_of(Some(parse("{\"uuid\":\"x\"}")))), content="x")
+
   inspect(or_none(uuid_of(Some(parse("{\"uuid\":3}")))), content="none")
+
   inspect(or_none(uuid_of(Some(parse("{}")))), content="none")
+
   inspect(or_none(uuid_of(Some(parse("\"uuid\"")))), content="none")
 }
 
 ///|
 test "the Cloud mark is the cloud and its variation selector" {
   inspect(CLOUD_MARK.length(), content="2")
+
   inspect(json_text(Json::string(CLOUD_MARK)), content="\"\u{2601}\u{FE0F}\"")
 }
 
 ///|
 fn summary(reviews : Array[CloudReview]) -> String {
   let parts = []
+
   for review in reviews {
     parts.push(
       "\{review.key} \{review.reviewer} \{or_none(review.verdict)} \{or_none(review.task_id)} \{or_none(review.head)} \{json_text(Json::string(review.answer))}",
     )
   }
+
   parts.join("; ")
 }
 

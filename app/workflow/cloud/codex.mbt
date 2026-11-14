@@ -55,6 +55,7 @@ fn read_milliseconds(
   fallback : Int32,
 ) -> Int32 raise @failure.TaskFailed {
   guard env.get_nonempty(name) is Some(value) else { return fallback }
+
   let digits = value.code_units()
   let valid = digits.length() >= 1 &&
     digits[0] != '0' &&
@@ -63,12 +64,15 @@ fn read_milliseconds(
     @failure.fail("\{name} must be a positive number of milliseconds")
   }
   let mut total : Int64 = 0
+
   for unit in digits {
     total = total * 10L + (unit - '0').to_int64()
+
     if total > MAX_TIMER_MS {
       @failure.fail("\{name} must be at most \{MAX_TIMER_MS} milliseconds")
     }
   }
+
   total.to_int()
 }
 
@@ -83,12 +87,14 @@ priv struct Reply {
 ///|
 fn reply_of(stdout : String) -> Reply {
   let reply : Reply = { thread_id: None, answer: None, failure: None, }
+
   // codex exec --json prints one event per line: the thread it runs, each item, and how the turn ended.
   for line in stdout.split("\n") {
     let parsed = Ok(@jsonio.parse(line.to_owned())) catch {
       failed => Err(failed)
     }
     guard parsed is Ok(Object(event)) else { continue }
+
     match event.get("type") {
       Some(String("thread.started")) =>
         if event.get("thread_id") is Some(String(id)) {
@@ -111,6 +117,7 @@ fn reply_of(stdout : String) -> Reply {
       _ => ()
     }
   }
+
   reply
 }
 
@@ -120,15 +127,18 @@ fn is_thread_id(text : String) -> Bool {
   if units.length() != 36 {
     return false
   }
+
   for index, unit in units {
     let ok = match index {
       8 | 13 | 18 | 23 => unit == '-'
       _ => (unit >= '0' && unit <= '9') || (unit >= 'a' && unit <= 'f')
     }
+
     if !ok {
       return false
     }
   }
+
   true
 }
 
@@ -150,25 +160,31 @@ fn review_argv(
     None if reviewer is None => Some(DEFAULT_MODEL)
     other => other
   }
+
   let chosen_thinking = match @text.nonempty(thinking) {
     None if reviewer is None => Some(DEFAULT_THINKING)
     other => other
   }
+
   let chosen = []
+
   if chosen_model is Some(model) {
     chosen.push("-m")
     chosen.push(model)
   }
+
   if chosen_thinking is Some(thinking) {
     chosen.push("-c")
     chosen.push("model_reasoning_effort=\{Json::string(thinking).stringify()}")
   }
+
   // The reviewer only reads; resume has no --sandbox or --cd, so it takes the setting and runs in the checkout.
   let argv = match reviewer {
     None => ["exec", "--json", "--sandbox", "read-only", "-C", checkout]
     Some(id) =>
       ["exec", "resume", id, "--json", "-c", "sandbox_mode=\"read-only\""]
   }
+
   argv.append(chosen)
   argv.push("-")
   argv
@@ -196,17 +212,21 @@ fn verdict_of(answer : String) -> String? {
   let units = answer.code_units()
   let marker = "判定:".code_units()
   let mut at = 0
+
   while at + marker.length() <= units.length() {
     if matches_at(units, at, marker) && starts_a_line(units, at) {
       let after = skip_whitespace(units, at + marker.length())
+
       for word in ["LGTM", "修正必要", "判定保留"] {
         if matches_at(units, after, word.code_units()) {
           return Some(word)
         }
       }
     }
+
     at += 1
   }
+
   None
 }
 
@@ -219,11 +239,13 @@ fn matches_at(
   if at + word.length() > units.length() {
     return false
   }
+
   for index in 0..<word.length() {
     if units[at + index] != word[index] {
       return false
     }
   }
+
   true
 }
 
@@ -233,10 +255,12 @@ fn starts_a_line(units : ArrayView[UInt16], at : Int32) -> Bool {
   let mut back = at
   while back > 0 && @text.is_space(units[back - 1].to_int()) {
     back -= 1
+
     if is_line_end(units[back]) {
       return true
     }
   }
+
   back == 0
 }
 
@@ -246,6 +270,7 @@ fn skip_whitespace(units : ArrayView[UInt16], from : Int32) -> Int32 {
   while at < units.length() && @text.is_space(units[at].to_int()) {
     at += 1
   }
+
   at
 }
 

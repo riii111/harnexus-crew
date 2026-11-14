@@ -68,6 +68,7 @@ async test "the caller's environment reaches pr-wake" {
       .filter(line => line.has_prefix("MARK_"))
       .map(line => line.to_owned())
       .collect()
+
     assert_eq(marks, ["MARK_FROM_TEST=yes"])
   })
 }
@@ -117,8 +118,10 @@ async test "output that is not one JSON object fails even when pr-wake succeeded
     let outputs = [
       "", "   \n", "not json", "[1]", "3", "null", "\"x\"", "true", "{\"a\":", "{} {}",
     ]
+
     for index, out in outputs {
       rig.plan(index + 1, name="pr-wake", out~)
+
       assert_eq(
         @app_testkit.failure_of(() => ignore(call(rig.env([]), ["sender"]))),
         "pr-wake watch sender printed no JSON object",
@@ -162,6 +165,7 @@ async test "the engine is looked up beside the resolved pr-wake, not the link to
       @fs.symlink(target="\{rig.bin}/pr-wake", "\{links}/pr-wake") catch {
         _ => abort("cannot link pr-wake")
       }
+
       let found = name => {
         if name == "pr-wake" {
           Some("\{links}/pr-wake")
@@ -173,7 +177,9 @@ async test "the engine is looked up beside the resolved pr-wake, not the link to
       let stopped = run_watch_engine(rig.env([]), which=found)
 
       assert_eq(stopped, Json::object({ "watch": Json::string("stopped") }))
+
       assert_true(rig.ran(name="pr-wake-engine"))
+
       assert_false(rig.ran(name="pr-wake"))
     },
   )

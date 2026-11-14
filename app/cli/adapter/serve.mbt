@@ -3,6 +3,7 @@ async fn serve(env : @environment.Env, adapter_id : String) -> @run.CommandRun {
   let out_gate = @async.Mutex()
   let err_gate = @async.Mutex()
   let lines : Array[String] = []
+
   @delivery.serve(
     env,
     adapter_id,
@@ -12,6 +13,7 @@ async fn serve(env : @environment.Env, adapter_id : String) -> @run.CommandRun {
         guard bytes is Some(bytes) else { return None }
         lines.append(split_lines(@utf8.decode_lossy(bytes)))
       }
+
       Some(lines.remove(0))
     },
     send=line => emit(@stdio.stdout, out_gate, line + "\n"),
@@ -21,6 +23,7 @@ async fn serve(env : @environment.Env, adapter_id : String) -> @run.CommandRun {
       return { code: 1, stdout: "", stderr: "\{message}\n", }
     other => raise other
   }
+
   { code: 0, stdout: "", stderr: "", }
 }
 
@@ -53,5 +56,6 @@ fn split_lines(chunk : String) -> Array[String] {
   } else {
     chunk
   }
+
   text.split("\r").map(line => line.to_owned()).collect()
 }
