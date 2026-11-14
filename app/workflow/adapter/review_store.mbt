@@ -68,7 +68,7 @@ fn ReviewStore::new(dir : String, locks : String) -> ReviewStore {
 }
 
 ///|
-fn ReviewStore::chats(
+fn ReviewStore::read_chats(
   self : ReviewStore,
 ) -> Map[String, Chat] raise @failure.TaskFailed {
   let path = self.chats_path()
@@ -107,7 +107,7 @@ async fn ReviewStore::keep_chat(
 }
 
 ///|
-fn ReviewStore::state_of(self : ReviewStore, key : String) -> ReviewState {
+fn ReviewStore::read_state(self : ReviewStore, key : String) -> ReviewState {
   match read_object(self.review_path(key)) {
     Absent => Unsettled
     Unreadable => Held
@@ -139,7 +139,9 @@ fn ReviewStore::claim(self : ReviewStore, key : String) -> Claim {
     Ok(false) => Taken
     // The reservation may be visible while its folder entry is lost in a crash, so it cannot allow a send; it was made here, so it is dropped.
     Err(@store.FileFailed(action=Sync, ..)) => {
-      ignore(Ok(@store.remove_file(path)) catch { e => Err(e) })
+      @store.remove_file(path) catch {
+        _ => ()
+      }
       Failed
     }
     Err(_) => Failed
@@ -148,11 +150,9 @@ fn ReviewStore::claim(self : ReviewStore, key : String) -> Claim {
 
 ///|
 fn ReviewStore::unclaim(self : ReviewStore, key : String) -> Unit {
-  ignore(
-    Ok(@store.remove_file(self.reservation_path(key))) catch {
-      e => Err(e)
-    },
-  )
+  @store.remove_file(self.reservation_path(key)) catch {
+    _ => ()
+  }
 }
 
 ///|
@@ -171,7 +171,7 @@ fn ReviewStore::mark_sent(
 ) -> Unit raise @failure.TaskFailed {
   guard review_json(review) is Object(members) else { return }
   members["sent"] = Json::boolean(true)
-  members["threadId"] = optional_text(thread_id)
+  members["threadId"] = text_or_null(thread_id)
   members["shownAt"] = Json::string(@store.now_iso())
   self.write(self.review_path(review.key), Json::object(members))
 }
@@ -195,7 +195,7 @@ fn ReviewStore::note_ask(
 
 ///|
 /// The reviews shown in a reviewer's chat and the messages sent from it, oldest first, as the chat's history.
-fn ReviewStore::history_of(
+fn ReviewStore::read_history(
   self : ReviewStore,
   thread_id : String,
 ) -> Array[HistoryEntry] {
@@ -264,12 +264,12 @@ fn ReviewStore::history_of(
 fn Chat::to_json(self : Chat) -> Json {
   object([
     ("threadId", Json::string(self.thread_id)),
-    ("session", optional_text(self.session)),
+    ("session", text_or_null(self.session)),
   ])
 }
 
 ///|
-fn reviews_directory(
+fn resolve_reviews_directory(
   env : @environment.Env,
 ) -> String raise @failure.TaskFailed {
   // To share records with harnexus, keep them beside its state file.
@@ -284,9 +284,9 @@ fn review_json(review : @host.CloudReview) -> Json {
   object([
     ("key", Json::string(review.key)),
     ("reviewer", Json::string(review.reviewer)),
-    ("verdict", optional_text(review.verdict)),
-    ("taskId", optional_text(review.task_id)),
-    ("head", optional_text(review.head)),
+    ("verdict", text_or_null(review.verdict)),
+    ("taskId", text_or_null(review.task_id)),
+    ("head", text_or_null(review.head)),
     ("answer", Json::string(review.answer)),
   ])
 }
@@ -377,6 +377,6 @@ fn ReviewStore::write(
   path : String,
   value : Json,
 ) -> Unit raise @failure.TaskFailed {
-  io(() => @store.prepare_directory(self.dir))
-  io(() => @store.write_atomic(path, value.stringify()))
+  with_task_failure(() => @store.prepare_directory(self.dir))
+  with_task_failure(() => @store.write_atomic(path, value.stringify()))
 }

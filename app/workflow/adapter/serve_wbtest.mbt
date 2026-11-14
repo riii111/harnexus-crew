@@ -29,22 +29,22 @@ async test "a request still waiting when the bridge closes ends as unknown, and 
       write_file("\{at.reviews}/chats.json", "{\"R1\":\"chat-r1\"}")
       let link = connect(at, group, silent=true)
       link.start("write")
-      link.records("linked", [])
+      link.say_records("linked", [])
       let review = review_of_head("aaa1111")
       let handling = group.spawn(() => {
-        link.records("continued", judged("aaa1111"))
+        link.say_records("continued", judged("aaa1111"))
       })
       wait_for_requests(link, 1)
       link.adapter.close_input()
       handling.wait()
       let kept = read_json_file("\{at.reviews}/\{review.key}.json")
       assert_eq(field(kept, "sent"), Some(Json::boolean(true)))
-      assert_eq(pending_keys(link), [])
+      assert_eq(read_pending_keys(link), [])
       let later = link.adapter.request("post", [("text", str("late"))])
       assert_eq(later.outcome, "not_sent")
       assert_eq(later.reason(), Some("closed"))
       assert_eq(link.requests().length(), 1)
-      assert_eq(link.adapter.asks.length(), 0)
+      assert_eq(link.adapter.unanswered.length(), 0)
     })
   })
 }
@@ -55,16 +55,19 @@ async test "a review whose chat could not be listed when the bridge closes waits
     @async.with_task_group(group => {
       let link = connect(at, group, silent=true)
       link.start("write")
-      link.records("linked", [])
+      link.say_records("linked", [])
       let review = review_of_head("aaa1111")
       let handling = group.spawn(() => {
-        link.records("continued", judged("aaa1111"))
+        link.say_records("continued", judged("aaa1111"))
       })
       wait_for_requests(link, 1)
       link.adapter.close_input()
       handling.wait()
-      assert_eq(pending_keys(link), [review.key])
-      assert_eq(names_in(at.reviews).contains("\{review.key}.reserved"), false)
+      assert_eq(read_pending_keys(link), [review.key])
+      assert_eq(
+        list_names(at.reviews).contains("\{review.key}.reserved"),
+        false,
+      )
     })
   })
 }
@@ -130,7 +133,7 @@ async test "an answer reaches the request that asked, whatever the order they ar
         task.wait()
       }
       assert_eq(outcomes, ["answer-n0", "answer-n1", "answer-n2"])
-      assert_eq(link.adapter.asks.length(), 0)
+      assert_eq(link.adapter.unanswered.length(), 0)
     })
   })
 }
@@ -147,7 +150,7 @@ async test "a response nobody asked for is dropped without disturbing a request 
       })
       wait_for_requests(link, 1)
       link.adapter.receive(response_line("harnexus-crew-99", "done"))
-      assert_eq(link.adapter.asks.length(), 1)
+      assert_eq(link.adapter.unanswered.length(), 1)
       link.adapter.receive(response_line("harnexus-crew-1", "done"))
       task.wait()
       assert_eq(outcome.val, "done")
@@ -161,8 +164,8 @@ async test "a bridge in observe mode is refused: nothing is greeted, taken or se
     @async.with_task_group(group => {
       let link = connect(at, group)
       link.start("observe")
-      link.records("linked", [])
-      link.records("continued", judged("aaa1111"))
+      link.say_records("linked", [])
+      link.say_records("continued", judged("aaa1111"))
       link.say(turn_line("t1", "x", "R1", "opened"))
       assert_eq(link.lines_of_type("hello").length(), 0)
       assert_eq(link.lines_of_type("observed").length(), 0)
@@ -172,7 +175,7 @@ async test "a bridge in observe mode is refused: nothing is greeted, taken or se
       assert_eq(link.logs.map(entry => text_member(entry, "step")), [
         Some("mode_refused"),
       ])
-      assert_eq(names_in(at.observe), [])
+      assert_eq(list_names(at.observe), [])
     })
   })
 }
@@ -184,20 +187,20 @@ async test "many round trips leave no descriptor, waiting request or lock behind
       write_file("\{at.reviews}/chats.json", "{\"R1\":\"chat-r1\"}")
       let link = connect(at, group)
       link.start("write")
-      link.records("linked", [])
+      link.say_records("linked", [])
       // A first round trip opens whatever the adapter keeps open for good.
-      link.records("continued", judged("h000000"))
+      link.say_records("continued", judged("h000000"))
       let before = @testkit.open_fds()
       let rounds = 60
       for round in 1..<rounds {
         let head = "h\{round.to_string()}"
-        link.records("continued", [..judged("h000000"), ..judged(head)])
+        link.say_records("continued", [..judged("h000000"), ..judged(head)])
       }
       assert_eq(@testkit.open_fds(), before)
-      assert_eq(link.adapter.asks.length(), 0)
+      assert_eq(link.adapter.unanswered.length(), 0)
       assert_eq(link.requests(op="post").length(), rounds)
-      assert_eq(pending_keys(link), [])
-      assert_eq(names_in("\{at.observe}/locks"), [])
+      assert_eq(read_pending_keys(link), [])
+      assert_eq(list_names("\{at.observe}/locks"), [])
     })
   })
 }

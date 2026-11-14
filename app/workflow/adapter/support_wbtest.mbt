@@ -336,7 +336,7 @@ fn ready_line(bindings : Array[Json]) -> Array[(String, Json)] {
 }
 
 ///|
-async fn Link::records(
+async fn Link::say_records(
   self : Link,
   phase : String,
   records : Array[Json],
@@ -353,11 +353,11 @@ async fn Link::records(
     ("parentThreadId", str(parent)),
     ("link", str(parent)),
     ("phase", str(phase)),
-    ("shownBefore", optional_text(shown_before)),
+    ("shownBefore", text_or_null(shown_before)),
     ("records", Json::array(records)),
   ]
   if phase == "linked" {
-    line.push(("linkedAt", optional_text(linked_at)))
+    line.push(("linkedAt", text_or_null(linked_at)))
   }
   self.say(line)
 }
@@ -400,7 +400,7 @@ fn turn_line(
 }
 
 ///|
-fn names_in(directory : String) -> Array[String] {
+fn list_names(directory : String) -> Array[String] {
   let listed = @store.list_directory_if_exists(directory) catch { _ => None }
   let names = listed.unwrap_or([])
   names.sort_by(String::lexical_compare)
@@ -408,8 +408,8 @@ fn names_in(directory : String) -> Array[String] {
 }
 
 ///|
-fn pending_keys(link : Link) -> Array[String] {
-  let waiting = link.adapter.deps.observations.pending() catch {
+fn read_pending_keys(link : Link) -> Array[String] {
+  let waiting = link.adapter.deps.observations.read_pending() catch {
     failed => abort(failed.message())
   }
   waiting.map(entry => entry.review.key)
