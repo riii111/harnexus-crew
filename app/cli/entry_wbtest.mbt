@@ -5,25 +5,30 @@ priv suberror Unexpected {
 
 ///|
 fn homeless_env(vars : Array[(String, String)]) -> () -> @environment.Env raise {
-  let map : Map[String, String] = Map([])
-  for pair in vars {
-    map[pair.0] = pair.1
-  }
-  () => @environment.Env::new(map)
+  () => @testkit.env_of(vars)
 }
 
 ///|
-async test "usage is checked before anything is read from the environment" {
+async test "a usage error is reported without reading the environment" {
   let refusing : () -> @environment.Env raise = () => fail("env was read")
+
   assert_eq(run(["launch"][:], refusing).code, 2)
-  assert_eq(run(["check", "-h"][:], refusing).code, 0)
-  assert_eq(run(["-h"][:], refusing).code, 0)
 }
 
 ///|
-async test "an error nothing expected is reported as a crash with where to report it" {
+async test "help is printed without reading the environment" {
+  let refusing : () -> @environment.Env raise = () => fail("env was read")
+  for argv in [["check", "-h"], ["-h"]] {
+    assert_eq(run(argv[:], refusing).code, 0, msg=argv.join(" "))
+  }
+}
+
+///|
+async test "an error nothing expected ends with code 1 and a crash report naming where to report it" {
   let crashing : () -> @environment.Env raise = () => raise Unexpected
+
   let result = run(["environment"][:], crashing)
+
   assert_eq(result.code, 1)
   assert_eq(result.stdout, "")
   inspect(
@@ -38,25 +43,36 @@ async test "an error nothing expected is reported as a crash with where to repor
 
 ///|
 async test "environment needs no home when the declaration settles it" {
-  let result = run(
-    ["environment"][:],
-    homeless_env([("HARNEXUS_EXECUTION_ENV", "local")]),
-  )
+  let env = homeless_env([("HARNEXUS_EXECUTION_ENV", "local")])
+
+  let result = run(["environment"][:], env)
+
   assert_eq(result.code, 0)
-  assert_true(result.stdout.contains("\"source\":\"explicit\""))
+  assert_eq(
+    result.stdout,
+    "{\"environment\":\"local\",\"source\":\"explicit\",\"app\":\"codex\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}\n",
+  )
 }
 
 ///|
 async test "a command that needs the home fails when HOME is not set" {
   for argv in [["environment"], ["state"], ["adapter", "serve", "--id", "a"]] {
     let result = run(argv[:], homeless_env([]))
-    assert_eq(result.code, 1)
-    assert_eq(result.stderr, "harnexus-crew: HOME is not set\n")
+    assert_eq(result.code, 1, msg=argv.join(" "))
+    assert_eq(
+      result.stderr,
+      "harnexus-crew: HOME is not set\n",
+      msg=argv.join(" "),
+    )
   }
 }
 
 ///|
-async test "adapter usage and help need no home" {
+async test "adapter help is printed without a home" {
   assert_eq(run(["adapter", "-h"][:], homeless_env([])).code, 0)
+}
+
+///|
+async test "an adapter usage error is reported without a home" {
   assert_eq(run(["adapter", "bogus"][:], homeless_env([])).code, 2)
 }

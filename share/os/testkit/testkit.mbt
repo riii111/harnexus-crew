@@ -95,6 +95,60 @@ pub fn restore_stdio(saved : FixedArray[Int32]) -> Unit {
 }
 
 ///|
+let gate : @async.Mutex = @async.Mutex()
+
+///|
+let scratch_count : Ref[Int32] = Ref(0)
+
+///|
+pub async fn serial(body : async () -> Unit) -> Unit {
+  // The test driver runs up to ten tests at once on one thread, so a test that counts descriptors, times a deadline or counts a child's runs holds the gate to keep another test's sockets, children and sleeps out of it.
+  gate.acquire()
+  defer gate.release()
+  body()
+}
+
+///|
+/// The result of `work` and how many milliseconds it took.
+pub async fn[T] timed(work : async () -> T) -> (T, Int32) {
+  let started = @async.now()
+  let value = work()
+  (value, (@async.now() - started).to_int())
+}
+
+///|
+pub fn assert_between(value : Int32, low : Int32, high : Int32) -> Unit raise {
+  if value < low || value > high {
+    fail("\{value} is outside \{low}..\{high}")
+  }
+}
+
+///|
+/// The temporary directory without a trailing slash.
+pub fn temp_base() -> String {
+  let base = @env.get_env_var("TMPDIR").unwrap_or("/tmp")
+  if base.has_suffix("/") {
+    base[:base.length() - 1].to_owned()
+  } else {
+    base
+  }
+}
+
+///|
+pub async fn scratch(name : String) -> String {
+  // The sandbox only lets a test write under TMPDIR, which `@fs.tmpdir` ignores, so the directory is made here.
+  scratch_count.val += 1
+  let path = "\{temp_base()}/hx-\{name}.\{pid()}.\{@async.now()}.\{scratch_count.val}"
+  @fs.mkdir(path)
+  path
+}
+
+///|
+pub async fn remove_tree(path : String) -> Unit {
+  @fs.rmdir(path, recursive=true, allow_missing=true)
+}
+
+///|
 fn encode_c_string(text : String) -> Bytes {
   @sys.c_string(text).unwrap()
 }

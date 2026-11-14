@@ -6,6 +6,8 @@ pub fn accept(Int32) -> Int32? raise Errno
 
 pub fn alive(Int32) -> Bool
 
+pub fn assert_between(Int32, Int32, Int32) -> Unit raise
+
 pub fn close_fd(Int32) -> Unit
 
 pub fn close_stdio() -> FixedArray[Int32] raise Errno
@@ -26,7 +28,17 @@ pub fn pid() -> Int32
 
 pub fn remove_file(String) -> Unit
 
+pub async fn remove_tree(String) -> Unit
+
 pub fn restore_stdio(FixedArray[Int32]) -> Unit
+
+pub async fn scratch(String) -> String
+
+pub async fn serial(async () -> Unit) -> Unit
+
+pub fn temp_base() -> String
+
+pub async fn[T] timed(async () -> T) -> (T, Int32)
 
 // Errors
 pub suberror Errno {

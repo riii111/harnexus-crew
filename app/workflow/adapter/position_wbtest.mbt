@@ -4,38 +4,78 @@ fn read_position_file(at : Place) -> Json {
 }
 
 ///|
-async test "only the reviews after the link are taken, and each event is confirmed once its position is kept" {
-  with_place("position-basic", at => {
+async test "only the reviews after the link are taken" {
+  with_place("position-after-link", at => {
     @async.with_task_group(group => {
       let link = connect(at, group)
       link.start("write")
       let before = [prompt("p0", "start"), ..judged("aaa1111")]
       link.say_records("linked", before, linked_at="u-t-aaa1111-R1")
+
       link.say_records(
         "continued",
         [..before, ..judged("bbb2222")],
         shown_before="u-t-aaa1111-R1",
       )
-      assert_eq(link.lines_of_type("observed").map(text_of), [
-        "{\"v\":1,\"type\":\"observed\",\"eventId\":\"e1\"}", "{\"v\":1,\"type\":\"observed\",\"eventId\":\"e2\"}",
-      ])
+
       assert_eq(read_pending_keys(link), [review_of_head("bbb2222").key])
     })
   })
 }
 
 ///|
-async test "a session first seen continuing is measured from what the app was last shown, and that base is marked estimated" {
-  with_place("position-estimated", at => {
+async test "each records event is confirmed once, in the order they came" {
+  with_place("position-confirmed", at => {
     @async.with_task_group(group => {
       let link = connect(at, group)
       link.start("write")
+      let before = [prompt("p0", "start"), ..judged("aaa1111")]
+      link.say_records("linked", before, linked_at="u-t-aaa1111-R1")
+
+      link.say_records(
+        "continued",
+        [..before, ..judged("bbb2222")],
+        shown_before="u-t-aaa1111-R1",
+      )
+
+      assert_eq(link.lines_of_type("observed").map(text_of), [
+        "{\"v\":1,\"type\":\"observed\",\"eventId\":\"e1\"}", "{\"v\":1,\"type\":\"observed\",\"eventId\":\"e2\"}",
+      ])
+    })
+  })
+}
+
+///|
+async test "a session first seen continuing takes only the reviews after what the app was last shown" {
+  with_place("position-first-continuing", at => {
+    @async.with_task_group(group => {
+      let link = connect(at, group)
+      link.start("write")
+
       link.say_records(
         "continued",
         two_reviews(),
         shown_before="u-t-aaa1111-R1",
       )
+
       assert_eq(read_pending_keys(link), [review_of_head("bbb2222").key])
+    })
+  })
+}
+
+///|
+async test "the base of a session first seen continuing is what the app was last shown, marked estimated" {
+  with_place("position-estimated", at => {
+    @async.with_task_group(group => {
+      let link = connect(at, group)
+      link.start("write")
+
+      link.say_records(
+        "continued",
+        two_reviews(),
+        shown_before="u-t-aaa1111-R1",
+      )
+
       let baseline = field(read_position_file(at), "baseline").unwrap()
       assert_eq(text_member(baseline, "uuid"), Some("u-t-aaa1111-R1"))
       assert_eq(field(baseline, "estimated"), Some(Json::boolean(true)))
@@ -92,7 +132,7 @@ async test "a review made while the adapter was stopped is taken once after it r
 }
 
 ///|
-async test "a cursor whose record is gone reads the records again, and no review is taken again" {
+async test "a cursor whose record is gone reads the records again, taking only the reviews not taken before" {
   with_place("position-gap", at => {
     @async.with_task_group(group => {
       let link = connect(at, group)
@@ -113,8 +153,11 @@ async test "a cursor whose record is gone reads the records again, and no review
           ]),
         ),
       )
-      link.say_records("continued", [..reread, prompt("p2", "y")])
-      assert_eq(read_pending_keys(link), [review_of_head("aaa1111").key])
+      link.say_records("continued", [..reread, ..judged("bbb2222")])
+      assert_eq(read_pending_keys(link), [
+        review_of_head("aaa1111").key,
+        review_of_head("bbb2222").key,
+      ])
     })
   })
 }
@@ -127,11 +170,13 @@ async test "the position moves only once a review is queued, so a review that co
       link.start("write")
       link.say_records("linked", [])
       // The list the first event left as a file becomes a directory, which cannot be read or written.
-      remove_tree("\{at.observe}/pending.json")
+      @store.remove_file("\{at.observe}/pending.json") catch {
+        failed => abort(failed.user_message())
+      }
       @store.prepare_directory("\{at.observe}/pending.json")
       link.say_records("continued", judged("aaa1111"))
       let confirmed_while_failing = link.lines_of_type("observed").length()
-      remove_tree("\{at.observe}/pending.json")
+      @testkit.remove_tree("\{at.observe}/pending.json")
       link.say_records("continued", judged("aaa1111"))
       assert_eq(confirmed_while_failing, 1)
       assert_eq(
@@ -152,7 +197,7 @@ async test "the position moves only once a review is queued, so a review that co
 }
 
 ///|
-async test "a session id that is not an id is logged and nothing is confirmed" {
+async test "a session id that is not an id is refused: it is logged, and nothing is confirmed or kept" {
   with_place("position-bad-session", at => {
     @async.with_task_group(group => {
       let link = connect(at, group)
@@ -165,4 +210,14 @@ async test "a session id that is not an id is logged and nothing is confirmed" {
       assert_eq(list_names("\{at.observe}/sessions"), [])
     })
   })
+}
+
+///|
+/// A prompt record of a Cloud session.
+fn prompt(uuid : String, text : String) -> Json {
+  object([
+    ("type", str("user")),
+    ("uuid", str(uuid)),
+    ("message", object([("role", str("user")), ("content", str(text))])),
+  ])
 }

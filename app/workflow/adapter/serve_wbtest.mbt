@@ -23,10 +23,10 @@ fn response_line(id : String, outcome : String) -> String {
 }
 
 ///|
-async test "a request still waiting when the bridge closes ends as unknown, and a later request is not sent" {
+async test "a review whose post is still waiting when the bridge closes is recorded as sent and leaves the pending list" {
   with_place("serve-close-waiting", at => {
     @async.with_task_group(group => {
-      write_file("\{at.reviews}/chats.json", "{\"R1\":\"chat-r1\"}")
+      write_chats_file(at, object([("R1", str("chat-r1"))]))
       let link = connect(at, group, silent=true)
       link.start("write")
       link.say_records("linked", [])
@@ -35,16 +35,31 @@ async test "a request still waiting when the bridge closes ends as unknown, and 
         link.say_records("continued", judged("aaa1111"))
       })
       wait_for_requests(link, 1)
+
       link.adapter.close_input()
       handling.wait()
+
       let kept = read_json_file("\{at.reviews}/\{review.key}.json")
       assert_eq(field(kept, "sent"), Some(Json::boolean(true)))
       assert_eq(read_pending_keys(link), [])
+      assert_eq(link.adapter.unanswered.length(), 0)
+    })
+  })
+}
+
+///|
+async test "a request made after the bridge closes is not sent" {
+  with_place("serve-closed-request", at => {
+    @async.with_task_group(group => {
+      let link = connect(at, group)
+      link.start("write")
+      link.adapter.close_input()
+
       let later = link.adapter.request("post", [("text", str("late"))])
+
       assert_eq(later.outcome, "not_sent")
       assert_eq(later.reason(), Some("closed"))
-      assert_eq(link.requests().length(), 1)
-      assert_eq(link.adapter.unanswered.length(), 0)
+      assert_eq(link.requests().length(), 0)
     })
   })
 }
@@ -64,10 +79,7 @@ async test "a review whose chat could not be listed when the bridge closes waits
       link.adapter.close_input()
       handling.wait()
       assert_eq(read_pending_keys(link), [review.key])
-      assert_eq(
-        list_names(at.reviews).contains("\{review.key}.reserved"),
-        false,
-      )
+      assert_eq(list_names(at.reviews), ["\{review.key}.json"])
     })
   })
 }
@@ -76,10 +88,7 @@ async test "a review whose chat could not be listed when the bridge closes waits
 async test "a question to a reviewer whose answer never comes ends the turn as failed when the bridge closes" {
   with_place("serve-close-ask", at => {
     @async.with_task_group(group => {
-      write_file(
-        "\{at.reviews}/chats.json",
-        "{\"R1\":{\"threadId\":\"chat-r1\",\"session\":\"session_01AbC\"}}",
-      )
+      write_chats_file(at, object([("R1", bound_chat("chat-r1"))]))
       let link = connect(at, group, silent=true)
       link.start("write")
       let handling = group.spawn(() => {
@@ -158,23 +167,37 @@ async test "a response nobody asked for is dropped without disturbing a request 
 }
 
 ///|
-async test "a bridge in observe mode is refused: nothing is greeted, taken or sent, and turns fail" {
+async test "a bridge in observe mode is refused: nothing is greeted, taken or sent" {
   with_place("serve-observe-refused", at => {
     @async.with_task_group(group => {
       let link = connect(at, group)
+
       link.start("observe")
       link.say_records("linked", [])
       link.say_records("continued", judged("aaa1111"))
-      link.say(turn_line("t1", "x", "R1", "opened"))
-      assert_eq(link.lines_of_type("hello").length(), 0)
-      assert_eq(link.lines_of_type("observed").length(), 0)
-      assert_eq(link.requests().length(), 0)
-      let ended = link.lines_of_type("turn_end")
-      assert_eq(ended.map(line => text_member(line, "status")), [Some("failed")])
+
       assert_eq(link.logs.map(entry => text_member(entry, "step")), [
         Some("mode_refused"),
       ])
+      assert_eq(link.lines_of_type("hello").length(), 0)
+      assert_eq(link.lines_of_type("observed").length(), 0)
+      assert_eq(link.requests().length(), 0)
       assert_eq(list_names(at.observe), [])
+    })
+  })
+}
+
+///|
+async test "a turn on a bridge in observe mode ends as failed" {
+  with_place("serve-observe-turn", at => {
+    @async.with_task_group(group => {
+      let link = connect(at, group)
+      link.start("observe")
+
+      link.say(turn_line("t1", "x", "R1", "opened"))
+
+      let ended = link.lines_of_type("turn_end")
+      assert_eq(ended.map(line => text_member(line, "status")), [Some("failed")])
     })
   })
 }
@@ -183,7 +206,7 @@ async test "a bridge in observe mode is refused: nothing is greeted, taken or se
 async test "many round trips leave no descriptor, waiting request or lock behind" {
   with_place("serve-round-trips", at => {
     @async.with_task_group(group => {
-      write_file("\{at.reviews}/chats.json", "{\"R1\":\"chat-r1\"}")
+      write_chats_file(at, object([("R1", str("chat-r1"))]))
       let link = connect(at, group)
       link.start("write")
       link.say_records("linked", [])
@@ -205,7 +228,7 @@ async test "many round trips leave no descriptor, waiting request or lock behind
 }
 
 ///|
-async test "lines handled at the same time are written whole, one to a line" {
+async test "history requests handled at the same time each get a response carrying their own id" {
   with_place("serve-concurrent-lines", at => {
     @async.with_task_group(group => {
       let link = connect(at, group)
@@ -228,16 +251,21 @@ async test "lines handled at the same time are written whole, one to a line" {
           }),
         )
       }
+
       for task in tasks {
         task.wait()
       }
+
       let ids = link
         .lines_of_type("response")
-        .map(line => text_member(line, "id"))
-      assert_eq(ids.length(), 40)
+        .map(line => text_member(line, "id").unwrap_or(""))
+      ids.sort_by(String::lexical_compare)
+      let expected = []
       for index in 0..<40 {
-        assert_eq(ids.contains(Some("h\{index}")), true)
+        expected.push("h\{index}")
       }
+      expected.sort_by(String::lexical_compare)
+      assert_eq(ids, expected)
     })
   })
 }

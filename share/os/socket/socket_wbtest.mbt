@@ -1,15 +1,4 @@
 ///|
-let gate : @async.Mutex = @async.Mutex()
-
-///|
-async fn serial(body : async () -> Unit) -> Unit {
-  // The test driver runs up to ten tests at once on one thread, so a test that counts descriptors or times a deadline runs alone to keep another test's sockets and sleeps out of it.
-  gate.acquire()
-  defer gate.release()
-  body()
-}
-
-///|
 /// The real connect, which also records the descriptor the exchange opened so a test can check it is closed afterwards.
 fn tracked_connect(path : String, opened : Ref[Int32]) -> (Int32) -> Int32 {
   let target = @sys.c_string(path).unwrap()
@@ -21,7 +10,7 @@ fn tracked_connect(path : String, opened : Ref[Int32]) -> (Int32) -> Int32 {
 
 ///|
 fn socket_path(name : String) -> String {
-  "/tmp/hxc-\{@testkit.pid()}-\{name}.sock"
+  "\{@testkit.temp_base()}/hxc-\{@testkit.pid()}-\{name}.sock"
 }
 
 ///|
@@ -122,38 +111,50 @@ async fn describe_exchange(
 }
 
 ///|
-async fn[T] timed(work : async () -> T) -> (T, Int32) {
-  let started = @async.now()
-  let value = work()
-  (value, (@async.now() - started).to_int())
-}
-
-///|
-fn assert_between(value : Int32, low : Int32, high : Int32) -> Unit raise {
-  if value < low || value > high {
-    fail("\{value} is outside \{low}..\{high}")
-  }
-}
-
-///|
 async test "S1 a round trip returns the answer without its newline" {
-  serial(() => {
+  @testkit.serial(() => {
     with_server("s1", answer, path => {
-      let before = @testkit.open_fds()
       let reply = exchange_line(path, "{\"x\":1}", 1000)
-      assert_eq(
-        reply, "{\"outcome\":\"done\",\"echoed\":\"{\\\"x\\\":1}\",\"text\":\"あい🌙\"}",
-      )
+
+      assert_eq(reply, echoed_reply)
+    })
+  })
+}
+
+///|
+async test "a round trip leaves no descriptor open" {
+  @testkit.serial(() => {
+    with_server("s1-fds", answer, path => {
+      let before = @testkit.open_fds()
+
+      let reply = exchange_line(path, "{\"x\":1}", 1000)
+
+      assert_eq(reply, echoed_reply)
       assert_eq(@testkit.open_fds(), before)
     })
   })
 }
 
 ///|
-async test "S2 a missing socket is not sent and says ENOENT" {
-  serial(() => {
-    let before = @testkit.open_fds()
+async test "S2 a missing socket is reported as not sent with ENOENT" {
+  @testkit.serial(() => {
     let result = describe_exchange(socket_path("missing"), "{\"x\":1}", 1000)
+
+    assert_eq(result, "not_sent ENOENT")
+  })
+}
+
+///|
+async test "a missing socket leaves no descriptor open" {
+  @testkit.serial(() => {
+    let before = @testkit.open_fds()
+
+    let result = describe_exchange(
+      socket_path("missing-fds"),
+      "{\"x\":1}",
+      1000,
+    )
+
     assert_eq(result, "not_sent ENOENT")
     assert_eq(@testkit.open_fds(), before)
   })
@@ -161,27 +162,40 @@ async test "S2 a missing socket is not sent and says ENOENT" {
 
 ///|
 async test "S3 a server that never answers leaves the line unknown at the deadline" {
-  serial(() => {
+  @testkit.serial(() => {
     with_server("s3", stay_silent, path => {
-      let opened = Ref(-1)
-      let (result, elapsed) = timed(() => {
-        describe_exchange(
-          path,
-          "{\"x\":1}",
-          1000,
-          connect=tracked_connect(path, opened),
-        )
+      let (result, elapsed) = @testkit.timed(() => {
+        describe_exchange(path, "{\"x\":1}", 1000)
       })
+
       assert_eq(result, "unknown ETIMEDOUT")
-      assert_between(elapsed, 800, 1600)
-      assert_true(opened.val >= 0 && !@testkit.fd_open(opened.val))
+      @testkit.assert_between(elapsed, 800, 1600)
+    })
+  })
+}
+
+///|
+async test "a server that never answers leaves no descriptor open on the client" {
+  @testkit.serial(() => {
+    with_server("s3-fds", stay_silent, path => {
+      let opened = Ref(-1)
+
+      let result = describe_exchange(
+        path,
+        "{\"x\":1}",
+        1000,
+        connect=tracked_connect(path, opened),
+      )
+
+      assert_eq(result, "unknown ETIMEDOUT")
+      assert_closed(opened.val)
     })
   })
 }
 
 ///|
 async test "S4 a socket file with no server behind it is refused and not sent" {
-  serial(() => {
+  @testkit.serial(() => {
     let path = socket_path("s4")
     @testkit.close_fd(@testkit.listen(path))
     defer @testkit.remove_file(path)
@@ -192,7 +206,7 @@ async test "S4 a socket file with no server behind it is refused and not sent" {
 
 ///|
 async test "S5 an empty line only probes: the server sees a connection and no bytes" {
-  serial(() => {
+  @testkit.serial(() => {
     let seen = Ref(-1)
     // Everything the server receives until the client closes, so a stray newline would show.
     with_server("s5", stream => seen.val = stream.read_all().length(), path => {
@@ -205,7 +219,7 @@ async test "S5 an empty line only probes: the server sees a connection and no by
 
 ///|
 async test "C1 real full listen queue: macOS refuses at once, Linux holds the connect until the deadline" {
-  serial(() => {
+  @testkit.serial(() => {
     let path = socket_path("c1")
     let listener = @testkit.listen(path, backlog=1)
     // Nothing accepts, so connections held open fill the queue.
@@ -224,52 +238,53 @@ async test "C1 real full listen queue: macOS refuses at once, Linux holds the co
       }
       held.push(fd)
     }
-    assert_true(held.length() < 64)
-    let (result, elapsed) = timed(() => {
+    @testkit.assert_between(held.length(), 1, 63)
+    let (result, elapsed) = @testkit.timed(() => {
       describe_exchange(path, "{\"x\":1}", 1000)
     })
     if @testkit.is_macos() {
       assert_eq(result, "not_sent ECONNREFUSED")
-      assert_between(elapsed, 0, 500)
+      @testkit.assert_between(elapsed, 0, 500)
     } else {
       assert_eq(result, "not_sent ETIMEDOUT")
-      assert_between(elapsed, 800, 1600)
+      @testkit.assert_between(elapsed, 800, 1600)
     }
   })
 }
 
 ///|
-async test "C2 injected: a connect that keeps answering EAGAIN ends at the deadline unsent, while other tasks run" {
-  serial(() => {
-    let ticks = Ref(0)
-    let outcome = Ref("")
-    let elapsed = Ref(0)
-    let before = @testkit.open_fds()
-    @async.with_task_group(group => {
-      group.spawn_bg(no_wait=true, () => {
-        while true {
-          @async.sleep(20)
-          ticks.val += 1
-        }
-      })
-      let (result, ms) = timed(() => {
-        describe_exchange(socket_path("c2"), "{\"x\":1}", 1000, connect=_ => {
-          @testkit.eagain()
-        })
-      })
-      outcome.val = result
-      elapsed.val = ms
-    })
-    assert_eq(outcome.val, "not_sent ETIMEDOUT")
-    assert_between(elapsed.val, 800, 1600)
-    assert_true(ticks.val >= 30)
-    assert_eq(@testkit.open_fds(), before)
+async test "C2 injected: a connect that keeps answering EAGAIN ends at the deadline unsent" {
+  @testkit.serial(() => {
+    let (result, elapsed, _, _) = eagain_exchange()
+
+    assert_eq(result, "not_sent ETIMEDOUT")
+    @testkit.assert_between(elapsed, 800, 1600)
+  })
+}
+
+///|
+async test "C2 injected: a connect that keeps answering EAGAIN lets other tasks run" {
+  @testkit.serial(() => {
+    let (result, _, ticks, _) = eagain_exchange()
+
+    assert_eq(result, "not_sent ETIMEDOUT")
+    @testkit.assert_between(ticks, 30, 200)
+  })
+}
+
+///|
+async test "C2 injected: a connect that keeps answering EAGAIN leaves no descriptor open" {
+  @testkit.serial(() => {
+    let (result, _, _, leaked) = eagain_exchange()
+
+    assert_eq(result, "not_sent ETIMEDOUT")
+    assert_eq(leaked, 0)
   })
 }
 
 ///|
 async test "C3 injected: a connect that answers EAGAIN 20 times then succeeds is made once" {
-  serial(() => {
+  @testkit.serial(() => {
     with_server("c3", answer, path => {
       let attempts = Ref(0)
       let target = @sys.c_string(path).unwrap()
@@ -281,7 +296,7 @@ async test "C3 injected: a connect that answers EAGAIN 20 times then succeeds is
           connect_once(fd, target)
         }
       })
-      assert_true(reply.contains("\"outcome\":\"done\""))
+      assert_eq(reply, echoed_reply)
       assert_eq(attempts.val, 21)
     })
   })
@@ -289,13 +304,13 @@ async test "C3 injected: a connect that answers EAGAIN 20 times then succeeds is
 
 ///|
 async test "C4 injected: connect, write and read share one deadline" {
-  serial(() => {
+  @testkit.serial(() => {
     with_server("c4", drip_answer, path => {
       let attempts = Ref(0)
       let connected_at = Ref(-1)
       let started = @async.now()
       let target = @sys.c_string(path).unwrap()
-      let (result, elapsed) = timed(() => {
+      let (result, elapsed) = @testkit.timed(() => {
         describe_exchange(path, "{\"x\":1}", 1000, connect=fd => {
           attempts.val += 1
           if attempts.val <= 50 {
@@ -309,80 +324,111 @@ async test "C4 injected: connect, write and read share one deadline" {
         })
       })
       assert_eq(result, "unknown ETIMEDOUT")
-      assert_between(elapsed, 800, 1600)
-      assert_between(connected_at.val, 400, 800)
+      @testkit.assert_between(elapsed, 800, 1600)
+      @testkit.assert_between(connected_at.val, 400, 800)
     })
   })
 }
 
 ///|
 async test "C5 a slow answer past the deadline is unknown" {
-  serial(() => {
+  @testkit.serial(() => {
     with_server("c5", drip_answer, path => {
-      let (result, elapsed) = timed(() => {
+      let (result, elapsed) = @testkit.timed(() => {
         describe_exchange(path, "{\"x\":1}", 1000)
       })
       assert_eq(result, "unknown ETIMEDOUT")
-      assert_between(elapsed, 800, 1600)
+      @testkit.assert_between(elapsed, 800, 1600)
     })
   })
 }
 
 ///|
 async test "C6 a peer that never reads leaves a large request unknown at the deadline" {
-  serial(() => {
+  @testkit.serial(() => {
     with_server("c6", never_read, path => {
+      let line = String::make(4 * 1024 * 1024, 'x')
+
+      let (result, elapsed) = @testkit.timed(() => {
+        describe_exchange(path, line, 1000)
+      })
+
+      assert_eq(result, "unknown ETIMEDOUT")
+      @testkit.assert_between(elapsed, 800, 1600)
+    })
+  })
+}
+
+///|
+async test "a peer that never reads leaves no descriptor open on the client" {
+  @testkit.serial(() => {
+    with_server("c6-fds", never_read, path => {
       let opened = Ref(-1)
       let line = String::make(4 * 1024 * 1024, 'x')
-      let (result, elapsed) = timed(() => {
-        describe_exchange(
-          path,
-          line,
-          1000,
-          connect=tracked_connect(path, opened),
-        )
-      })
+
+      let result = describe_exchange(
+        path,
+        line,
+        1000,
+        connect=tracked_connect(path, opened),
+      )
+
       assert_eq(result, "unknown ETIMEDOUT")
-      assert_between(elapsed, 800, 1600)
-      assert_true(opened.val >= 0 && !@testkit.fd_open(opened.val))
+      assert_closed(opened.val)
     })
   })
 }
 
 ///|
 async test "cancelling an exchange closes its descriptor" {
-  serial(() => {
+  @testkit.serial(() => {
     with_server("cancel", stay_silent, path => {
       let opened = Ref(-1)
       let connect = tracked_connect(path, opened)
+
       let finished = @async.with_timeout_opt(100, () => {
         exchange_with(path, "{\"x\":1}", 30000, connect)
       })
-      assert_true(finished is None)
-      assert_true(opened.val >= 0 && !@testkit.fd_open(opened.val))
+
+      assert_eq(finished, None)
+      assert_closed(opened.val)
     })
   })
 }
 
 ///|
-async test "a character split across two writes is read whole and bad bytes become U+FFFD" {
-  serial(() => {
+async test "a character split across two writes is read whole" {
+  @testkit.serial(() => {
     with_server(
-      "utf8",
+      "utf8-split",
       stream => {
         ignore(read_request(stream))
         stream.write(b"\xe3\x81")
         @async.sleep(100)
-        stream.write(b"\x82 \xff\xe3\x41\n")
+        stream.write(b"\x82\n")
       },
-      path => assert_eq(exchange_line(path, "x", 1000), "あ \u{fffd}\u{fffd}A"),
+      path => assert_eq(exchange_line(path, "x", 1000), "あ"),
+    )
+  })
+}
+
+///|
+async test "bad bytes in an answer become U+FFFD" {
+  @testkit.serial(() => {
+    with_server(
+      "utf8-bad",
+      stream => {
+        ignore(read_request(stream))
+        stream.write(b"\xff\xe3\x41\n")
+      },
+      path => assert_eq(exchange_line(path, "x", 1000), "\u{fffd}\u{fffd}A"),
     )
   })
 }
 
 ///|
 async test "a peer that closes without answering is an empty answer" {
-  serial(() => {
+  @testkit.serial(() => {
     with_server("closes", stream => ignore(read_request(stream)), path => {
       assert_eq(exchange_line(path, "x", 1000), "")
     })
@@ -390,8 +436,8 @@ async test "a peer that closes without answering is an empty answer" {
 }
 
 ///|
-async test "trailing white space is trimmed the way JavaScript trims" {
-  serial(() => {
+async test "trailing white space of an answer is trimmed the way JavaScript trims" {
+  @testkit.serial(() => {
     with_server(
       "trim",
       stream => {
@@ -404,31 +450,86 @@ async test "trailing white space is trimmed the way JavaScript trims" {
 }
 
 ///|
-async test "a path that cannot be a socket address is refused before anything is sent" {
-  serial(() => {
+async test "a path too long for a socket address is refused before anything is sent" {
+  @testkit.serial(() => {
     let long = String::make(300, 'a')
-    assert_eq(
-      describe_exchange("/tmp/\{long}", "x", 1000),
-      "not_sent ENAMETOOLONG",
-    )
-    assert_eq(
-      describe_exchange("/tmp/a\u{0}b", "x", 1000),
-      "not_sent ERR_INVALID_ARG_VALUE",
-    )
+
+    let result = describe_exchange("\{@testkit.temp_base()}/\{long}", "x", 1000)
+
+    assert_eq(result, "not_sent ENAMETOOLONG")
   })
 }
 
 ///|
-async test "the failure keeps the path and the message callers show" {
-  serial(() => {
-    let path = socket_path("message")
-    try exchange_line(path, "x", 1000) |> ignore catch {
-      @boundary.LineExchangeFailed(path=failed_path, message~, ..) => {
-        assert_eq(failed_path, path)
-        assert_eq(message, "cannot reach \{path}")
-      }
-    } noraise {
-      _ => fail("expected a failure")
-    }
+async test "a path with a NUL byte is refused before anything is sent" {
+  @testkit.serial(() => {
+    let result = describe_exchange("\{@testkit.temp_base()}/a\u{0}b", "x", 1000)
+
+    assert_eq(result, "not_sent ERR_INVALID_ARG_VALUE")
   })
+}
+
+///|
+async test "the failure keeps the path of the exchange" {
+  @testkit.serial(() => {
+    let path = socket_path("failure-path")
+
+    let (failed_path, _) = exchange_failure(path)
+
+    assert_eq(failed_path, path)
+  })
+}
+
+///|
+async test "the failure carries the message callers show" {
+  @testkit.serial(() => {
+    let path = socket_path("failure-message")
+
+    let (_, message) = exchange_failure(path)
+
+    assert_eq(message, "cannot reach \{path}")
+  })
+}
+
+///|
+let echoed_reply : String = "{\"outcome\":\"done\",\"echoed\":\"{\\\"x\\\":1}\",\"text\":\"あい🌙\"}"
+
+///|
+fn assert_closed(fd : Int32) -> Unit raise {
+  assert_true(fd >= 0, msg="no descriptor was opened")
+  assert_eq(@testkit.fd_open(fd), false, msg="descriptor \{fd} is still open")
+}
+
+///|
+async fn eagain_exchange() -> (String, Int32, Int32, Int32) {
+  let ticks = Ref(0)
+  let outcome = Ref("")
+  let elapsed = Ref(0)
+  let before = @testkit.open_fds()
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => {
+      while true {
+        @async.sleep(20)
+        ticks.val += 1
+      }
+    })
+    let (result, ms) = @testkit.timed(() => {
+      describe_exchange(socket_path("c2"), "{\"x\":1}", 1000, connect=_ => {
+        @testkit.eagain()
+      })
+    })
+    outcome.val = result
+    elapsed.val = ms
+  })
+  (outcome.val, elapsed.val, ticks.val, @testkit.open_fds() - before)
+}
+
+///|
+async fn exchange_failure(path : String) -> (String, String) {
+  try exchange_line(path, "x", 1000) |> ignore catch {
+    @boundary.LineExchangeFailed(path=failed_path, message~, ..) =>
+      (failed_path, message)
+  } noraise {
+    _ => fail("expected a failure")
+  }
 }

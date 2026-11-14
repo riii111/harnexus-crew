@@ -112,7 +112,7 @@ class NativeTemplateFilling(unittest.TestCase):
 
         ok, text = fixture.fill_prompt("reviewer", REVIEWER_FIELDS)
 
-        self.assertTrue(ok, text)
+        self.assertIs(True, ok, text)
         self.assertIn(f"[$ai-code-review]({real('ai-code-review/SKILL.md')})", text)
         self.assertIn(f"({real('task-review-cycle/SKILL.md')}#レビュー時の確認事項)", text)
         self.assertIn(f"[返却方法]({real('task-review-cycle/references/reply-Codex.md')})", text)
@@ -147,7 +147,7 @@ class NativeTemplateFilling(unittest.TestCase):
             (ok, text),
         )
 
-    def test_leaves_links_in_code_as_examples_and_resolves_the_link_after_them(self):
+    def test_resolves_only_the_links_outside_code_and_leaves_those_in_code_as_examples(self):
         fixture = Fixture(self)
         linked = fixture.root / "linked.md"
         linked.write_text("", encoding="utf-8")
@@ -185,27 +185,40 @@ class NativeTemplateFilling(unittest.TestCase):
 
                 ok, message = fixture.fill_prompt("worker")
 
-                self.assertFalse(ok)
+                self.assertIs(False, ok)
                 self.assertIn(
                     f"the worker template {template}: links to {fixture.root / 'missing.md'}, which is not a file",
                     message,
                 )
 
-    def test_fills_anchors_and_field_led_targets_and_resolves_beside_a_symlinked_templates_real_file(self):
+    def test_fills_an_anchor_and_a_field_led_target_in_a_link(self):
+        fixture = Fixture(self)
+        root = fixture.root
+        (root / "notes").mkdir()
+        (root / "notes" / "task.md").write_text("", encoding="utf-8")
+        template = root / "worker.md"
+        template.write_text("[note](notes/task.md#{task_id}) [id]({task_id})\n", encoding="utf-8")
+        fixture.use_worker(template)
+
+        ok, text = fixture.fill_prompt("worker", {**WORKER_FIELDS, "task_id": "TR-42"})
+
+        self.assertEqual((True, f"[note]({root / 'notes' / 'task.md'}#TR-42) [id](TR-42)\n"), (ok, text))
+
+    def test_resolves_links_beside_the_real_file_of_a_symlinked_template(self):
         fixture = Fixture(self)
         root = fixture.root
         source = root / "source"
         (source / "notes").mkdir(parents=True)
         (source / "notes" / "task.md").write_text("", encoding="utf-8")
-        (source / "worker.md").write_text("[note](notes/task.md#{task_id}) [id]({task_id})\n", encoding="utf-8")
+        (source / "worker.md").write_text("[note](notes/task.md)\n", encoding="utf-8")
         (root / "linked").mkdir()
         template = root / "linked" / "worker.md"
         template.symlink_to(source / "worker.md")
         fixture.use_worker(template)
 
-        ok, text = fixture.fill_prompt("worker", {**WORKER_FIELDS, "task_id": "TR-42"})
+        ok, text = fixture.fill_prompt("worker")
 
-        self.assertEqual((True, f"[note]({source / 'notes' / 'task.md'}#TR-42) [id](TR-42)\n"), (ok, text))
+        self.assertEqual((True, f"[note]({source / 'notes' / 'task.md'})\n"), (ok, text))
 
     def test_refuses_a_link_to_a_target_the_filling_cannot_trust(self):
         for name, link, task_id, error in REFUSED_LINKS:
@@ -228,7 +241,7 @@ class NativeTemplateFilling(unittest.TestCase):
 
                 ok, message = fixture.fill_prompt("worker", {**WORKER_FIELDS, "task_id": task_id})
 
-                self.assertFalse(ok)
+                self.assertIs(False, ok)
                 self.assertIn(error, message)
 
     def test_refuses_a_config_it_cannot_use(self):
@@ -239,7 +252,7 @@ class NativeTemplateFilling(unittest.TestCase):
 
                 ok, message = fixture.fill_prompt("worker")
 
-                self.assertFalse(ok)
+                self.assertIs(False, ok)
                 self.assertIn(error, message)
 
 

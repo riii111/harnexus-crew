@@ -12,7 +12,9 @@ test "projects come from structured content first, then the result, then JSON te
     content="[{\"projectId\":\"a\"}]",
   )
   inspect(
-    projects_of("{\"projects\":[{\"projectId\":\"b\"}],\"content\":[]}"),
+    projects_of(
+      "{\"projects\":[{\"projectId\":\"b\"}],\"content\":[{\"type\":\"text\",\"text\":\"{\\\"projects\\\":[1,2]}\"}]}",
+    ),
     content="[{\"projectId\":\"b\"}]",
   )
   inspect(
@@ -24,33 +26,46 @@ test "projects come from structured content first, then the result, then JSON te
 }
 
 ///|
-test "a text that is not JSON, or a field that is not a list, is passed over" {
+test "a content text that is not JSON is passed over" {
   inspect(
     projects_of(
-      "{\"content\":[{\"type\":\"text\",\"text\":\"nope\"},{\"type\":\"text\",\"text\":\"{\\\"projects\\\":[]}\"}]}",
+      "{\"content\":[{\"type\":\"text\",\"text\":\"nope\"},{\"type\":\"text\",\"text\":\"{\\\"projects\\\":[3]}\"}]}",
     ),
-    content="[]",
+    content="[3]",
   )
+}
+
+///|
+test "a projects field that is not a list is passed over" {
   inspect(
     projects_of("{\"structuredContent\":{\"projects\":3},\"projects\":[9]}"),
     content="[9]",
   )
+}
+
+///|
+test "an empty projects list is taken, not passed over" {
   inspect(
     projects_of("{\"structuredContent\":{\"projects\":[]},\"projects\":[9]}"),
-    content="[]",
-  )
-  inspect(
-    projects_of(
-      "{\"content\":[{\"type\":\"image\",\"text\":\"{\\\"projects\\\":[1]}\"},{\"type\":\"text\",\"text\":5}]}",
-    ),
     content="[]",
   )
 }
 
 ///|
-test "anything but an object holds no projects" {
-  inspect(projects_in(None).length(), content="0")
+test "a content item that is not text is passed over" {
+  inspect(
+    projects_of(
+      "{\"content\":[{\"type\":\"image\",\"text\":\"{\\\"projects\\\":[1]}\"},{\"type\":\"text\",\"text\":5},{\"type\":\"text\",\"text\":\"{\\\"projects\\\":[2]}\"}]}",
+    ),
+    content="[2]",
+  )
+}
+
+///|
+test "a result without a projects list holds no projects" {
+  assert_eq(projects_of("{\"projects\":[1]}"), "[1]")
+  assert_eq(projects_in(None), [])
   for text in ["null", "[]", "\"x\"", "{}", "{\"content\":3}"] {
-    inspect(projects_of(text), content="[]")
+    assert_eq(projects_of(text), "[]", msg=text)
   }
 }

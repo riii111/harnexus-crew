@@ -1,10 +1,10 @@
 ///|
-test "write_text reports a closed descriptor" {
-  let errno = try {
+test "write_text reports EBADF with the descriptor on a closed descriptor" {
+  let outcome = try {
     write_text(-1, "x")
-    0
+    "accepted"
   } catch {
-    WriteFailed(errno~, ..) => errno
+    WriteFailed(fd~, errno~) => "fd=\{fd} errno=\{errno}"
   }
-  inspect(errno != 0, content="true")
+  inspect(outcome, content="fd=-1 errno=9")
 }

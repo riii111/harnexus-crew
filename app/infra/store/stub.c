@@ -131,11 +131,6 @@ int32_t harnexus_store_mkdir(moonbit_bytes_t path, int32_t mode) {
   return mkdir((const char *)path, (mode_t)mode) < 0 ? -errno : 0;
 }
 
-MOONBIT_FFI_EXPORT
-int32_t harnexus_store_rmdir(moonbit_bytes_t path) {
-  return rmdir((const char *)path) < 0 ? -errno : 0;
-}
-
 // Writes the resolved path into the caller's buffer and returns its length, or ERANGE when it does not fit.
 MOONBIT_FFI_EXPORT
 int32_t harnexus_store_realpath(moonbit_bytes_t path, moonbit_bytes_t out, int32_t cap) {
