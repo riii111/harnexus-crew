@@ -4,35 +4,58 @@ test "parse keeps the last of a repeated key" {
 }
 
 ///|
-test "parse rejects text that is not JSON" {
-  let outcome = try {
+test "parse fails with an invalid JSON message on text that is not JSON" {
+  let message = try {
     parse("{") |> ignore
     "accepted"
   } catch {
-    JsonError(message) => message.has_prefix("invalid JSON: ").to_string()
+    JsonError(message) => message
   }
-  inspect(outcome, content="true")
+
+  assert_eq(message.find("invalid JSON: "), Some(0))
 }
 
 ///|
-test "an unpaired surrogate escape reads as U+FFFD and a pair as its character" {
+test "an unpaired surrogate escape reads as U+FFFD" {
   let cases : Array[(String, String)] = [
     ("\"\\ud800\"", "\u{FFFD}"),
     ("\"\\uDC00\"", "\u{FFFD}"),
     ("\"\\udc00\\ud800\"", "\u{FFFD}\u{FFFD}"),
     ("\"a\\ud800b\"", "a\u{FFFD}b"),
-    ("\"\\ud83c\\udf19\"", "\u{1F319}"),
     ("\"\\ud83c\\u0041\"", "\u{FFFD}A"),
-    ("\"\\ud800\\ud83c\\udf19\"", "\u{FFFD}\u{1F319}"),
-    ("\"\\\\ud800\"", "\\ud800"),
     ("\"\\\"\\ud800\"", "\"\u{FFFD}"),
   ]
+
   for pair in cases {
     let (input, expected) = pair
     match parse(input) {
-      String(text) => assert_eq(text, expected)
+      String(text) => assert_eq(text, expected, msg=input)
       _ => fail("not a string: \{input}")
     }
+  }
+}
+
+///|
+test "a surrogate pair escape reads as its character, also after an unpaired one" {
+  let cases : Array[(String, String)] = [
+    ("\"\\ud83c\\udf19\"", "\u{1F319}"),
+    ("\"\\ud800\\ud83c\\udf19\"", "\u{FFFD}\u{1F319}"),
+  ]
+
+  for pair in cases {
+    let (input, expected) = pair
+    match parse(input) {
+      String(text) => assert_eq(text, expected, msg=input)
+      _ => fail("not a string: \{input}")
+    }
+  }
+}
+
+///|
+test "an escaped backslash before ud800 stays literal text" {
+  match parse("\"\\\\ud800\"") {
+    String(text) => assert_eq(text, "\\ud800")
+    _ => fail("not a string")
   }
 }
 
