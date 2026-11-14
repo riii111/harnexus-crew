@@ -1,17 +1,4 @@
 ///|
-const PR_WAKE_VARIABLE : String = "HARNEXUS_CREW_PR_WAKE"
-
-///|
-const ENGINE : String = "pr-wake-engine"
-
-///|
-/// A dry run reads every configured PR from GitHub, so it is given as long as a person waits for it.
-const DRY_RUN_TIMEOUT_MS : Int32 = 600000
-
-///|
-const CALL_TIMEOUT_MS : Int32 = 60000
-
-///|
 /// Runs one pr-wake watch subcommand and returns the one JSON object it prints.
 pub async fn call(
   env : @environment.Env,
@@ -34,6 +21,9 @@ pub async fn run_watch_engine(
   }
   { "watch": "stopped" }
 }
+
+///|
+const PR_WAKE_VARIABLE : String = "HARNEXUS_CREW_PR_WAKE"
 
 ///|
 async fn call_within(
@@ -67,12 +57,22 @@ async fn call_within(
 }
 
 ///|
+/// A dry run reads every configured PR from GitHub, so it is given as long as a person waits for it.
+const DRY_RUN_TIMEOUT_MS : Int32 = 600000
+
+///|
+const CALL_TIMEOUT_MS : Int32 = 60000
+
+///|
 fn timeout_of(args : Array[String]) -> Int32 {
   match args.get(0) {
     Some("dry-run") => DRY_RUN_TIMEOUT_MS
     _ => CALL_TIMEOUT_MS
   }
 }
+
+///|
+const ENGINE : String = "pr-wake-engine"
 
 ///|
 /// The engine pr-wake installs beside itself, which its LaunchAgent runs.

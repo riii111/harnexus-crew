@@ -1,30 +1,4 @@
 ///|
-fn lock_in(directory : String) -> String {
-  "\{directory}/lock.json"
-}
-
-///|
-/// Writes a lock file as another run would have left it.
-fn write_lock(lock : String, pid : Double, token : String) -> Unit raise {
-  let content = Json::object(
-    Map::from_array([("pid", Json::number(pid)), ("token", Json::string(token))]),
-  )
-  write_atomic(lock, content.stringify())
-}
-
-///|
-fn read_lock_token(lock : String) -> String raise {
-  match read_json_or_null(lock) {
-    Object(members) =>
-      match members.get("token") {
-        Some(String(token)) => token
-        _ => fail("no token")
-      }
-    _ => fail("not a lock")
-  }
-}
-
-///|
 async test "acquire writes the pid, token and start time of the holder" {
   in_scratch(directory => {
     let lock = lock_in(directory)
@@ -256,4 +230,30 @@ async test "with_lock reports an abandoned takeover marker once the wait is over
       "\{lock} stayed locked: a run that was taking over this session died before it finished, and left \{lock} and \{lock}.reap. Once every review and question process for this session has stopped, remove \{lock}.reap, then run again",
     )
   })
+}
+
+///|
+fn lock_in(directory : String) -> String {
+  "\{directory}/lock.json"
+}
+
+///|
+/// Writes a lock file as another run would have left it.
+fn write_lock(lock : String, pid : Double, token : String) -> Unit raise {
+  let content = Json::object(
+    Map::from_array([("pid", Json::number(pid)), ("token", Json::string(token))]),
+  )
+  write_atomic(lock, content.stringify())
+}
+
+///|
+fn read_lock_token(lock : String) -> String raise {
+  match read_json_or_null(lock) {
+    Object(members) =>
+      match members.get("token") {
+        Some(String(token)) => token
+        _ => fail("no token")
+      }
+    _ => fail("not a lock")
+  }
 }
