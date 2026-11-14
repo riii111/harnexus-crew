@@ -11,123 +11,8 @@ from harness.cases import REPO
 from harness.processes import make_dead_pid
 from harness.rig import candidate_repository, codes, observed, parsed_or_text, read_recorded, with_rig
 
-REVIEWER = "01a18d52-e03a-74c1-a50e-4e697b47172b"
-OTHER = "01a18d52-e03a-74c1-a50e-4e697b47172c"
-BASE = "af314261c610837f3606d61aa2dff1981debda94"
-HEAD_1 = "a6bc63c9fd9d736a274586bb4a3989bc27297649"
-
-REPO_PATH = "{{root}}/cloud/repo"
-REQUEST = {
-    "taskId": "example",
-    "workerAI": "Claude",
-    "checkout": REPO_PATH,
-    "baseBranch": "base",
-    "documentRefs": ["https://example.com/task"],
-    "prUrl": None,
-}
-REPOSITORY = candidate_repository(REPO_PATH)
-FAKE = str(REPO / "test" / "native" / "mocks" / "fake-cli.sh")
-REVIEW = ["review", "--request", "review.json"]
-ASK = [*REVIEW, "--ask", "ask.md"]
-TIMED = {"HARNEXUS_REVIEW_TIMEOUT_MS": "400", "HARNEXUS_REVIEW_KILL_GRACE_MS": "400"}
-RUN_TIMEOUT_SECONDS = 60
-
-
-def events(thread_id, answer):
-    return "\n".join(
-        jsonvalue.dumps(event)
-        for event in [
-            {"type": "thread.started", "thread_id": thread_id},
-            {"type": "turn.started"},
-            {"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": answer}},
-            {"type": "turn.completed", "usage": {"input_tokens": 1, "output_tokens": 1}},
-        ]
-    )
-
-
-def planned(runs):
-    """The stand-in for codex replays run n from these files, and records what it was given in the same directory."""
-    files = {}
-    for index, run in enumerate(runs):
-        n = index + 1
-        files[f"fake/out.{n}"] = run.get("out", "")
-        files[f"fake/exit.{n}"] = str(run.get("exit", 0))
-        if "stderr" in run:
-            files[f"fake/stderr.{n}"] = run["stderr"]
-        if "sleep" in run:
-            files[f"fake/sleep.{n}"] = run["sleep"]
-    return files
-
-
-def scenario_fields(runs, env=None, files=None, request=None):
-    return {
-        "env": {
-            "CLAUDE_CODE_REMOTE": "true",
-            "CLAUDE_CODE_SESSION_ID": "worker-session",
-            "HARNEXUS_CODEX_BIN": FAKE,
-            "FAKE_DIR": "{{root}}/fake",
-            "HOME": "{{root}}/cloud",
-            **(env or {}),
-        },
-        "seed": {"skills": "test/fixtures/task-skills"},
-        "git": REPOSITORY,
-        # The recorded arguments, directories and prompts of the stand-in are compared with the state.
-        "snapshot": ["state", "fake", "work"],
-        "files": {
-            "config/harnexus/task.json": jsonvalue.dumps(
-                {"templates": {"reviewer": "{{root}}/skills/task-review-cycle/references/reviewer.md"}}
-            ),
-            "work/review.json": jsonvalue.dumps(request or REQUEST),
-            "work/ask.md": "B1 はまだ残っていますか",
-            **planned(runs),
-            **(files or {}),
-        },
-    }
-
-
-def list_state_directories(rig):
-    base = Path(rig.sandbox.root) / "state" / "harnexus-crew" / "cloud-review"
-    return sorted(base.iterdir()) if base.is_dir() else []
-
-
-def wait_for_lock(rig):
-    """Waits until a run holds the session's lock."""
-    for _ in range(400):
-        for directory in list_state_directories(rig):
-            if (directory / "lock.json").exists():
-                return directory
-        time.sleep(0.025)
-    raise AssertionError("no run took the lock")
-
-
-def read_state(stdout):
-    path = Path(stdout["state"])
-    return path, jsonvalue.loads(path.read_text(encoding="utf-8"))
-
-
-def without_pid(node, pid):
-    """The ID of a process that has ended differs on every run, so it is named <DEAD_PID>."""
-    if isinstance(node, dict):
-        return {key: "<DEAD_PID>" if key == "pid" and value == pid else without_pid(value, pid) for key, value in node.items()}
-    if isinstance(node, list):
-        return [without_pid(item, pid) for item in node]
-    if isinstance(node, str):
-        return node.replace(f'"pid":{pid}', '"pid":"<DEAD_PID>"')
-    return node
-
-
-def write_json(path, value):
-    Path(path).write_text(jsonvalue.dumps(value), encoding="utf-8")
-
 
 class CloudReviews(ScenarioAsserts, unittest.TestCase):
-    def run_scenario(self, name, runs, body, **options):
-        """Runs the scenario on the Native build and checks it against the recorded expectation."""
-        done = with_rig({"name": name, **scenario_fields(runs, **options)}, body, timeout=RUN_TIMEOUT_SECONDS)
-        native = observed(done, steady=True)
-        self.assertSameJson(read_recorded(name, done), without_pid(native, self.dead))
-        return native
-
     def setUp(self):
         self.dead = make_dead_pid()
 
@@ -363,6 +248,122 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         steps = native["result"]
         self.assertEqual([0, 1], codes(steps))
         self.assertIn("a run that was taking over this session died before it finished", steps[1]["stderr"])
+
+    def run_scenario(self, name, runs, body, **options):
+        """Runs the scenario on the Native build and checks it against the recorded expectation."""
+        done = with_rig({"name": name, **scenario_fields(runs, **options)}, body, timeout=RUN_TIMEOUT_SECONDS)
+        native = observed(done, steady=True)
+        self.assertSameJson(read_recorded(name, done), without_pid(native, self.dead))
+        return native
+
+
+def events(thread_id, answer):
+    return "\n".join(
+        jsonvalue.dumps(event)
+        for event in [
+            {"type": "thread.started", "thread_id": thread_id},
+            {"type": "turn.started"},
+            {"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": answer}},
+            {"type": "turn.completed", "usage": {"input_tokens": 1, "output_tokens": 1}},
+        ]
+    )
+
+
+def scenario_fields(runs, env=None, files=None, request=None):
+    return {
+        "env": {
+            "CLAUDE_CODE_REMOTE": "true",
+            "CLAUDE_CODE_SESSION_ID": "worker-session",
+            "HARNEXUS_CODEX_BIN": FAKE,
+            "FAKE_DIR": "{{root}}/fake",
+            "HOME": "{{root}}/cloud",
+            **(env or {}),
+        },
+        "seed": {"skills": "test/fixtures/task-skills"},
+        "git": REPOSITORY,
+        # The recorded arguments, directories and prompts of the stand-in are compared with the state.
+        "snapshot": ["state", "fake", "work"],
+        "files": {
+            "config/harnexus/task.json": jsonvalue.dumps(
+                {"templates": {"reviewer": "{{root}}/skills/task-review-cycle/references/reviewer.md"}}
+            ),
+            "work/review.json": jsonvalue.dumps(request or REQUEST),
+            "work/ask.md": "B1 はまだ残っていますか",
+            **planned(runs),
+            **(files or {}),
+        },
+    }
+
+
+def planned(runs):
+    """The stand-in for codex replays run n from these files, and records what it was given in the same directory."""
+    files = {}
+    for index, run in enumerate(runs):
+        n = index + 1
+        files[f"fake/out.{n}"] = run.get("out", "")
+        files[f"fake/exit.{n}"] = str(run.get("exit", 0))
+        if "stderr" in run:
+            files[f"fake/stderr.{n}"] = run["stderr"]
+        if "sleep" in run:
+            files[f"fake/sleep.{n}"] = run["sleep"]
+    return files
+
+
+def without_pid(node, pid):
+    """The ID of a process that has ended differs on every run, so it is named <DEAD_PID>."""
+    if isinstance(node, dict):
+        return {key: "<DEAD_PID>" if key == "pid" and value == pid else without_pid(value, pid) for key, value in node.items()}
+    if isinstance(node, list):
+        return [without_pid(item, pid) for item in node]
+    if isinstance(node, str):
+        return node.replace(f'"pid":{pid}', '"pid":"<DEAD_PID>"')
+    return node
+
+
+def read_state(stdout):
+    path = Path(stdout["state"])
+    return path, jsonvalue.loads(path.read_text(encoding="utf-8"))
+
+
+def wait_for_lock(rig):
+    """Waits until a run holds the session's lock."""
+    for _ in range(400):
+        for directory in list_state_directories(rig):
+            if (directory / "lock.json").exists():
+                return directory
+        time.sleep(0.025)
+    raise AssertionError("no run took the lock")
+
+
+def list_state_directories(rig):
+    base = Path(rig.sandbox.root) / "state" / "harnexus-crew" / "cloud-review"
+    return sorted(base.iterdir()) if base.is_dir() else []
+
+
+def write_json(path, value):
+    Path(path).write_text(jsonvalue.dumps(value), encoding="utf-8")
+
+
+REVIEWER = "01a18d52-e03a-74c1-a50e-4e697b47172b"
+OTHER = "01a18d52-e03a-74c1-a50e-4e697b47172c"
+BASE = "af314261c610837f3606d61aa2dff1981debda94"
+HEAD_1 = "a6bc63c9fd9d736a274586bb4a3989bc27297649"
+
+REPO_PATH = "{{root}}/cloud/repo"
+REQUEST = {
+    "taskId": "example",
+    "workerAI": "Claude",
+    "checkout": REPO_PATH,
+    "baseBranch": "base",
+    "documentRefs": ["https://example.com/task"],
+    "prUrl": None,
+}
+REPOSITORY = candidate_repository(REPO_PATH)
+FAKE = str(REPO / "test" / "native" / "mocks" / "fake-cli.sh")
+REVIEW = ["review", "--request", "review.json"]
+ASK = [*REVIEW, "--ask", "ask.md"]
+TIMED = {"HARNEXUS_REVIEW_TIMEOUT_MS": "400", "HARNEXUS_REVIEW_KILL_GRACE_MS": "400"}
+RUN_TIMEOUT_SECONDS = 60
 
 
 if __name__ == "__main__":

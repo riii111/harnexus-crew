@@ -13,56 +13,6 @@ from harness.binaries import require_binary
 from harness.cases import REPO
 from harness.processes import make_dead_pid
 
-EXPECTATIONS = jsonvalue.loads((REPO / "test" / "native" / "store-expectations.json").read_text(encoding="utf-8"))
-
-
-def start(*args):
-    return subprocess.Popen([require_binary("HARNEXUS_STORE_PROBE"), *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-
-def read_reply(process):
-    out, err = process.communicate()
-    if process.returncode != 0:
-        raise RuntimeError(f"probe exited {process.returncode}: {err.decode('utf-8', errors='replace')}")
-    return jsonvalue.loads(out.decode("utf-8").strip().split("\n")[-1])
-
-
-def run(*args):
-    return read_reply(start(*args))
-
-
-def run_together(count, arguments):
-    """Starts `count` probes at once and returns their replies; `arguments(index)` gives each one's arguments."""
-    processes = [start(*arguments(index)) for index in range(count)]
-    return [read_reply(process) for process in processes]
-
-
-def shared_start_time():
-    """Processes started one by one begin together at a time a little ahead."""
-    return str(int(time.time() * 1000) + 1500)
-
-
-def leave_lock(lock, pid):
-    Path(lock).write_text(jsonvalue.dumps({"pid": pid, "token": "dead"}), encoding="utf-8")
-
-
-def read_token(lock):
-    return jsonvalue.loads(Path(lock).read_text(encoding="utf-8"))["token"]
-
-
-def hold(lock, kind):
-    """Starts a holder and returns it with the line it printed once it holds the lock."""
-    holder = start("hold", str(lock), kind)
-    first = holder.stdout.readline()
-    return holder, jsonvalue.loads(first.decode("utf-8"))
-
-
-def stop(holder):
-    holder.kill()
-    holder.wait()
-    holder.stdout.close()
-    holder.stderr.close()
-
 
 class StoreBetweenProcesses(unittest.TestCase):
     def setUp(self):
@@ -287,6 +237,57 @@ class ReadingAndWritingFiles(StoreBetweenProcesses):
         self.assertIs(True, first["ok"])
         self.assertEqual(f"another harnexus-crew run is sending; inspect {path}", second["message"])
         self.assertEqual({"a": 1}, jsonvalue.loads(path.read_text(encoding="utf-8")))
+
+
+def shared_start_time():
+    """Processes started one by one begin together at a time a little ahead."""
+    return str(int(time.time() * 1000) + 1500)
+
+
+def run_together(count, arguments):
+    """Starts `count` probes at once and returns their replies; `arguments(index)` gives each one's arguments."""
+    processes = [start(*arguments(index)) for index in range(count)]
+    return [read_reply(process) for process in processes]
+
+
+def run(*args):
+    return read_reply(start(*args))
+
+
+def hold(lock, kind):
+    """Starts a holder and returns it with the line it printed once it holds the lock."""
+    holder = start("hold", str(lock), kind)
+    first = holder.stdout.readline()
+    return holder, jsonvalue.loads(first.decode("utf-8"))
+
+
+def stop(holder):
+    holder.kill()
+    holder.wait()
+    holder.stdout.close()
+    holder.stderr.close()
+
+
+def leave_lock(lock, pid):
+    Path(lock).write_text(jsonvalue.dumps({"pid": pid, "token": "dead"}), encoding="utf-8")
+
+
+def read_token(lock):
+    return jsonvalue.loads(Path(lock).read_text(encoding="utf-8"))["token"]
+
+
+def read_reply(process):
+    out, err = process.communicate()
+    if process.returncode != 0:
+        raise RuntimeError(f"probe exited {process.returncode}: {err.decode('utf-8', errors='replace')}")
+    return jsonvalue.loads(out.decode("utf-8").strip().split("\n")[-1])
+
+
+def start(*args):
+    return subprocess.Popen([require_binary("HARNEXUS_STORE_PROBE"), *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+EXPECTATIONS = jsonvalue.loads((REPO / "test" / "native" / "store-expectations.json").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

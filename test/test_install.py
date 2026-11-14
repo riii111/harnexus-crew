@@ -12,74 +12,8 @@ from pathlib import Path
 
 from harness.cases import REPO
 
-SCRIPT = REPO / "scripts" / "install.sh"
-BUILD_TIMEOUT_SECONDS = 600
-INSTALL_BUILD_ARGS = ["build", "cmd/main", "--target", "native", "--release"]
-
-
-def run(args, env=None):
-    ran = subprocess.run(
-        ["bash", str(SCRIPT), *args],
-        env={
-            "PATH": os.environ["PATH"],
-            "HOME": os.environ.get("HOME", "/nonexistent"),
-            "XDG_CONFIG_HOME": "/nonexistent/config",
-            **(env or {}),
-        },
-        capture_output=True,
-        timeout=BUILD_TIMEOUT_SECONDS,
-    )
-    return ran.returncode, ran.stdout.decode("utf-8", errors="replace"), ran.stderr.decode("utf-8", errors="replace")
-
-
-def read_usage_line(program):
-    ran = subprocess.run([program, "launch"], capture_output=True)
-    return ran.stderr.decode("utf-8", errors="replace").split("\n")[-2]
-
-
-def read_head():
-    return subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, check=True).stdout.decode().strip()
-
-
-@functools.cache
-def install_real_build():
-    """The one real build of the committed HEAD, installed into a prefix that does not exist yet."""
-    directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
-    unittest.addModuleCleanup(shutil.rmtree, directory, ignore_errors=True)
-    prefix = directory / "made" / "bin"
-    return prefix, run(["--prefix", str(prefix), "--repo", str(REPO), "--rev", read_head()])
-
-
-def write_moon_with_real_binary(directory):
-    """A moon whose build result is the binary the real build made, so install.sh runs its own checks against a real harnexus-crew."""
-    prefix, installed = install_real_build()
-    binary = prefix / "harnexus-crew"
-    if not binary.is_file():
-        raise FileNotFoundError(f"the real build left no {binary}: {installed}")
-    moon = directory / "moon"
-    moon.write_text(
-        "#!/bin/sh\n"
-        "mkdir -p _build/native/release/build/cmd/main\n"
-        f"cp {shlex.quote(str(binary))} _build/native/release/build/cmd/main/main.exe\n",
-        encoding="utf-8",
-    )
-    moon.chmod(0o755)
-    return moon
-
 
 class InstallScript(unittest.TestCase):
-    def make_scratch_directory(self):
-        directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
-        self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
-        return directory
-
-    def install_the_real_binary(self, root):
-        prefix = root / "bin"
-        moon = write_moon_with_real_binary(root)
-        installed = run(["--prefix", str(prefix), "--moon", str(moon)])
-        self.assertEqual((0, ""), (installed[0], installed[2]))
-        return prefix, moon
-
     def test_rejects_what_it_cannot_install_from(self):
         for name, args, message in (
             ("a relative prefix", ["--prefix", "bin"], "--prefix must be an absolute path"),
@@ -184,6 +118,73 @@ class InstallScript(unittest.TestCase):
 
         failed = run(["--prefix", str(prefix), "--moon", str(broken)])
         return prefix, before, asked, failed
+
+    def install_the_real_binary(self, root):
+        prefix = root / "bin"
+        moon = write_moon_with_real_binary(root)
+        installed = run(["--prefix", str(prefix), "--moon", str(moon)])
+        self.assertEqual((0, ""), (installed[0], installed[2]))
+        return prefix, moon
+
+    def make_scratch_directory(self):
+        directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
+        self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
+        return directory
+
+
+@functools.cache
+def install_real_build():
+    """The one real build of the committed HEAD, installed into a prefix that does not exist yet."""
+    directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
+    unittest.addModuleCleanup(shutil.rmtree, directory, ignore_errors=True)
+    prefix = directory / "made" / "bin"
+    return prefix, run(["--prefix", str(prefix), "--repo", str(REPO), "--rev", read_head()])
+
+
+def write_moon_with_real_binary(directory):
+    """A moon whose build result is the binary the real build made, so install.sh runs its own checks against a real harnexus-crew."""
+    prefix, installed = install_real_build()
+    binary = prefix / "harnexus-crew"
+    if not binary.is_file():
+        raise FileNotFoundError(f"the real build left no {binary}: {installed}")
+    moon = directory / "moon"
+    moon.write_text(
+        "#!/bin/sh\n"
+        "mkdir -p _build/native/release/build/cmd/main\n"
+        f"cp {shlex.quote(str(binary))} _build/native/release/build/cmd/main/main.exe\n",
+        encoding="utf-8",
+    )
+    moon.chmod(0o755)
+    return moon
+
+
+def read_usage_line(program):
+    ran = subprocess.run([program, "launch"], capture_output=True)
+    return ran.stderr.decode("utf-8", errors="replace").split("\n")[-2]
+
+
+def read_head():
+    return subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, check=True).stdout.decode().strip()
+
+
+def run(args, env=None):
+    ran = subprocess.run(
+        ["bash", str(SCRIPT), *args],
+        env={
+            "PATH": os.environ["PATH"],
+            "HOME": os.environ.get("HOME", "/nonexistent"),
+            "XDG_CONFIG_HOME": "/nonexistent/config",
+            **(env or {}),
+        },
+        capture_output=True,
+        timeout=BUILD_TIMEOUT_SECONDS,
+    )
+    return ran.returncode, ran.stdout.decode("utf-8", errors="replace"), ran.stderr.decode("utf-8", errors="replace")
+
+
+SCRIPT = REPO / "scripts" / "install.sh"
+BUILD_TIMEOUT_SECONDS = 600
+INSTALL_BUILD_ARGS = ["build", "cmd/main", "--target", "native", "--release"]
 
 
 if __name__ == "__main__":

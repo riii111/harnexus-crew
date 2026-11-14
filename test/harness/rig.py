@@ -14,23 +14,6 @@ from .normalize import ROOT_MARK
 from .sandbox import create_sandbox, read_commands, run_git, snapshot_files
 
 
-def parsed_or_text(text):
-    parsed = jsonvalue.try_loads(text)
-    return parsed[0] if parsed is not None else text
-
-
-@dataclass
-class Started:
-    running: Running
-
-    def kill(self):
-        self.running.kill()
-
-    def wait_for_end(self):
-        code, _, stdout, stderr = self.running.end()
-        return {"code": code, "stdout": stdout, "stderr": stderr}
-
-
 @dataclass
 class Rig:
     sandbox: object
@@ -61,25 +44,24 @@ class Rig:
 
 
 @dataclass
+class Started:
+    running: Running
+
+    def kill(self):
+        self.running.kill()
+
+    def wait_for_end(self):
+        code, _, stdout, stderr = self.running.end()
+        return {"code": code, "stdout": stdout, "stderr": stderr}
+
+
+@dataclass
 class Done:
     result: object
     root: str
     requests: list
     commands: list
     files: dict
-
-
-@contextmanager
-def _open_sandbox(fields):
-    case = make_case(**fields)
-    sandbox = create_sandbox(case)
-    bridge = start_bridge(case, sandbox)
-    try:
-        yield case, sandbox, bridge
-    finally:
-        if bridge:
-            bridge.stop()
-        sandbox.cleanup()
 
 
 def with_rig(fields, body, timeout=RUN_TIMEOUT_SECONDS):
@@ -94,45 +76,6 @@ def with_rig(fields, body, timeout=RUN_TIMEOUT_SECONDS):
             commands=read_commands(sandbox.root),
             files=snapshot_files(sandbox.root, case.snapshot),
         )
-
-
-REPO_MARK = "<REPO>"
-
-
-def _replace_root(node, root):
-    """The sandbox root and the checkout this suite runs from are named alike, as neither is the same on every machine."""
-    if isinstance(node, str):
-        return node.replace(root, ROOT_MARK).replace(str(REPO), REPO_MARK)
-    if isinstance(node, list):
-        return [_replace_root(item, root) for item in node]
-    if isinstance(node, dict):
-        return {_replace_root(name, root): _replace_root(item, root) for name, item in node.items()}
-    return node
-
-
-def _parse_stdout_json(node, name=""):
-    if isinstance(node, list):
-        return [_parse_stdout_json(item, name) for item in node]
-    if isinstance(node, dict):
-        return {key: _parse_stdout_json(item, key) for key, item in node.items()}
-    if isinstance(node, str) and name == "stdout":
-        return parsed_or_text(node)
-    return node
-
-
-_TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", re.ASCII)
-_PID = re.compile(r"\(pid \d+\)", re.ASCII)
-
-
-def _mask_time_and_pid(node):
-    """Times and process IDs differ from run to run, and nothing else is replaced."""
-    if isinstance(node, str):
-        return _PID.sub("(pid <PID>)", _TIME.sub("<TIME>", node))
-    if isinstance(node, list):
-        return [_mask_time_and_pid(item) for item in node]
-    if isinstance(node, dict):
-        return {_mask_time_and_pid(name): _mask_time_and_pid(item) for name, item in node.items()}
-    return node
 
 
 def observed(done, steady=False):
@@ -164,18 +107,6 @@ def read_recorded(name, done):
     return expected.load_expanded("scenarios", name, done.root)
 
 
-def wait_for(ready, what):
-    started = time.monotonic()
-    while not ready():
-        if time.monotonic() - started > RUN_TIMEOUT_SECONDS:
-            raise TimeoutError(f"timed out waiting for {what}")
-        time.sleep(0.005)
-
-
-def codes(steps):
-    return [step["code"] for step in steps]
-
-
 def candidate_repository(path):
     """The git commands that make a repository with a `base` branch and one commit past it."""
     return [
@@ -184,3 +115,72 @@ def candidate_repository(path):
         ["-C", path, "branch", "base"],
         ["-C", path, "commit", "--allow-empty", "-qm", "test: candidate 1"],
     ]
+
+
+def codes(steps):
+    return [step["code"] for step in steps]
+
+
+@contextmanager
+def _open_sandbox(fields):
+    case = make_case(**fields)
+    sandbox = create_sandbox(case)
+    bridge = start_bridge(case, sandbox)
+    try:
+        yield case, sandbox, bridge
+    finally:
+        if bridge:
+            bridge.stop()
+        sandbox.cleanup()
+
+
+REPO_MARK = "<REPO>"
+
+
+def _replace_root(node, root):
+    """The sandbox root and the checkout this suite runs from are named alike, as neither is the same on every machine."""
+    if isinstance(node, str):
+        return node.replace(root, ROOT_MARK).replace(str(REPO), REPO_MARK)
+    if isinstance(node, list):
+        return [_replace_root(item, root) for item in node]
+    if isinstance(node, dict):
+        return {_replace_root(name, root): _replace_root(item, root) for name, item in node.items()}
+    return node
+
+
+_TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", re.ASCII)
+_PID = re.compile(r"\(pid \d+\)", re.ASCII)
+
+
+def _mask_time_and_pid(node):
+    """Times and process IDs differ from run to run, and nothing else is replaced."""
+    if isinstance(node, str):
+        return _PID.sub("(pid <PID>)", _TIME.sub("<TIME>", node))
+    if isinstance(node, list):
+        return [_mask_time_and_pid(item) for item in node]
+    if isinstance(node, dict):
+        return {_mask_time_and_pid(name): _mask_time_and_pid(item) for name, item in node.items()}
+    return node
+
+
+def _parse_stdout_json(node, name=""):
+    if isinstance(node, list):
+        return [_parse_stdout_json(item, name) for item in node]
+    if isinstance(node, dict):
+        return {key: _parse_stdout_json(item, key) for key, item in node.items()}
+    if isinstance(node, str) and name == "stdout":
+        return parsed_or_text(node)
+    return node
+
+
+def wait_for(ready, what):
+    started = time.monotonic()
+    while not ready():
+        if time.monotonic() - started > RUN_TIMEOUT_SECONDS:
+            raise TimeoutError(f"timed out waiting for {what}")
+        time.sleep(0.005)
+
+
+def parsed_or_text(text):
+    parsed = jsonvalue.try_loads(text)
+    return parsed[0] if parsed is not None else text

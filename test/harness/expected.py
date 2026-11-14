@@ -14,12 +14,15 @@ from .cases import REPO
 from .normalize import ROOT_MARK
 
 EXPECTED = REPO / "test" / "expected"
+
+
+def load_expanded(group, name, root):
+    recorded = load(group, name)
+    keys = recorded.pop("keys")
+    return expand_keys(recorded, keys, root)
+
+
 _TOKEN = re.compile(r"\{\{key:(\d+)\}\}")
-
-
-def key_digest(key, root):
-    text = key["text"].replace(ROOT_MARK, root)
-    return hashlib.sha256(jsonvalue.lossy_bytes(text)).hexdigest()[: key["length"]]
 
 
 def expand_keys(value, keys, root):
@@ -41,12 +44,11 @@ def expand_keys(value, keys, root):
     return walk(value)
 
 
+def key_digest(key, root):
+    text = key["text"].replace(ROOT_MARK, root)
+    return hashlib.sha256(jsonvalue.lossy_bytes(text)).hexdigest()[: key["length"]]
+
+
 def load(group, name):
     path: Path = EXPECTED / group / f"{name}.json"
     return json.loads(path.read_text(encoding="utf-8"))
-
-
-def load_expanded(group, name, root):
-    recorded = load(group, name)
-    keys = recorded.pop("keys")
-    return expand_keys(recorded, keys, root)
