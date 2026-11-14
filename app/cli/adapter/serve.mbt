@@ -8,12 +8,9 @@ async fn serve(env : @environment.Env, adapter_id : String) -> @run.CommandRun {
     adapter_id,
     read_line=() => {
       if lines.is_empty() {
-        let chunk = match
-          (Ok(@stdio.stdin.read_until(b"\n")) catch { e => Err(e) }) {
-          Ok(Some(bytes)) => @utf8.decode_lossy(bytes)
-          _ => return None
-        }
-        lines.append(split_lines(chunk))
+        let bytes = @stdio.stdin.read_until(b"\n") catch { _ => None }
+        guard bytes is Some(bytes) else { return None }
+        lines.append(split_lines(@utf8.decode_lossy(bytes)))
       }
       Some(lines.remove(0))
     },
