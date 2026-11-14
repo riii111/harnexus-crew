@@ -93,16 +93,28 @@ class InstallScript(unittest.TestCase):
                 self.assertEqual(2, status)
                 self.assertIn(message, stderr)
 
-    def test_installs_the_requested_commit_into_a_prefix_that_does_not_exist_yet(self):
+    def test_reports_the_installed_path_and_commit_when_the_prefix_does_not_exist_yet(self):
         prefix, (status, stdout, stderr) = install_real_build()
 
         self.assertEqual((0, ""), (status, stderr))
         self.assertIn(f"installed {prefix}/harnexus-crew from {read_head()}", stdout)
+
+    def test_installs_a_binary_that_starts_into_a_prefix_that_does_not_exist_yet(self):
+        prefix, _ = install_real_build()
+
         self.assertEqual("harnexus-crew: --request is required", read_usage_line(str(prefix / "harnexus-crew")))
         ran = subprocess.run([str(prefix / "harnexus-crew"), "--help"], capture_output=True)
         self.assertEqual(0, ran.returncode)
-        self.assertTrue(ran.stdout.decode().startswith("usage:\n"))
+        self.assertEqual("usage:", ran.stdout.decode().split("\n")[0])
+
+    def test_installs_the_binary_as_executable(self):
+        prefix, _ = install_real_build()
+
         self.assertEqual(0o755, (prefix / "harnexus-crew").stat().st_mode & 0o777)
+
+    def test_leaves_only_the_binary_in_the_prefix(self):
+        prefix, _ = install_real_build()
+
         self.assertEqual(["harnexus-crew"], sorted(path.name for path in prefix.iterdir()))
 
     def test_keeps_the_installed_binary_when_the_requested_commit_is_missing(self):
@@ -117,23 +129,31 @@ class InstallScript(unittest.TestCase):
         self.assertEqual((before.st_ino, before.st_mtime_ns), (after.st_ino, after.st_mtime_ns))
 
     def test_keeps_the_installed_binary_when_the_build_fails(self):
-        root = self.make_scratch_directory()
-        prefix, _ = self.install_the_real_binary(root)
-        before = (prefix / "harnexus-crew").stat()
-        asked = root / "asked"
-        broken = root / "broken-moon"
-        broken.write_text(f"#!/bin/sh\necho \"$@\" >{shlex.quote(str(asked))}\necho 'cannot build' >&2\nexit 1\n", encoding="utf-8")
-        broken.chmod(0o755)
+        prefix, before, _, failed = self.fail_to_build_over_an_installed_binary()
 
-        status, _, stderr = run(["--prefix", str(prefix), "--moon", str(broken)])
         after = (prefix / "harnexus-crew").stat()
+
+        self.assertEqual(1, failed[0])
+        self.assertEqual(before.st_ino, after.st_ino)
+
+    def test_leaves_only_the_binary_in_the_prefix_when_the_build_fails(self):
+        prefix, _, _, failed = self.fail_to_build_over_an_installed_binary()
+
+        self.assertEqual(1, failed[0])
+        self.assertEqual(["harnexus-crew"], sorted(path.name for path in prefix.iterdir()))
+
+    def test_reports_the_build_output_when_the_build_fails(self):
+        _, _, _, (status, _, stderr) = self.fail_to_build_over_an_installed_binary()
 
         self.assertEqual(1, status)
         self.assertIn("the build failed; nothing was replaced", stderr)
         self.assertIn("cannot build", stderr)
+
+    def test_builds_the_command_with_the_install_arguments(self):
+        _, _, asked, (status, _, _) = self.fail_to_build_over_an_installed_binary()
+
+        self.assertEqual(1, status)
         self.assertEqual(" ".join(INSTALL_BUILD_ARGS), asked.read_text(encoding="utf-8").strip())
-        self.assertEqual(before.st_ino, after.st_ino)
-        self.assertEqual(["harnexus-crew"], sorted(path.name for path in prefix.iterdir()))
 
     def test_keeps_the_installed_binary_when_configured_templates_cannot_be_filled(self):
         root = self.make_scratch_directory()
@@ -152,6 +172,18 @@ class InstallScript(unittest.TestCase):
         self.assertEqual(1, failed[0])
         self.assertIn("cannot use the configured templates", failed[2])
         self.assertEqual(before.st_ino, after.st_ino)
+
+    def fail_to_build_over_an_installed_binary(self):
+        root = self.make_scratch_directory()
+        prefix, _ = self.install_the_real_binary(root)
+        before = (prefix / "harnexus-crew").stat()
+        asked = root / "asked"
+        broken = root / "broken-moon"
+        broken.write_text(f"#!/bin/sh\necho \"$@\" >{shlex.quote(str(asked))}\necho 'cannot build' >&2\nexit 1\n", encoding="utf-8")
+        broken.chmod(0o755)
+
+        failed = run(["--prefix", str(prefix), "--moon", str(broken)])
+        return prefix, before, asked, failed
 
 
 if __name__ == "__main__":
