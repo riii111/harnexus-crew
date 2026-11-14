@@ -23,7 +23,7 @@ fn main {
     }
   }
   let reply = Json::object({
-    "prompt": Json::string(@prompts.task_prompt(env, kind, fields)),
+    "prompt": Json::string(@prompts.render_task_prompt(env, kind, fields)),
   }) catch {
     @failure.TaskFailed(message) =>
       Json::object({ "error": Json::string(message) })

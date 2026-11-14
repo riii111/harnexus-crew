@@ -74,7 +74,7 @@ fn has_unsafe_character(path : String) -> Bool {
   path
   .code_units()
   .iter()
-  .any(fn(unit) { unit == 0x28 || unit == 0x29 || unit == 0x23 || unit == 0x5C })
+  .any(fn(unit) { unit == '(' || unit == ')' || unit == '#' || unit == '\\' })
 }
 
 ///|
@@ -93,14 +93,13 @@ fn has_scheme(path : String) -> Bool {
   }
   for index in 1..<units.length() {
     let unit = units[index]
-    if unit == 0x3A {
+    if unit == ':' {
       return true
     }
-    if !(is_ascii_letter(unit) ||
-      (unit >= 0x30 && unit <= 0x39) ||
-      unit == 0x2B ||
-      unit == 0x2E ||
-      unit == 0x2D) {
+    if !(@text.is_ascii_alphanumeric(unit.to_int()) ||
+      unit == '+' ||
+      unit == '.' ||
+      unit == '-') {
       return false
     }
   }
@@ -109,5 +108,5 @@ fn has_scheme(path : String) -> Bool {
 
 ///|
 fn is_ascii_letter(unit : UInt16) -> Bool {
-  (unit >= 0x41 && unit <= 0x5A) || (unit >= 0x61 && unit <= 0x7A)
+  (unit >= 'A' && unit <= 'Z') || (unit >= 'a' && unit <= 'z')
 }

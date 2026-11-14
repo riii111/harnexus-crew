@@ -223,7 +223,7 @@ fn Context::of_env(env : @environment.Env) -> Context {
     env,
     probe: @request.FileProbe::of_machine(),
     git: @git.Git::of_env(env),
-    prompt: fields => @prompt.task_prompt(env, Reviewer, fields),
+    prompt: fields => @prompt.render_task_prompt(env, Reviewer, fields),
     save: (path, data) => @store.save_json(path, data, exclusive=false),
   }
 }

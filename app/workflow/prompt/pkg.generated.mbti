@@ -10,7 +10,7 @@ import {
 // Values
 pub fn check_templates(@environment.Env) -> @json.Json raise @failure.TaskFailed
 
-pub fn task_prompt(@environment.Env, TemplateKind, Map[String, String]) -> String raise @failure.TaskFailed
+pub fn render_task_prompt(@environment.Env, TemplateKind, Map[String, String]) -> String raise @failure.TaskFailed
 
 // Errors
 
