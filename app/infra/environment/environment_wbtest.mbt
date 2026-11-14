@@ -22,7 +22,7 @@ fn detected(pairs : Array[(String, String)]) -> String {
 }
 
 ///|
-test "an explicit local names the app, an explicit cloud names the Cloud or none" {
+test "an explicit local names the app that runs it" {
   inspect(
     detected([("HARNEXUS_EXECUTION_ENV", "local")]),
     content="{\"environment\":\"local\",\"source\":\"explicit\",\"app\":\"codex\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
@@ -38,6 +38,10 @@ test "an explicit local names the app, an explicit cloud names the Cloud or none
     detected([("HARNEXUS_EXECUTION_ENV", "local"), ("T3CODE_THREAD_ID", "t")]),
     content="{\"environment\":\"local\",\"source\":\"explicit\",\"app\":\"t3\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
   )
+}
+
+///|
+test "an explicit cloud names the Cloud host or none" {
   inspect(
     detected([("HARNEXUS_EXECUTION_ENV", "cloud")]),
     content="{\"environment\":\"cloud\",\"source\":\"explicit\",\"host\":null,\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
@@ -69,6 +73,10 @@ test "a Cloud variable names the Cloud without printing its value" {
     detected([("CLAUDE_CODE_REMOTE", "true")]),
     content="{\"environment\":\"cloud\",\"source\":\"CLAUDE_CODE_REMOTE\",\"host\":\"claude\",\"note\":\"CLAUDE_CODE_REMOTE is set in Claude Code cloud sessions\"}",
   )
+}
+
+///|
+test "the Codex Cloud variable wins over the Claude Code one" {
   inspect(
     detected([("CODEX_ENVIRONMENT_ID", "e"), ("CLAUDE_CODE_REMOTE", "true")]),
     content="{\"environment\":\"cloud\",\"source\":\"CODEX_ENVIRONMENT_ID\",\"host\":\"codex\",\"note\":\"CODEX_ENVIRONMENT_ID is an observed variable of Codex Cloud tasks, not a documented guarantee; set HARNEXUS_EXECUTION_ENV=cloud|local to decide explicitly\"}",
@@ -84,16 +92,28 @@ test "T3 Code is local without asking the socket" {
 }
 
 ///|
-test "only a socket that answers makes the command local" {
+test "an environment that declares nothing asks the call socket at its default path" {
   inspect(
     detected([("HOME", "/h")]),
     content="ask /h/.local/state/harnexus/call.sock",
   )
+}
+
+///|
+test "an environment that declares nothing asks the call socket HARNEXUS_CALL_SOCKET gives" {
   inspect(
     detected([("HARNEXUS_CALL_SOCKET", "/s/c.sock")]),
     content="ask /s/c.sock",
   )
+}
+
+///|
+test "an environment with a relative HARNEXUS_CALL_SOCKET has nothing to ask" {
   inspect(detected([("HARNEXUS_CALL_SOCKET", "rel")]), content="nothing to ask")
+}
+
+///|
+test "empty declaring variables count as unset and the call socket is asked" {
   inspect(
     detected([
       ("HARNEXUS_EXECUTION_ENV", ""),
@@ -111,6 +131,14 @@ test "a value other than cloud or local is refused" {
     detected([("HARNEXUS_EXECUTION_ENV", "x")]),
     content="refused: HARNEXUS_EXECUTION_ENV must be cloud or local, not \"x\"",
   )
+}
+
+///|
+test "CLAUDE_CODE_REMOTE declares the Cloud only when it is true" {
+  inspect(
+    detected([("CLAUDE_CODE_REMOTE", "true"), ("HOME", "/h")]),
+    content="{\"environment\":\"cloud\",\"source\":\"CLAUDE_CODE_REMOTE\",\"host\":\"claude\",\"note\":\"CLAUDE_CODE_REMOTE is set in Claude Code cloud sessions\"}",
+  )
   inspect(
     detected([("CLAUDE_CODE_REMOTE", "1"), ("HOME", "/h")]),
     content="ask /h/.local/state/harnexus/call.sock",
@@ -118,29 +146,42 @@ test "a value other than cloud or local is refused" {
 }
 
 ///|
-test "the T3 variable decides the app first" {
+test "the T3 variable decides the app before the Codex one" {
   inspect(
     app_of(env_of([("T3CODE_THREAD_ID", "t"), ("CODEX_THREAD_ID", "c")])).name(),
     content="t3",
   )
+}
+
+///|
+test "an empty T3 variable leaves the app as Codex" {
   inspect(app_of(env_of([("T3CODE_THREAD_ID", "")])).name(), content="codex")
+}
+
+///|
+test "each app has its own thread variable" {
   inspect(thread_variable(T3), content="T3CODE_THREAD_ID")
   inspect(thread_variable(Codex), content="CODEX_THREAD_ID")
 }
 
 ///|
-test "directories ignore a relative setting and fall back below HOME" {
+test "a relative directory setting is ignored and the directory falls back below HOME" {
   let env = env_of([
     ("HOME", "/h/"),
     ("XDG_CONFIG_HOME", "rel"),
-    ("XDG_STATE_HOME", "/xs//z/"),
-    ("CODEX_HOME", "/cx/./a"),
     ("T3CODE_HOME", "t3"),
   ])
+
   inspect(env.config_home(), content="/h/.config/harnexus")
+  inspect(env.t3_home(), content="/h/.t3")
+}
+
+///|
+test "an absolute directory setting is used as the directory" {
+  let env = env_of([("XDG_STATE_HOME", "/xs//z/"), ("CODEX_HOME", "/cx/./a")])
+
   inspect(env.state_root(), content="/xs/z/harnexus-crew")
   inspect(env.codex_home(), content="/cx/./a")
-  inspect(env.t3_home(), content="/h/.t3")
 }
 
 ///|
@@ -150,21 +191,38 @@ test "an empty HOME is used as it is" {
 }
 
 ///|
-test "the call socket sits beside the harnexus state unless a path is given" {
+test "the call socket sits beside the harnexus state path" {
   let state = env_of([
     ("HOME", "/h"),
     ("HARNEXUS_STATE_PATH", "/a/../b/threads.json"),
   ])
   inspect(resolve_harnexus_state_path(state), content="/a/../b/threads.json")
+
   inspect(resolve_call_socket_path(state), content="/b/call.sock")
+}
+
+///|
+test "the call socket path is the one HARNEXUS_CALL_SOCKET gives" {
   inspect(
     resolve_call_socket_path(env_of([("HARNEXUS_CALL_SOCKET", "/s/c.sock")])),
     content="/s/c.sock",
   )
-  inspect(
-    resolve_caller_socket(env_of([("HARNEXUS_CALL_SOCKET", "off")])) is None,
-    content="true",
+}
+
+///|
+test "a caller has no socket when HARNEXUS_CALL_SOCKET is off" {
+  assert_eq(
+    resolve_caller_socket(env_of([("HOME", "/h")])),
+    Some("/h/.local/state/harnexus/call.sock"),
   )
+  assert_eq(
+    resolve_caller_socket(env_of([("HARNEXUS_CALL_SOCKET", "off")])),
+    None,
+  )
+}
+
+///|
+test "the call socket path ignores an off setting and uses the default" {
   inspect(
     resolve_call_socket_path(
       env_of([("HARNEXUS_CALL_SOCKET", "off"), ("HOME", "/h")]),
@@ -174,24 +232,35 @@ test "the call socket sits beside the harnexus state unless a path is given" {
 }
 
 ///|
-test "a relative socket or state path is refused" {
-  let socket = try {
-    resolve_call_socket_path(env_of([("HARNEXUS_CALL_SOCKET", "rel")]))
-    |> ignore
-    "accepted"
-  } catch {
-    @failure.TaskFailed(message) => message
-  }
+test "a relative HARNEXUS_CALL_SOCKET is refused" {
   inspect(
-    socket,
+    refusal(() => {
+      ignore(
+        resolve_call_socket_path(env_of([("HARNEXUS_CALL_SOCKET", "rel")])),
+      )
+    }),
     content="HARNEXUS_CALL_SOCKET must be on, off or an absolute path",
   )
-  let state = try {
-    resolve_harnexus_state_path(env_of([("HARNEXUS_STATE_PATH", "rel")]))
-    |> ignore
+}
+
+///|
+test "a relative HARNEXUS_STATE_PATH is refused" {
+  inspect(
+    refusal(() => {
+      ignore(
+        resolve_harnexus_state_path(env_of([("HARNEXUS_STATE_PATH", "rel")])),
+      )
+    }),
+    content="HARNEXUS_STATE_PATH must be an absolute path",
+  )
+}
+
+///|
+fn refusal(work : () -> Unit raise @failure.TaskFailed) -> String {
+  try {
+    work()
     "accepted"
   } catch {
     @failure.TaskFailed(message) => message
   }
-  inspect(state, content="HARNEXUS_STATE_PATH must be an absolute path")
 }
