@@ -66,3 +66,19 @@ test "a key with an unpaired surrogate escape reads as U+FFFD" {
     content="{\"\u{FFFD}\":1,\"x\":\"\u{FFFD}\"}",
   )
 }
+
+///|
+test "as_text gives a string as it is and any other value as JSON" {
+  let cases : Array[(Json, String)] = [
+    (Json::string("a\"b"), "a\"b"),
+    (Json::number(3.0), "3"),
+    (Json::null(), "null"),
+    (Json::boolean(true), "true"),
+    (parse("{\"a\":[1]}"), "{\"a\":[1]}"),
+  ]
+
+  for pair in cases {
+    let (value, expected) = pair
+    assert_eq(as_text(value), expected, msg=value.stringify())
+  }
+}
