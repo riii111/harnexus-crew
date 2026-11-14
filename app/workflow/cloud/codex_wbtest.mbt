@@ -67,7 +67,7 @@ test "a duration is a positive whole number a 32-bit timer can hold" {
 
 ///|
 test "the reply is the thread, the last agent message and the failure the events name" {
-  let events = [
+  let event_lines = [
     "not json",
     "{\"type\":\"thread.started\",\"thread_id\":\"\{REVIEWER}\"}",
     "[1]",
@@ -79,7 +79,7 @@ test "the reply is the thread, the last agent message and the failure the events
     "{\"type\":\"turn.completed\"}",
     "{\"truncated\":",
   ]
-  let reply = reply_of(events.join("\n"))
+  let reply = reply_of(event_lines.join("\n"))
   assert_eq(reply.thread_id, Some(REVIEWER))
   assert_eq(reply.answer, Some("last"))
   assert_eq(reply.failure, Some("late"))

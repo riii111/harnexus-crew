@@ -256,7 +256,7 @@ fn Rig::plan(
 }
 
 ///|
-fn Rig::runs(self : Rig) -> Int32 {
+fn Rig::count_runs(self : Rig) -> Int32 {
   let mut count = 0
   while @store.path_exists("\{self.fake}/args.\{count + 1}") {
     count += 1
