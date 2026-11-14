@@ -44,6 +44,7 @@ test "sha256 matches the digests of Node's crypto" {
 test "new_uuid writes a version 4 UUID" {
   for _ in 0..<2 {
     let uuid = new_uuid()
+
     assert_eq(uuid.length(), 36)
 
     for at in [8, 13, 18, 23] {
@@ -100,6 +101,7 @@ test "now_iso is a current UTC time" {
 ///|
 test "is_process_alive tells this process from one that does not exist" {
   assert_true(is_process_alive(current_pid().to_double()))
+
   assert_false(is_process_alive(dead_pid))
 }
 
@@ -115,5 +117,6 @@ test "is_process_alive refuses a pid that is not a signed 32-bit integer" {
 ///|
 test "is_process_alive counts the process group ids 0 and -1 as alive" {
   assert_true(is_process_alive(0.0))
+
   assert_true(is_process_alive(-1.0))
 }

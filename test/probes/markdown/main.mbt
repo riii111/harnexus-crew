@@ -13,6 +13,7 @@ fn main {
         "raw": Json::string(candidate.raw),
       })
     })
+
     Json::object({ "selected": Json::array(selected) })
   } catch {
     @failure.TaskFailed(message) =>

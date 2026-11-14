@@ -84,6 +84,7 @@ async test "an outcome after which the app may have acted keeps the record as un
       let path = rig.write_launch_file()
 
       assert_eq(rig.launch_failure(path), unknown_message(outcome), msg=outcome)
+
       let pending = read_state("\{rig.launch_dir()}/pending.json")
       assert_eq(
         show(@jsonio.field(pending, "status")),
@@ -126,6 +127,7 @@ async test "a confirmed answer that cannot be recorded keeps the record with the
 
     let message = rig.launch_failure(path)
     assert_eq(message, "cannot write \{rig.launch_dir()}/state.json (EROFS)")
+
     let pending = read_state("\{rig.launch_dir()}/pending.json")
     assert_eq(show(@jsonio.field(pending, "status")), "\"unknown\"")
     assert_eq(show(@jsonio.field(pending, "threadId")), "\"w1\"")
@@ -152,6 +154,7 @@ async test "a review refuses a changed base branch" {
 async test "a review takes a changed base branch once the base is updated" {
   with_rig("s-16u", [done("r1"), done("r1")], rig => {
     let (_, other) = rig.moved_review()
+
     assert_eq(rig.review_failure(other), BASE_CHANGED)
 
     ignore(
@@ -179,6 +182,7 @@ async test "once the base is updated the previous base branch counts as a change
   with_rig("s-16p", [done("r1"), done("r1")], rig => {
     let (path, other) = rig.moved_review()
     assert_eq(rig.review_failure(other), BASE_CHANGED)
+
     ignore(
       review_in(
         rig.context([]),
@@ -264,6 +268,7 @@ async test "only the members named are compared, so a Cloud review may differ in
     }),
     "",
   )
+
   assert_eq(
     @apptestkit.failure_of(() => check_kept(recorded, cloud, app_session_keys)),
     "review session must keep the original workerChatId",
@@ -316,6 +321,7 @@ async test "a review answered by another thread than the recorded reviewer is re
 async test "a review answered by another thread than the recorded reviewer is kept as unknown with its thread" {
   with_rig("s-17k", [done("r1"), done("r2")], rig => {
     let path = rig.reviewed_once()
+
     assert_eq(
       rig.review_failure(path),
       "review session must keep the same reviewer",
@@ -378,9 +384,11 @@ fn Rig::another_run_writes_state(self : Rig) -> Unit {
       @store.write_atomic(record, "{}") catch {
         _ => ()
       }
+
       @store.remove_file(record) catch {
         _ => ()
       }
+
       write_text(state, "{\"threadId\":\"w9\"}")
     }
   }
@@ -389,8 +397,10 @@ fn Rig::another_run_writes_state(self : Rig) -> Unit {
 ///|
 async fn Rig::reviewed_once(self : Rig) -> String {
   let path = self.write_review_file()
+
   ignore(review_in(self.context([]), review_args(path), self.review_cloud()))
   self.head.val = HEAD_2
+
   path
 }
 
@@ -398,10 +408,12 @@ async fn Rig::reviewed_once(self : Rig) -> String {
 async fn Rig::moved_review(self : Rig) -> (String, String) {
   let path = self.reviewed_once()
   let other = "\{self.root}/other.json"
+
   write_text(
     other,
     "{\"taskId\":\"TR1\",\"workerAI\":\"Codex\",\"projectId\":\"project\",\"checkout\":\"\{self.checkout()}\",\"baseBranch\":\"other\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null}",
   )
+
   (path, other)
 }
 
@@ -409,6 +421,7 @@ async fn Rig::moved_review(self : Rig) -> (String, String) {
 async fn Rig::t3_review(self : Rig) -> Unit {
   self.checkout_path = "\{self.root}/.t3/worktrees/ab12/repo"
   let path = self.write_review_file()
+
   ignore(
     review_in(
       self.context([("T3CODE_THREAD_ID", "t3-w")]),
@@ -450,6 +463,7 @@ fn with_member(request : Json, key : String, value : Json) -> Json {
     Object(members) => {
       let copy = Map::from_array(members.to_array())
       copy[key] = value
+
       Json::object(copy)
     }
     other => other

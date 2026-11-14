@@ -37,7 +37,9 @@ class InstallScript(unittest.TestCase):
         prefix, _ = install_real_build()
 
         self.assertEqual("harnexus-crew: --request is required", read_usage_line(str(prefix / "harnexus-crew")))
+
         ran = subprocess.run([str(prefix / "harnexus-crew"), "--help"], capture_output=True)
+
         self.assertEqual(0, ran.returncode)
         self.assertEqual("usage:", ran.stdout.decode().split("\n")[0])
 
@@ -117,6 +119,7 @@ class InstallScript(unittest.TestCase):
         broken.chmod(0o755)
 
         failed = run(["--prefix", str(prefix), "--moon", str(broken)])
+
         return prefix, before, asked, failed
 
     def install_the_real_binary(self, root):
@@ -124,11 +127,13 @@ class InstallScript(unittest.TestCase):
         moon = write_moon_with_real_binary(root)
         installed = run(["--prefix", str(prefix), "--moon", str(moon)])
         self.assertEqual((0, ""), (installed[0], installed[2]))
+
         return prefix, moon
 
     def make_scratch_directory(self):
         directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
         self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
+
         return directory
 
 
@@ -138,6 +143,7 @@ def install_real_build():
     directory = Path(tempfile.mkdtemp(prefix="harnexus-crew-install-test-"))
     unittest.addModuleCleanup(shutil.rmtree, directory, ignore_errors=True)
     prefix = directory / "made" / "bin"
+
     return prefix, run(["--prefix", str(prefix), "--repo", str(REPO), "--rev", read_head()])
 
 
@@ -145,6 +151,7 @@ def write_moon_with_real_binary(directory):
     """A moon whose build result is the binary the real build made, so install.sh runs its own checks against a real harnexus-crew."""
     prefix, installed = install_real_build()
     binary = prefix / "harnexus-crew"
+
     if not binary.is_file():
         raise FileNotFoundError(f"the real build left no {binary}: {installed}")
 
@@ -156,11 +163,13 @@ def write_moon_with_real_binary(directory):
         encoding="utf-8",
     )
     moon.chmod(0o755)
+
     return moon
 
 
 def read_usage_line(program):
     ran = subprocess.run([program, "launch"], capture_output=True)
+
     return ran.stderr.decode("utf-8", errors="replace").split("\n")[-2]
 
 
@@ -180,6 +189,7 @@ def run(args, env=None):
         capture_output=True,
         timeout=BUILD_TIMEOUT_SECONDS,
     )
+
     return ran.returncode, ran.stdout.decode("utf-8", errors="replace"), ran.stderr.decode("utf-8", errors="replace")
 
 

@@ -37,6 +37,7 @@ async fn Rig::review(
   let path = self.request_file(task~, extra?=request)
   let argv = ["--request", path]
   argv.append(extra)
+
   review_in(self.context(env), parsed_review(argv))
 }
 
@@ -108,6 +109,7 @@ fn Rig::request_file(
     path,
     "{\"taskId\":\"\{task}\",\"workerAI\":\"Claude\",\"checkout\":\"\{self.checkout}\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null\{extra.unwrap_or("")}}",
   )
+
   path
 }
 
@@ -117,6 +119,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
   let env = self.env(extra)
   let checkout = self.checkout
   let head = self.head
+
   {
     env,
     probe: {
@@ -190,8 +193,10 @@ async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
   @store.prepare_directory("\{made}/fake") catch {
     failed => abort(failed.user_message())
   }
+
   let root = @store.resolve_real_path_or_self(made)
   errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
+
   body({
     root,
     fake: "\{root}/fake",
@@ -199,6 +204,7 @@ async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
     head: Ref(HEAD_1),
     unwritable: Ref(None),
   })
+
   @testkit.remove_tree(root)
 }
 
@@ -247,6 +253,7 @@ fn write_text(path : String, text : String) -> Unit {
   @store.prepare_directory(@path.dirname(path)) catch {
     failed => abort(failed.user_message())
   }
+
   @store.write_atomic(path, text) catch {
     failed => abort(failed.user_message())
   }

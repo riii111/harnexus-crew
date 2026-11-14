@@ -70,6 +70,7 @@ def create_sandbox(case):
         run_git(root, [sandbox.expand(arg) for arg in argv])
 
     _write_shims(dirs["bin"], case)
+
     # The shims come first, so a command the CLI starts by name is the recorded one.
     sandbox.env = {
         "PATH": f"{dirs['bin']}:{os.path.dirname(sys.executable)}:/usr/bin:/bin",
@@ -155,6 +156,7 @@ def _make_empty_root(case):
     # The root is named by the case and this process, so a state key made from a path in the root is the same on every run of it.
     name = hashlib.sha1(case.name.encode("utf-8")).hexdigest()[:8]
     root = os.path.join(os.path.realpath(tempfile.gettempdir()), f"hxc-{name}-{os.getpid()}")
+
     shutil.rmtree(root, ignore_errors=True)
     os.makedirs(root)
     return root

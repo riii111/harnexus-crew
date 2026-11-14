@@ -34,6 +34,7 @@ class NativeTemplateFilling(unittest.TestCase):
         linked = root / "linked.md"
         document = root / "a](linked.md)"
         escaped = root / "{task_id}.md"
+
         for path in (linked, escaped, document):
             path.write_text("", encoding="utf-8")
 
@@ -187,6 +188,7 @@ class Fixture:
     def fill_prompt(self, kind, fields=None):
         """Returns (True, filled text) or (False, the refusal)."""
         fields = WORKER_FIELDS if fields is None else fields
+
         ran = subprocess.run(
             [
                 require_binary("HARNEXUS_PROMPT_PROBE"),

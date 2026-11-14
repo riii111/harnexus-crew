@@ -28,6 +28,7 @@ pub async fn call_app(
     "tool": Json::string(tool),
     "arguments": Json::object(args),
   }).stringify()
+
   let answer = @socket.exchange_line(path, line, timeout_ms) catch {
     @boundary.LineExchangeFailed(code~, connected~, message~, ..) => {
       let reason = code.unwrap_or(message)
@@ -40,6 +41,7 @@ pub async fn call_app(
       }
     }
   }
+
   answer_of(answer)
 }
 

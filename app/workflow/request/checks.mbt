@@ -233,6 +233,7 @@ fn is_https_url(value : String) -> Bool {
 
   let scheme = value[:at].to_owned().to_lower()
   let host_start = at + 3
+
   scheme == "https" &&
   host_start < units.length() &&
   units[host_start] != 0x2F &&

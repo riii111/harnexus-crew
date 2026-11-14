@@ -18,6 +18,7 @@ pub fn refusal_of(expected : TurnSettings, actual : TurnSettings) -> String {
       differences.push(text)
     }
   }
+
   differences.join(" and ")
 }
 

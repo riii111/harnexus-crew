@@ -43,5 +43,6 @@ test "the number is read from a linkable URL" {
 ///|
 test "no number is read from a URL that is not linkable" {
   assert_eq(github_pr_number("https://github.com/o/r/pull/12"), Some("12"))
+
   assert_eq(github_pr_number("https://github.com/o/r/pull/12x"), None)
 }

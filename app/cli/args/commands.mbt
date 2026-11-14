@@ -36,6 +36,7 @@ pub fn parse_command(
   let specs = specs_of(command)
   specs.push({ name: "help", kind: Flag, })
   let options = parse_options(rest, specs)
+
   if options.flag("help") {
     return Help
   }
@@ -121,6 +122,7 @@ fn parse_review_input(
   options : ParsedOptions,
 ) -> @workflow.ReviewInput raise UsageError {
   let ask = options.text("ask")
+
   // The reviewer keeps the model it was started with, so a question takes no model either.
   if ask is Some(_) &&
     (
@@ -205,6 +207,7 @@ fn parse_cloud_input(
 ) -> @workflow.CloudInput raise UsageError {
   let link = options.text("link")
   let prompt_file = options.text("prompt-file")
+
   if (link is None) == (prompt_file is None) {
     raise UsageError("exactly one of --link and --prompt-file is required")
   }

@@ -56,6 +56,7 @@ async fn start_thread(
     text_of(target, "projectId") is Some(project) else {
     return not_sent("create_thread needs prompt, title, model and a project")
   }
+
   let argv = [
     "thread",
     "start",
@@ -87,6 +88,7 @@ async fn start_thread(
       "t3 thread start answered without a thread: \{@text.excerpt(stdout)}",
     )
   }
+
   CallAnswer::new(Done, [
     ("threadId", Json::string(thread_id)),
     ("model", show_thread_model(deps, thread_id)),
@@ -117,6 +119,7 @@ async fn send_message(
     text_of(args, "prompt") is Some(prompt) else {
     return not_sent("send_message_to_thread needs threadId and prompt")
   }
+
   match
     run_t3(
       deps,
@@ -141,6 +144,7 @@ async fn show_thread_model(deps : T3Deps, thread_id : String) -> Json noraise {
     object_of(shown.get("thread")).get("model") is Some(String(_) as model) else {
     return Json::null()
   }
+
   model
 }
 
@@ -262,6 +266,7 @@ const DEFAULT_WORKTREE_BASE : String = "HEAD"
 fn worktree_base(target : Map[String, Json]) -> String? {
   let environment = object_of(target.get("environment"))
   guard environment.get("type") is Some(String("worktree")) else { return None }
+
   let state = object_of(environment.get("startingState"))
   match state.get("branchName") {
     Some(String(branch)) => Some(branch)

@@ -24,6 +24,7 @@ class StoreBetweenProcesses(unittest.TestCase):
         self.counter += 1
         directory = self.root / f"case-{self.counter}"
         directory.mkdir()
+
         return directory
 
 
@@ -49,6 +50,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
             ([int(answer["from"]), int(answer["to"])] for answer in replies if answer["ok"] is True),
             key=lambda span: span[0],
         )
+
         self.assertGreaterEqual(len(spans), 1)
 
         for index in range(1, len(spans)):
@@ -127,6 +129,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         at = shared_start_time()
 
         replies = run_together(12, lambda _: ("acquire", str(lock), "review", "150", at))
+
         return replies, lock
 
     def work_under_the_lock(self):
@@ -136,6 +139,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         at = shared_start_time()
 
         replies = run_together(6, lambda _: ("with-lock", str(locks), "chats", str(counter), "15", at, "20000"))
+
         return replies, locks, counter
 
 
@@ -189,6 +193,7 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
 
         self.assertEqual([], torn)
         self.assertGreater(reads, 20)
+
         last = target.read_text(encoding="utf-8")
         self.assertEqual(size, len(last))
         self.assertEqual(1, len(set(last)))
@@ -260,6 +265,7 @@ def shared_start_time():
 def run_together(count, arguments):
     """Starts `count` probes at once and returns their replies; `arguments(index)` gives each one's arguments."""
     processes = [start(*arguments(index)) for index in range(count)]
+
     return [read_reply(process) for process in processes]
 
 
@@ -271,6 +277,7 @@ def hold(lock, kind):
     """Starts a holder and returns it with the line it printed once it holds the lock."""
     holder = start("hold", str(lock), kind)
     first = holder.stdout.readline()
+
     return holder, jsonvalue.loads(first.decode("utf-8"))
 
 

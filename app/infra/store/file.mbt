@@ -75,6 +75,7 @@ pub fn write_exclusive(
 ) -> Bool raise FileFailed {
   let message = "cannot write \{path}"
   let temporary = write_temporary(path, content)
+
   // Linking fails when a file already exists at the path, so exactly one writer creates it.
   let linked = link_path(temporary, path)
   let removed = unlink_path(temporary)
@@ -187,6 +188,7 @@ fn read_and_close(
 ///|
 fn replace_file(path : String, content : String) -> Unit raise FileFailed {
   let temporary = write_temporary(path, content)
+
   // A reader must never see a half-written file, so the rename happens only after the temporary file is flushed to disk.
   let renamed = rename_path(temporary, path)
   if renamed < 0 {
@@ -225,6 +227,7 @@ fn write_temporary(path : String, content : String) -> String raise FileFailed {
 fn new_temporary_path(path : String) -> String {
   let name = ".\{@path.basename(path)}.\{new_uuid()}.tmp"
   let directory = @path.dirname(path)
+
   if directory == "." {
     name
   } else if directory.has_suffix("/") {
@@ -289,6 +292,7 @@ fn make_directories(path : String) -> Int32 {
   }
 
   let again = mkdir_path(path, owner_only_directory)
+
   if again == -eexist && stat_kind(path) == kind_directory {
     0
   } else {

@@ -86,6 +86,7 @@ pub fn release(lock : String, token : String) -> Unit {
   guard current.get("token") is Some(String(held)) && held == token else {
     return
   }
+
   remove_file(lock) catch {
     // A failed removal leaves the lock, because the caller has no way to handle it.
     _ => ()
@@ -115,6 +116,7 @@ fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
   }
 
   let lock_failure = if reclaimable { try_remove_file(lock) } else { None }
+
   // A failed removal of the lock must not leave the marker behind, because the marker would block every later takeover, so both removals run before either failure is raised.
   let takeover_failure = try_remove_file(takeover)
 

@@ -50,6 +50,7 @@ def main():
 
     failed = [number for number, (status, _) in enumerate(results, 1) if status != 0]
     print(f"{len(ids)} tests in {len(results)} processes: " + (f"process {', '.join(map(str, failed))} failed" if failed else "all passed"))
+
     return 1 if failed else 0
 
 

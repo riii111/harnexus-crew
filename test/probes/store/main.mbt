@@ -35,6 +35,7 @@ async fn acquire_and_hold(args : Array[String]) -> Json {
     @async.sleep(number_arg(args, 4).to_int())
     let to = now_millis_json()
     @storage.release(arg(args, 2), token)
+
     object([
       ("ok", Json::boolean(true)),
       ("token", Json::string(token)),
@@ -53,6 +54,7 @@ async fn hold(args : Array[String]) -> Json {
     let token = @storage.acquire(arg(args, 2), arg(args, 3))
     emit(object([("ok", Json::boolean(true)), ("token", Json::string(token))]))
     @async.sleep(600000)
+
     object([("ok", Json::boolean(true))])
   } catch {
     failed => refused(failed.message())
@@ -192,6 +194,7 @@ fn increment_counter(counter : String) -> Unit raise @failure.TaskFailed {
     let current = @storage.read_text_if_exists(counter)
       .map(number_of)
       .unwrap_or(0L)
+
     // Reading and writing are far enough apart for an unguarded run to be overtaken.
     @storage.write_atomic(counter, (current + 1L).to_string())
   } catch {

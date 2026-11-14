@@ -41,7 +41,9 @@ pub async fn open_chat(
   add(sent, "title", args.title)
   add(sent, "model", args.model)
   add(sent, "thinking", args.thinking)
+
   let answer = @bridge.call_app(env, caller, "cloud_open", sent)
+
   if answer.outcome == "done" {
     if answer.fields.get("result") is Some(Object(_) as result) {
       return result

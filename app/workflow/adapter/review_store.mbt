@@ -141,6 +141,7 @@ fn ReviewStore::claim(self : ReviewStore, key : String) -> Claim {
 
   let path = self.reservation_path(key)
   let reserved = object([("reservedAt", Json::string(@store.now_iso()))])
+
   match
     (Ok(@store.write_exclusive(path, reserved.stringify())) catch {
       e => Err(e)
@@ -180,6 +181,7 @@ fn ReviewStore::mark_sent(
   thread_id : String?,
 ) -> Unit raise @failure.TaskFailed {
   guard review_json(review) is Object(members) else { return }
+
   members["sent"] = Json::boolean(true)
   members["threadId"] = text_or_null(thread_id)
   members["shownAt"] = Json::string(@store.now_iso())
@@ -214,6 +216,7 @@ fn ReviewStore::read_history(
     Ok(Some(names)) => names
     _ => return []
   }
+
   let shown : Array[Shown] = []
 
   for name in names {
@@ -341,6 +344,7 @@ fn review_in(key : String, kept : Map[String, Json]?) -> @host.CloudReview? {
     members.get("answer") is Some(String(answer)) else {
     return None
   }
+
   Some({
     key,
     reviewer,

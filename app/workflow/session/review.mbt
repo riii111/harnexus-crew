@@ -188,6 +188,7 @@ fn open_review_session(
         @jsonio.field(previous, "settings"),
         sent_settings(@jsonio.field(previous, "sent")),
       ]
+
       {
         "reviewer": Json::string(thread),
         "candidate": candidate,
@@ -197,6 +198,7 @@ fn open_review_session(
     },
     summarize=(state, pending) => {
       let candidate = @jsonio.field(state_json(state), "candidate")
+
       {
         "kind": Json::string("review"),
         "reviewerThreadId": @jsonio.field(state_json(state), "reviewer"),

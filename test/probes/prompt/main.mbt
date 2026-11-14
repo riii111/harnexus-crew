@@ -32,6 +32,7 @@ fn main {
     @failure.TaskFailed(message) =>
       Json::object({ "error": Json::string(message) })
   }
+
   @sys.write_text(1, reply.stringify() + "\n") catch {
     _ => abort("cannot write")
   }

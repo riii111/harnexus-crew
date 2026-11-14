@@ -40,6 +40,7 @@ fn position_in(value : Json) -> SessionPosition? {
     members.get("parentThreadId") is Some(String(parent_thread_id)) else {
     return None
   }
+
   Some({
     session_id,
     parent_thread_id,
@@ -96,6 +97,7 @@ fn pending_in(value : Json) -> Array[PendingReview] {
       review.get("answer") is Some(String(answer)) else {
       continue
     }
+
     entries.push({
       parent_thread_id,
       session_id: text_or_none(members.get("sessionId")),
@@ -193,6 +195,7 @@ fn Observations::read_opening(
     members.get("text") is Some(String(text)) else {
     @failure.fail("\{path} is not an opening record")
   }
+
   Some({
     key,
     text,

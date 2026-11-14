@@ -55,6 +55,7 @@ fn read_milliseconds(
   fallback : Int32,
 ) -> Int32 raise @failure.TaskFailed {
   guard env.get_nonempty(name) is Some(value) else { return fallback }
+
   let digits = value.code_units()
   let valid = digits.length() >= 1 &&
     digits[0] != '0' &&
@@ -211,6 +212,7 @@ fn verdict_of(answer : String) -> String? {
   let units = answer.code_units()
   let marker = "判定:".code_units()
   let mut at = 0
+
   while at + marker.length() <= units.length() {
     if matches_at(units, at, marker) && starts_a_line(units, at) {
       let after = skip_whitespace(units, at + marker.length())

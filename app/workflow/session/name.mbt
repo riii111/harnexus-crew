@@ -17,6 +17,7 @@ async fn name_in(
   guard @watch.github_pr_number(args.pr) is Some(number) else {
     @failure.fail("\{args.pr} is not watched: \{@watch.NOT_LINKABLE}")
   }
+
   let worker = @request.read_caller_id(ctx.env)
   // A worker the owner started by hand must still be watched, so the PR is linked first and for any chat.
   // The latest worker on a PR is the one doing it, so a worker naming its PR takes it over.
@@ -48,6 +49,7 @@ async fn name_in(
 
   let renamed = answer.map(answer => answer.outcome == "done").unwrap_or(true)
   let applied_title = if renamed { title } else { None }
+
   // A PR the watch cannot see must never be taken as watched, so this fails even after a rename.
   guard watched is Some(watched) else {
     let renamed_as = match applied_title {
@@ -59,6 +61,7 @@ async fn name_in(
       "\{args.pr} is not watched\{renamed_as}: \{@watch.NOT_LINKABLE}",
     )
   }
+
   let shown : Map[String, Json] = {
     "threadId": Json::string(worker),
     "title": applied_title
@@ -124,5 +127,6 @@ fn list_directory_names(
   let names = @store.list_directory_if_exists(path) catch {
     failed => @failure.fail(failed.user_message())
   }
+
   names.unwrap_or([])
 }

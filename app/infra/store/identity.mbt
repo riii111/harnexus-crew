@@ -72,6 +72,7 @@ fn is_process_alive(pid : Double) -> Bool {
 fn iso_time(millis : Int64) -> String {
   let days = millis / 86400000L
   let of_day = (millis % 86400000L).to_int()
+
   // Civil date from a day count, after Howard Hinnant's algorithm: years run from March so the leap day is the last of the year.
   let shifted = days + 719468L
   let era = shifted / 146097L
@@ -96,6 +97,7 @@ fn iso_time(millis : Int64) -> String {
   let minute = of_day / 60000 % 60
   let second = of_day / 1000 % 60
   let milli = of_day % 1000
+
   "\{pad(year, 4)}-\{pad(month, 2)}-\{pad(day, 2)}T\{pad(hour, 2)}:\{pad(minute, 2)}:\{pad(second, 2)}.\{pad(milli, 3)}Z"
 }
 

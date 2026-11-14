@@ -24,6 +24,7 @@ async fn show_request_state_in(
   path : String,
 ) -> Json raise @failure.TaskFailed {
   @workflow.refuse_in_cloud(ctx.env, "state --request")
+
   open_requested_session(ctx, path).show()
 }
 

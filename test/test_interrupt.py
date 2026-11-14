@@ -27,6 +27,7 @@ class InterruptTest(unittest.TestCase):
                 "HARNEXUS_CREW_PR_WAKE": pr_wake,
                 "PIDS": root,
             }
+
             cli = subprocess.Popen(
                 [require_binary("HARNEXUS_CREW_NATIVE"), "watch", "--status"],
                 cwd=root,
@@ -43,6 +44,7 @@ class InterruptTest(unittest.TestCase):
                     lambda: read_pid(os.path.join(root, "leader")) and read_pid(os.path.join(root, "grandchild")),
                     "the command to start its descendant",
                 )
+
                 leader = read_pid(os.path.join(root, "leader"))
                 grandchild = read_pid(os.path.join(root, "grandchild"))
                 self.assertEqual([True, True], [is_running(leader), is_running(grandchild)])

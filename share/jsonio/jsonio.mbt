@@ -38,6 +38,7 @@ fn replace_unpaired_escapes(text : String) -> String {
   let mut copied = 0
   let mut in_string = false
   let mut at = 0
+
   while at < units.length() {
     let unit = units[at]
     if unit == '"' {
@@ -75,6 +76,7 @@ fn surrogate_escape(units : ArrayView[UInt16], at : Int32) -> Int32? {
   guard at + 6 <= units.length() && units[at] == '\\' && units[at + 1] == 'u' else {
     return None
   }
+
   let mut code = 0
 
   for unit in units[at + 2:at + 6] {

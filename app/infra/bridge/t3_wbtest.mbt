@@ -223,6 +223,7 @@ async test "a failed run with no message reports the exit status" {
   @testkit.serial(() => {
     with_t3("t3-6", fake => {
       fake.plan(1, exit=3)
+
       let answer = t3_json(t3_deps(fake), "create_thread", create_args())
 
       assert_eq(
@@ -263,6 +264,7 @@ async test "the thread is the last line of the output" {
     with_t3("t3-8", fake => {
       fake.plan(1, out="starting\n{\"x\":1}\n{\"threadId\":\"t9\"}\n\n")
       fake.plan(2, out="log\n" + shown("m"))
+
       let answer = t3_json(t3_deps(fake), "create_thread", create_args())
 
       assert_eq(
@@ -278,15 +280,20 @@ async test "no model is reported when T3 Code cannot show the thread it started"
     with_t3("t3-9", fake => {
       fake.plan(1, out="{\"threadId\":\"t1\"}")
       fake.plan(2, exit=1, stderr="boom")
+
       let answer = t3_json(t3_deps(fake), "create_thread", create_args())
+
       assert_eq(
         answer,
         "{\"outcome\":\"done\",\"threadId\":\"t1\",\"model\":null,\"effort\":null}",
         msg="show fails",
       )
+
       fake.plan(3, out="{\"threadId\":\"t1\"}")
       fake.plan(4, out="{\"thread\":{\"model\":7}}")
+
       let numeric = t3_json(t3_deps(fake), "create_thread", create_args())
+
       assert_eq(
         numeric,
         "{\"outcome\":\"done\",\"threadId\":\"t1\",\"model\":null,\"effort\":null}",
@@ -335,6 +342,7 @@ async test "an absolute t3 path that cannot be started leaves the call unsent" {
         ]),
         which: _ => None,
       }
+
       let answer = t3_json(deps, "create_thread", create_args())
 
       assert_eq(
@@ -417,6 +425,7 @@ async test "send_message_to_thread queues the prompt on the thread from stdin" {
   @testkit.serial(() => {
     with_t3("t3-13", fake => {
       fake.plan(1, out="{\"delivery\":\"queued\"}")
+
       let answer = t3_json(t3_deps(fake), "send_message_to_thread", {
         "threadId": Json::string("t1"),
         "prompt": Json::string("re-review"),
@@ -593,7 +602,9 @@ test "a worktree without a usable starting branch is based on HEAD" {
 ///|
 test "only a worktree environment has a base" {
   let worktree = Json::object({ "type": Json::string("worktree") })
+
   assert_eq(worktree_base({ "environment": worktree }), Some("HEAD"))
+
   let others = [
     Json::string("worktree"),
     Json::object({ "type": Json::string("local") }),
@@ -681,7 +692,9 @@ fn t3_deps(fake : @app_testkit.FakeCli) -> T3Deps {
 ///|
 async fn t3_runs_for_valid_create(fake : @app_testkit.FakeCli) -> Bool {
   fake.plan(1, out="{\"threadId\":\"t1\"}")
+
   ignore(t3_json(t3_deps(fake), "create_thread", create_args()))
+
   fake.ran()
 }
 
@@ -694,5 +707,6 @@ fn done_answer(thread_id : String, model : String) -> String {
 fn create_args_without(name : String) -> Map[String, Json] {
   let args = create_args()
   args.remove(name)
+
   args
 }

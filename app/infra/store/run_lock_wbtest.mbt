@@ -83,6 +83,7 @@ async test "acquire does not take a lock whose holder cannot be told dead" {
         "{}", "{\"pid\":\"7\"}", "{\"token\":\"t\"}", "[1]", "not json",
       ] {
       write_atomic(lock, content)
+
       assert_eq(
         task_failure(() => ignore(acquire(lock, "review"))),
         "another review is using this session",

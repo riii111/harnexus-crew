@@ -36,6 +36,7 @@ async fn call_within(
   let command = resolve_command(env)
   let argv = ["watch"]
   argv.append(args)
+
   let ran = @process.run_command(command, argv, env.to_map(), timeout_ms~) catch {
     @boundary.CommandFailed(message~, ..) =>
       @failure.fail(
@@ -97,6 +98,7 @@ fn resolve_engine(
       "pr-wake is not on PATH; install pr-wake, or set \{PR_WAKE_VARIABLE} to its absolute path",
     )
   }
+
   @path.join([@path.dirname(@store.resolve_real_path_or_self(found)), ENGINE])
 }
 

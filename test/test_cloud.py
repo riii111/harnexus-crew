@@ -23,6 +23,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             rig.commit("test: candidate 2", REPO_PATH)
             second = rig.run(REVIEW)
             third = rig.run(REVIEW)
+
             return [first, again, second, third]
 
         native = self.run_scenario(
@@ -31,6 +32,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([0, 1, 0, 1], codes(steps))
         self.assertMatches(
             steps[0]["stdout"],
@@ -41,6 +43,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             steps[1]["stderr"],
         )
         self.assertMatches(steps[2]["stdout"], {"verdict": "LGTM", "base": BASE, "reviewer": REVIEWER})
+
         files = native["files"]
         self.assertIn("--sandbox\nread-only", files["fake/args.1"])
         self.assertIn(f"resume\n{REVIEWER}", files["fake/args.2"])
@@ -66,6 +69,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             rig.commit("test: candidate 2", REPO_PATH)
             failed = rig.run(REVIEW)
             retried = rig.run(REVIEW)
+
             return [first, failed, retried]
 
         native = self.run_scenario(
@@ -78,11 +82,13 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([0, 1, 0], codes(steps))
         self.assertIn("codex did not review (exit 1): network down", steps[1]["stderr"])
         # The third run resumes the kept reviewer and takes the thread its events name.
         self.assertMatches(steps[2]["stdout"], {"reviewer": OTHER})
         self.assertIn(f"resume\n{REVIEWER}", native["files"]["fake/args.3"])
+
         recorded_state = sorted(path.rsplit("/", 1)[-1] for path in native["files"] if path.startswith("state/"))
         self.assertEqual(["state.json"], recorded_state)
 
@@ -92,6 +98,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             rig.commit("test: candidate 2", REPO_PATH)
             gone = rig.run(REVIEW)
             started = rig.run(REVIEW)
+
             return [first, gone, started]
 
         native = self.run_scenario(
@@ -158,7 +165,9 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             first = rig.run(REVIEW)
             path, kept = read_state(parsed_or_text(first["stdout"]))
             asked = rig.run(ASK)
+
             self.assertEqual(kept, jsonvalue.loads(path.read_text(encoding="utf-8")))
+
             return [before, first, asked]
 
         native = self.run_scenario(
@@ -222,11 +231,13 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             refused = rig.run(REVIEW)
             refused_ask = rig.run(ASK)
             finished = holder.wait_for_end()
+
             # A run that died leaves its lock, which the next run takes over.
             write_json(directory / "lock.json", {"pid": self.dead, "token": "gone", "startedAt": "x"})
             rig.commit("test: candidate 2", REPO_PATH)
             taken = rig.run(REVIEW)
             lock = (directory / "lock.json").exists()
+
             return [refused, refused_ask, finished, taken, {"lock": lock}]
 
         native = self.run_scenario(
@@ -243,10 +254,12 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
     def test_review_refuses_to_take_over_a_session_while_a_takeover_died_half_way(self):
         def body(rig):
             first = rig.run(REVIEW)
+
             directory = list_state_directories(rig)[0]
             write_json(directory / "lock.json", {"pid": self.dead, "token": "gone", "startedAt": "x"})
             write_json(directory / "lock.json.reap", {"pid": self.dead})
             rig.commit("test: candidate 2", REPO_PATH)
+
             return [first, rig.run(REVIEW)]
 
         native = self.run_scenario(
@@ -261,7 +274,9 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         """Runs the scenario on the Native build and checks it against the recorded expectation."""
         done = with_rig({"name": name, **scenario_fields(runs, **options)}, body, timeout=RUN_TIMEOUT_SECONDS)
         native = observed(done, steady=True)
+
         self.assertSameJson(read_recorded(name, done), without_pid(native, self.dead))
+
         return native
 
 

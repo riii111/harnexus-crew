@@ -8,6 +8,7 @@ pub async fn exchange_line(
   timeout_ms : Int32,
 ) -> String raise @boundary.LineExchangeFailed {
   let target = @sys.c_string(path)
+
   // exchange_with refuses a path with a NUL before any attempt, so the unwrap only meets a path that has its C form.
   exchange_with(path, line, timeout_ms, fd => connect_once(fd, target.unwrap()))
 }
@@ -48,10 +49,12 @@ async fn exchange_with(
   // The descriptor is ours until a stream takes it, so an early timeout or failure closes it here.
   let taken = Ref(false)
   defer close_unless_taken(fd, taken)
+
   @async.with_timeout(timeout_ms, () => {
     connect_until_done(fd, attempt)
     connected.val = true
     taken.val = true
+
     let stream = @raw_fd.RawFdStream(fd)
     defer stream.close()
     if line == "" {

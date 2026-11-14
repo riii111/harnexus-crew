@@ -97,6 +97,7 @@ def parse_case(data):
     _check(_strings(data.get("snapshot", [])), name, "snapshot must be strings")
     compare = data.get("compare", {})
     _check(set(compare) <= {"stdout", "stderr"} and set(compare.values()) <= set(MODES), name, "compare is invalid")
+
     return Case(
         name=name,
         kind=data["kind"],

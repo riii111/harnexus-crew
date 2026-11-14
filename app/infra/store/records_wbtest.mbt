@@ -27,6 +27,7 @@ async test "save_json creates a missing parent directory and leaves only the rec
 async test "read_json_or_null reads back a saved record" {
   in_scratch(directory => {
     let path = "\{directory}/state.json"
+
     save_json(path, json("{\"a\":[1,{\"b\":null}],\"c\":{}}"), exclusive=false)
 
     assert_eq(
@@ -40,7 +41,9 @@ async test "read_json_or_null reads back a saved record" {
 async test "save_json replaces an existing record when it is not exclusive" {
   in_scratch(directory => {
     let path = "\{directory}/state.json"
+
     save_json(path, json("{\"v\":1}"), exclusive=false)
+
     assert_eq(read_json_or_null(path).stringify(), "{\"v\":1}")
 
     save_json(path, json("{\"v\":2}"), exclusive=false)
@@ -53,6 +56,7 @@ async test "save_json replaces an existing record when it is not exclusive" {
 async test "save_json refuses to replace an existing record when it is exclusive" {
   in_scratch(directory => {
     let path = "\{directory}/state.json"
+
     save_json(path, json("{\"v\":1}"), exclusive=false)
 
     assert_eq(read_json_or_null(path).stringify(), "{\"v\":1}")
@@ -61,6 +65,7 @@ async test "save_json refuses to replace an existing record when it is exclusive
       task_failure(() => save_json(path, json("{\"v\":3}"), exclusive=true)),
       "another harnexus-crew run is sending; inspect \{path}",
     )
+
     assert_eq(read_json_or_null(path).stringify(), "{\"v\":1}")
   })
 }
@@ -105,6 +110,7 @@ async test "read_records separates what was confirmed from a pending send" {
       json("{\"threadId\":\"t\"}"),
       exclusive=false,
     )
+
     let records = read_records(directory)
 
     assert_eq(records.state_path, "\{directory}/state.json")
@@ -124,7 +130,9 @@ async test "read_records treats null and an empty object as no record" {
     for text in ["{}", "null"] {
       write_atomic("\{directory}/state.json", text)
       write_atomic("\{directory}/pending.json", text)
+
       let records = read_records(directory)
+
       assert_eq(records.state, None, msg=text)
       assert_eq(records.pending, None, msg=text)
     }
@@ -136,6 +144,7 @@ async test "read_records refuses a pending record that is not an object" {
   in_scratch(directory => {
     for text in ["[1]", "[]", "5", "0", "\"x\"", "\"\"", "true", "false"] {
       write_atomic("\{directory}/pending.json", text)
+
       assert_eq(
         task_failure(() => ignore(read_records(directory))),
         "\{directory}/pending.json does not hold a JSON object",

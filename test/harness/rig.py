@@ -70,6 +70,7 @@ def with_rig(fields, body, timeout=RUN_TIMEOUT_SECONDS):
     with _open_sandbox(fields) as (case, sandbox, bridge):
         rig = Rig(sandbox, bridge, [require_binary("HARNEXUS_CREW_NATIVE")], timeout)
         result = body(rig)
+
         return Done(
             result=result,
             root=sandbox.root,

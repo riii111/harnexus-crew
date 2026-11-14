@@ -24,6 +24,7 @@ pub async fn run_command(
     child.stop_and_reap()
     child.release_pipes()
   }
+
   let run = supervise(
     child,
     "",

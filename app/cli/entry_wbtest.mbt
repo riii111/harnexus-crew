@@ -49,6 +49,7 @@ async test "environment needs no home when the declaration settles it" {
 async test "a command that needs the home fails when HOME is not set" {
   for argv in [["environment"], ["state"], ["adapter", "serve", "--id", "a"]] {
     let result = run(argv[:], homeless_env([]))
+
     assert_eq(result.code, 1, msg=argv.join(" "))
     assert_eq(
       result.stderr,

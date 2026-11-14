@@ -29,6 +29,7 @@ fn list_state_paths(root : String) -> Array[String] raise @failure.TaskFailed {
   }
 
   paths.sort_by(String::lexical_compare)
+
   paths
 }
 
@@ -55,5 +56,6 @@ fn list_names(path : String) -> Array[String] raise @failure.TaskFailed {
   let names = @store.list_directory_if_exists(path) catch {
     failed => @failure.fail(failed.user_message())
   }
+
   names.unwrap_or([])
 }

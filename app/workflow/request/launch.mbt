@@ -26,6 +26,7 @@ pub async fn LaunchRequest::from_json(
   let completion_target = parse_completion_target(
     members.get("completionTarget"),
   )
+
   {
     task_id,
     display_name,
@@ -49,6 +50,7 @@ pub fn LaunchRequest::to_json(self : LaunchRequest) -> Json {
   }
   add_optional(members, "startingBranch", self.starting_branch)
   add_optional(members, "displayName", self.display_name)
+
   Json::object(members)
 }
 

@@ -49,6 +49,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
   let host = @host.host_of(env, which=_ => None)
   let checkout = self.checkout()
   let head = self.head
+
   let ports : Ports = {
     call: (caller, tool, args) => {
       self.calls.push((caller, tool, args))
@@ -64,6 +65,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
       @store.save_json(path, data, exclusive~)
     },
   }
+
   {
     env,
     host,
@@ -122,6 +124,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
 fn Rig::write_launch_file(self : Rig) -> String {
   let path = "\{self.root}/launch.json"
   write_text(path, launch_request_text())
+
   path
 }
 
@@ -132,6 +135,7 @@ fn Rig::write_review_file(self : Rig, extra? : String) -> String {
     path,
     "{\"taskId\":\"TR1\",\"workerAI\":\"Codex\",\"projectId\":\"project\",\"checkout\":\"\{self.checkout()}\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null\{extra.unwrap_or("")}}",
   )
+
   path
 }
 
@@ -172,8 +176,10 @@ async fn with_rig(
   @store.prepare_directory(made) catch {
     failed => abort(failed.user_message())
   }
+
   let root = @store.resolve_real_path_or_self(made)
   errdefer @async.protect_from_cancel(() => @testkit.remove_tree(root))
+
   let rig = {
     root,
     answers,
@@ -183,6 +189,7 @@ async fn with_rig(
     checkout_path: "\{root}/codex/worktrees/ab12/repo",
     prompts: [],
   }
+
   body(rig)
   @testkit.remove_tree(root)
 }
@@ -250,6 +257,7 @@ fn write_text(path : String, text : String) -> Unit {
   @store.prepare_directory(@path.dirname(path)) catch {
     failed => abort(failed.user_message())
   }
+
   @store.write_atomic(path, text) catch {
     failed => abort(failed.user_message())
   }

@@ -51,9 +51,11 @@ async fn review_in(
   @store.prepare_directory(directory) catch {
     failed => @failure.fail(failed.user_message())
   }
+
   let lock = "\{directory}/lock.json"
   let token = @store.acquire(lock, "review")
   defer @store.release(lock, token)
+
   match args.ask {
     None => run_review(ctx, args, directory, request)
     Some(ask) => run_ask(ctx, ask, directory, request)
@@ -81,6 +83,7 @@ async fn run_review(
   request : @request.ReviewRequest,
 ) -> Json raise @failure.TaskFailed {
   let records = @store.read_records(directory)
+
   match (records.pending, args.discard_pending) {
     (None, false) => ()
     (None, true) =>
@@ -111,6 +114,7 @@ async fn run_review(
   let launch = Launch::of_env(ctx.env)
   let reviewer = reviewer_of(state)
   let argv = review_argv(reviewer, request.checkout, args.model, args.thinking)
+
   (ctx.save)(
     records.pending_path,
     Json::object({
@@ -120,6 +124,7 @@ async fn run_review(
       "startedAt": Json::string(@store.now_iso()),
     }),
   )
+
   let ran = Ok(
     @process.run_process(
       launch.bin,
@@ -160,6 +165,7 @@ async fn run_review(
 
   heads.push(Json::string(candidate.head))
   let verdict = verdict_of(answer).map_or(Json::null(), Json::string)
+
   let saved = Ok(
     (ctx.save)(
       records.state_path,
@@ -183,6 +189,7 @@ async fn run_review(
   }
 
   drop_pending()
+
   Json::object({
     "status": Json::string("completed"),
     "verdict": verdict,
@@ -216,6 +223,7 @@ async fn run_ask(
   guard reviewer_of(state) is Some(reviewer) else {
     @failure.fail("this task has no reviewer yet; run review first")
   }
+
   let launch = Launch::of_env(ctx.env)
   let run = @process.run_process(
     launch.bin,
@@ -242,6 +250,7 @@ async fn run_ask(
       "reviewer \{reviewer} did not answer (exit \{run.status}): \{@text.excerpt(cause)}",
     )
   }
+
   let reviewed_candidate = field_of(state, "candidate")
   Json::object({
     "status": Json::string("completed"),

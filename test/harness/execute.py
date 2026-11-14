@@ -20,6 +20,7 @@ class _Output:
         self.chunks = []
         self.lines = 0
         self._lock = threading.Lock()
+
         self._thread = threading.Thread(target=self._pump, args=(stream,), daemon=True)
         self._thread.start()
 
@@ -64,9 +65,11 @@ class Running:
             stderr=subprocess.PIPE,
             start_new_session=True,
         )
+
         self.stdout = _Output(self.process.stdout)
         self.stderr = _Output(self.process.stderr)
         self.killed = False
+
         self._timer = threading.Timer(timeout, self.kill)
         self._timer.daemon = True
         self._timer.start()
@@ -128,6 +131,7 @@ def observe(argv, case):
 
         running.close_stdin()
         code, signal, stdout, stderr = running.end()
+
         observation = {
             "exitCode": code,
             "signal": signal,

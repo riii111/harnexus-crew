@@ -56,6 +56,7 @@ fn parse_options(
 ) -> ParsedOptions raise UsageError {
   let values : Map[String, OptionValue] = Map([])
   let mut at = 0
+
   while at < args.length() {
     let arg = args[at]
     at += 1

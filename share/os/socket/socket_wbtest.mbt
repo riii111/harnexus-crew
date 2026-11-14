@@ -87,6 +87,7 @@ async test "S4 a socket file with no server behind it is refused and not sent" {
     let path = socket_path("s4")
     @testkit.close_fd(@testkit.listen(path))
     defer @testkit.remove_file(path)
+
     let result = describe_exchange(path, "{\"x\":1}", 1000)
 
     assert_eq(result, "not_sent ECONNREFUSED")
@@ -123,6 +124,7 @@ async test "C1 real full listen queue: macOS refuses at once, Linux holds the co
       @testkit.close_fd(listener)
       @testkit.remove_file(path)
     }
+
     for _ in 0..<64 {
       let fd = @testkit.connect_and_hold(path) catch { _ => -1 }
       if fd < 0 {
@@ -426,6 +428,7 @@ async fn with_server(
     @testkit.close_fd(listener)
     @testkit.remove_file(path)
   }
+
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => {
       while true {

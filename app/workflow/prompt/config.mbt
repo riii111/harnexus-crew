@@ -35,6 +35,7 @@ fn TemplateConfig::from_json(
         fail_invalid(path, "templates.\{kind} must be an absolute path")
     }
   }
+
   {
     worker: parse_template_path("worker"),
     reviewer: parse_template_path("reviewer"),

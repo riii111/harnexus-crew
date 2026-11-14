@@ -28,6 +28,7 @@ def compare(case, expected, actual):
     differences += _list_differences("requests", expected["requests"], actual["requests"], jsonvalue.same_text)
     differences += _list_differences("commands", expected["commands"], actual["commands"], jsonvalue.same)
     differences += _file_differences(expected["files"], actual["files"])
+
     return differences
 
 

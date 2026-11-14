@@ -149,10 +149,13 @@ async test "a response nobody asked for is dropped without disturbing a request 
       })
 
       wait_for_requests(link, 1)
+
       link.adapter.receive(response_line("harnexus-crew-99", "done"))
       assert_eq(link.adapter.unanswered.length(), 1)
+
       link.adapter.receive(response_line("harnexus-crew-1", "done"))
       task.wait()
+
       assert_eq(outcome.val, "done")
     })
   })
@@ -203,10 +206,12 @@ async test "many round trips leave no descriptor, waiting request or lock behind
       let link = connect(at, group)
       link.start("write")
       link.say_records("linked", [])
+
       // A first round trip opens whatever the adapter keeps open for good.
       link.say_records("continued", judged("h000000"))
       let before = @testkit.open_fds()
       let rounds = 60
+
       for round in 1..<rounds {
         let head = "h\{round.to_string()}"
         link.say_records("continued", [..judged("h000000"), ..judged(head)])

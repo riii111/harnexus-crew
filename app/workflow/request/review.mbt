@@ -39,6 +39,7 @@ pub async fn ReviewRequest::from_json(
     ["prUrl", "workerChatId", "displayName"] +
     (if cloud { project } else { [] }),
   )
+
   let task_id = parse_task_id(members.get("taskId"))
   let display_name = parse_display_name(members.get("displayName"))
   let document_refs = parse_document_refs(members.get("documentRefs"), probe)
@@ -53,6 +54,7 @@ pub async fn ReviewRequest::from_json(
   let worker_ai = parse_worker_ai(members.get("workerAI"))
   let pr_url = parse_pr_url(members.get("prUrl"))
   let checkout = resolve_checkout(requested, scope, probe, git)
+
   {
     task_id,
     worker_ai,
@@ -134,6 +136,7 @@ fn ReviewRequest::members(self : ReviewRequest) -> Map[String, Json] {
   }
 
   add_optional(members, "displayName", self.display_name)
+
   members
 }
 
@@ -149,6 +152,7 @@ pub fn ReviewCandidate::to_json(self : ReviewCandidate) -> Json {
   let members = self.request.members()
   members["head"] = Json::string(self.head)
   members["base"] = Json::string(self.base)
+
   Json::object(members)
 }
 

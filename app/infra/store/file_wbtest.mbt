@@ -5,6 +5,7 @@ async test "read_text_if_exists reports a path that cannot be read" {
       file_failure(() => ignore(read_text_if_exists(directory))),
       "cannot read \{directory} (EISDIR)",
     )
+
     assert_eq(
       file_failure(() => ignore(read_text_if_exists("\{directory}/a\u{0}b"))),
       "cannot read \{directory}/a\u{0}b (EINVAL)",
@@ -45,7 +46,9 @@ async test "read_regular_text refuses a directory without an errno" {
 async test "write_atomic replaces the content of an existing file" {
   in_scratch(directory => {
     let target = "\{directory}/state.json"
+
     write_atomic(target, "old")
+
     assert_eq(read_text(target), "old")
 
     write_atomic(target, "new")
@@ -241,6 +244,7 @@ async test "list_directory_if_exists returns None for a missing path or a file" 
       None,
       msg="missing path",
     )
+
     assert_eq(list_directory_if_exists("\{directory}/a.json"), None, msg="file")
   })
 }
@@ -268,7 +272,9 @@ async test "is_file is true only for a regular file" {
     write_atomic("\{directory}/f", "x")
 
     assert_true(is_file("\{directory}/f"))
+
     assert_false(is_file(directory))
+
     assert_false(is_file("\{directory}/missing"))
   })
 }
@@ -279,7 +285,9 @@ async test "is_directory is true only for a directory" {
     write_atomic("\{directory}/f", "x")
 
     assert_true(is_directory(directory))
+
     assert_false(is_directory("\{directory}/f"))
+
     assert_false(is_directory("\{directory}/missing"))
   })
 }
@@ -290,8 +298,11 @@ async test "path_exists is true for a file and a directory but not for a missing
     write_atomic("\{directory}/f", "x")
 
     assert_true(path_exists("\{directory}/f"))
+
     assert_true(path_exists(directory))
+
     assert_false(path_exists("\{directory}/missing"))
+
     assert_false(path_exists("\{directory}/f/inner"))
   })
 }
@@ -313,6 +324,7 @@ async test "resolve_real_path_or_self keeps a resolved path and normalizes dot s
     let real = resolve_real_path_or_self(directory)
 
     assert_eq(resolve_real_path_or_self(real), real)
+
     assert_eq(resolve_real_path_or_self("\{directory}/./sub/../"), real)
   })
 }

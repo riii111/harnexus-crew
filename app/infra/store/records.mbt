@@ -19,6 +19,7 @@ pub fn read_records(directory : String) -> Records raise @failure.TaskFailed {
   let loaded = read_json_or_null(state_path)
   let state = check_record(loaded, state_path)
   let pending = check_record(read_json_or_null(pending_path), pending_path)
+
   { state_path, pending_path, loaded, state, pending, }
 }
 

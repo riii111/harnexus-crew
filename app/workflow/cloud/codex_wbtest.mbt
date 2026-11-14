@@ -5,6 +5,7 @@ test "an unset or empty binary variable falls back to the default binary" {
     "codex",
     msg="unset",
   )
+
   assert_eq(
     read_binary_path(@apptestkit.env_of([("BIN", "")]), "BIN", "codex"),
     "codex",
@@ -39,6 +40,7 @@ async test "a relative path in the binary variable is refused" {
 ///|
 test "an unset or empty duration falls back to the default duration" {
   assert_eq(read_milliseconds(@apptestkit.env_of([]), "T", 7), 7, msg="unset")
+
   assert_eq(
     read_milliseconds(@apptestkit.env_of([("T", "")]), "T", 7),
     7,
@@ -53,11 +55,13 @@ test "a positive whole number up to the 32-bit timer limit is the duration" {
     1,
     msg="1",
   )
+
   assert_eq(
     read_milliseconds(@apptestkit.env_of([("T", "30000")]), "T", 7),
     30000,
     msg="30000",
   )
+
   assert_eq(
     read_milliseconds(@apptestkit.env_of([("T", "2147483647")]), "T", 7),
     2147483647,
@@ -113,7 +117,9 @@ test "a thread that is not a lower-case UUID clears the one named before" {
   let spaced = "{\"type\":\"thread.started\",\"thread_id\":\"\{REVIEWER}\\n\"}"
 
   assert_eq(reply_of("\{upper}\n\{named}").thread_id, Some(REVIEWER))
+
   assert_eq(reply_of("\{named}\n\{upper}").thread_id, None, msg="upper-case")
+
   assert_eq(reply_of("\{named}\n\{spaced}").thread_id, None, msg="newline")
 }
 
@@ -139,11 +145,13 @@ test "a failed turn names the message of its error" {
     Some("rate limited"),
     msg="text",
   )
+
   assert_eq(
     failed_turn(",\"error\":{\"message\":429}"),
     Some("429"),
     msg="number",
   )
+
   assert_eq(
     failed_turn(",\"error\":{\"code\":429}"),
     Some("null"),
@@ -158,6 +166,7 @@ test "a failed turn without an error object says it failed" {
     Some("the turn failed"),
     msg="text error",
   )
+
   assert_eq(failed_turn(""), Some("the turn failed"), msg="no error")
 }
 
@@ -192,6 +201,7 @@ test "the first verdict a reply names is the one that counts" {
 ///|
 test "text before the marker on its line, or a different word, is no verdict" {
   assert_eq(verdict_of("判定: LGTM"), Some("LGTM"))
+
   for
     answer in [
       "", "指摘はありません", "対象 判定: LGTM", "x \u{FEFF}判定: LGTM",

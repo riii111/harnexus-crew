@@ -187,6 +187,7 @@ test "a sandbox refusal gets the sandbox hint" {
 ///|
 test "no error code, or an unknown one, gets the general hint" {
   assert_eq(socket_hint(None), SOCKET_HINT, msg="none")
+
   assert_eq(socket_hint(Some("EOTHER")), SOCKET_HINT, msg="EOTHER")
 }
 
@@ -198,6 +199,7 @@ async fn with_bridge(
   body : async (String, Array[String]) -> Unit,
 ) -> Unit {
   let lines = []
+
   with_server(
     name,
     stream => {
@@ -248,6 +250,7 @@ async fn with_server(
     @testkit.close_fd(listener)
     @testkit.remove_file(path)
   }
+
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => {
       while true {

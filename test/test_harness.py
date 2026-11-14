@@ -54,12 +54,14 @@ class Harness(unittest.TestCase):
 
     def test_detects_a_request_sent_twice(self):
         twice = {**BASE, "requests": [*BASE["requests"], *BASE["requests"]]}
+
         found = self.observe_differences(stub_case(), BASE, twice)
 
         self.assertIn({"field": "requests.count", "expected": 1, "actual": 2}, found)
 
     def test_lines_keep_their_boundaries_in_a_session(self):
         session = stub_case(kind="session", bridge=None, commands={}, env={})
+
         found = self.observe_differences(session, {"stdout": '{"id":1}\n{"id":2}\n'}, {"stdout": '{"id":1}{"id":2}\n'})
 
         self.assertIn("stdout.lines", self.fields(found))
@@ -72,6 +74,7 @@ class Harness(unittest.TestCase):
             env={},
             steps=[{"send": '{"id":1}'}, {"wait": 1}, {"send": '{"id":2}'}],
         )
+
         observation, _ = observe(["/bin/cat"], session)
 
         self.assertEqual('{"id":1}\n{"id":2}\n', observation["stdout"])
@@ -84,6 +87,7 @@ class Harness(unittest.TestCase):
     def observe_differences(self, case, expected_options, actual_options):
         first, first_root = observe(self.stub(expected_options), case)
         second, second_root = observe(self.stub(actual_options), case)
+
         return compare(case, normalize(first, first_root), normalize(second, second_root))
 
     def stub(self, options):
@@ -130,13 +134,17 @@ class BridgeSynchronization(unittest.TestCase):
 
                     collector = threading.Thread(target=collect)
                     collector.start()
+
                     self.assertFalse(snapshot_done.wait(0.05))
+
                     accept_gate.set()
                     self.assertTrue(serve_started.wait(5))
                     self.assertFalse(snapshot_done.wait(0.05))
+
                     serve_gate.set()
                     collector.join(5)
                     self.assertFalse(collector.is_alive())
+
                     self.assertEqual(["", "partial"], sorted(result[0]))
                     self.assertEqual(["", "partial"], sorted(bridge.collect_finished_requests()))
                 finally:
@@ -173,6 +181,7 @@ def stub_case(**overrides):
         "bridge": [{"answer": {"outcome": "done"}}, {"answer": {"outcome": "done"}}],
         "commands": {"codex": {"stdout": "ok\n"}},
     }
+
     return make_case(**{**fields, **overrides})
 
 

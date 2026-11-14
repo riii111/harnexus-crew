@@ -17,6 +17,7 @@ pub async fn with_fake_cli(
   let root = new_root(name)
   errdefer @async.protect_from_cancel(() => @os_testkit.remove_tree(root))
   let fake = { root, fake_dir: "\{root}/fake", bin: "\{root}/bin", }
+
   for directory in [fake.fake_dir, fake.bin] {
     @fs.mkdir(directory) catch {
       _ => abort("cannot create \{directory}")
@@ -71,6 +72,7 @@ pub async fn FakeCli::recorded(
   name? : String,
 ) -> String {
   let path = self.record_path("\{what}.\{run}", name)
+
   if @fs.exists(path) {
     @fs.read_text(path) catch {
       _ => abort("cannot read \{path}")
@@ -144,10 +146,12 @@ async fn new_root(name : String) -> String {
   for _ in 0..<1000 {
     root_count.val += 1
     let path = "\{@os_testkit.temp_base()}/hx-\{name}.\{@os_testkit.pid()}.\{root_count.val}"
+
     if !@fs.exists(path) {
       @fs.mkdir(path, permission=0o700) catch {
         error => abort("cannot create \{path}: \{error}")
       }
+
       // A stand-in records its working directory as a resolved path, so the root is resolved to match it.
       return @fs.realpath(path) catch {
         error => abort("cannot resolve \{path}: \{error}")

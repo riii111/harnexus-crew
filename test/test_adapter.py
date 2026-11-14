@@ -24,6 +24,7 @@ class NativeAdapterProcess(unittest.TestCase):
         adapter, (_, _, rest, unreadable_line) = self.close_after_many_requests()
 
         self.assertEqual((b"", None), (rest, unreadable_line))
+
         answered = [line["id"] for line in adapter.snapshot() if line.get("type") == "response"]
         self.assertEqual(sorted(f"h{index}" for index in range(MANY_REQUESTS)), sorted(answered))
 
@@ -63,6 +64,7 @@ class NativeAdapterProcess(unittest.TestCase):
         reviews = Path(self.root) / "home" / ".local" / "state" / "harnexus" / "cloud-reviews"
         reviews.mkdir(parents=True)
         (reviews / "chats.json").write_text('{"R1":"chat-r1"}', encoding="utf-8")
+
         adapter = self.spawn()
         adapter.send(HELLO + READY + records_frame("e0", "linked", []))
         adapter.wait_for(2)
@@ -72,8 +74,10 @@ class NativeAdapterProcess(unittest.TestCase):
             # The last record of the previous event leads, so the adapter finds its cursor again.
             lead = [review_records(f"h{index - 1}")[1]] if index > 1 else []
             adapter.send(records_frame(f"e{index}", "continued", [*lead, *review_records(f"h{index}")]))
+
             adapter.wait_for(handled[0] + 2)
             handled[0] += 2
+
             request = adapter.snapshot()[-1]
             self.assertEqual("post", request.get("op"))
             adapter.send(frame({"type": "response", "id": request.get("id"), "outcome": "done"}))
@@ -98,12 +102,14 @@ class NativeAdapterProcess(unittest.TestCase):
         ]
         adapter.send(HELLO + "".join(requests))
         adapter.close_input()
+
         return adapter, adapter.finish()
 
     def close_with_a_request_unanswered(self):
         adapter = self.spawn()
         adapter.send(HELLO + READY + records_frame("e1", "linked", []) + records_frame("e2", "continued", review_records("aaa1111")))
         adapter.wait_for(4)
+
         self.assertEqual("list_projects", adapter.snapshot()[-1].get("op"))
         adapter.close_input()
         code = adapter.wait_exit_code(15)
@@ -119,6 +125,7 @@ class NativeAdapterProcess(unittest.TestCase):
         adapter = Adapter(self.root)
         self.adapters.append(adapter)
         self.addCleanup(adapter.dispose)
+
         return adapter
 
 
@@ -193,11 +200,13 @@ class Adapter:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+
         self.lines = []
         self.rest = b""
         self.unreadable_line = None
         self._errors = []
         self._lock = threading.Lock()
+
         self._readers = [
             threading.Thread(target=self._read_lines, daemon=True),
             threading.Thread(target=self._read_errors, daemon=True),
@@ -245,6 +254,7 @@ class Adapter:
 
         self.process.stdout.close()
         self.process.stderr.close()
+
         return code, b"".join(self._errors).decode("utf-8", errors="replace"), self.rest, self.unreadable_line
 
     def dispose(self):

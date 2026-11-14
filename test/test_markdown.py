@@ -32,6 +32,7 @@ class MarkdownLinkJudgement(unittest.TestCase):
         path = self.directory / "template.md"
         path.write_bytes(jsonvalue.lossy_bytes(template))
         ran = subprocess.run([require_binary("HARNEXUS_MARKDOWN_PROBE"), str(path)], capture_output=True)
+
         if ran.returncode != 0:
             raise RuntimeError(f"probe exited {ran.returncode}: {ran.stderr.decode('utf-8', errors='replace')}")
 

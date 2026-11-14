@@ -21,11 +21,13 @@ class Bridge:
         self._flushed = threading.Event()
         self._handlers = []
         self._flush_handlers = []
+
         self._control_read, self._control_write = socket.socketpair()
         self._server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._server.bind(path)
         self._server.listen(128)
         self._server.setblocking(False)
+
         self._thread = threading.Thread(target=self._accept_loop, daemon=True)
         self._thread.start()
 

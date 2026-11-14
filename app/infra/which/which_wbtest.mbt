@@ -138,8 +138,11 @@ test "a file is runnable only when it is an executable regular file" {
 ///|
 test "in_env searches the PATH of the environment it is given" {
   let env = @environment.Env::new({ "PATH": "/nonexistent:/bin" })
+
   assert_eq(in_env(env)("sh"), Some("/bin/sh"))
+
   let empty = @environment.Env::new({})
+
   assert_eq(in_env(empty)("sh"), None)
 }
 

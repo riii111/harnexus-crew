@@ -19,6 +19,7 @@ pub fn find_project_id(result : Json?, directory : String) -> String? {
 /// The projects a `list_projects` result carries, wherever the app put them: structured content, the result itself, or JSON text in its content.
 fn projects_in(result : Json?) -> Array[Json] {
   guard result is Some(Object(members) as whole) else { return [] }
+
   let candidates = [members.get("structuredContent"), Some(whole)]
 
   if members.get("content") is Some(Array(content)) {

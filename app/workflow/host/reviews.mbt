@@ -88,6 +88,7 @@ fn content_of(record : Json) -> Array[Map[String, Json]] {
   guard record is Object(members) else { return [] }
   guard members.get("message") is Some(Object(message)) else { return [] }
   guard message.get("content") is Some(Array(content)) else { return [] }
+
   let blocks = []
 
   for item in content {
@@ -122,12 +123,14 @@ fn texts_of(content : Json?) -> Array[String] {
 /// The output is `harnexus-task`'s JSON, alone or with other lines around it, and with line numbers when a file was read.
 fn review_of(text : String) -> CloudReview? {
   guard text.contains("\"reviewer\"") else { return None }
+
   let plain = strip_line_numbers(text)
   guard plain.find("{") is Some(start) &&
     plain.rev_find("}") is Some(end) &&
     end > start else {
     return None
   }
+
   let parsed = @jsonio.parse(plain[start:end + 1].to_owned()) catch {
     _ => return None
   }
@@ -138,9 +141,11 @@ fn review_of(text : String) -> CloudReview? {
     @text.js_trim(answer) != "" else {
     return None
   }
+
   let head = text_or_none(output.get("head"))
   let asked_at = text_or_none(output.get("askedAt"))
   let identity = "\{reviewer}\u{0}\{head.unwrap_or("")}\u{0}\{asked_at.unwrap_or("")}\u{0}\{answer}"
+
   Some({
     key: @store.sha256_hex(identity)[:32].to_owned(),
     reviewer,
@@ -181,6 +186,7 @@ fn strip_line_numbers(text : String) -> String {
   }
 
   out.write_string(text[copied_from:].to_owned())
+
   out.to_string()
 }
 

@@ -19,6 +19,7 @@ pub fn links(
   let marked = replace_with_markers(template, candidates, nonce)
   // A comment spanning blocks would be split by the parser, so its text is blanked first, keeping the lines.
   let seen = find_destinations(blank_comments(marked))
+
   let found = []
 
   for candidate in candidates {

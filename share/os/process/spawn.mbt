@@ -178,6 +178,7 @@ fn spawn(
   let out = FixedArray::make(4, -1)
   let flags = (if new_session { SPAWN_NEW_SESSION } else { 0 }) |
     (if piped { SPAWN_PIPED } else { 0 })
+
   let errno = spawn_raw(
     encode_c_string(file),
     pack_c_strings(argv),

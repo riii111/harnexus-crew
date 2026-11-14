@@ -63,6 +63,7 @@ fn resolve_links(
   }
 
   out.write_view(template[last:])
+
   out.to_string()
 }
 

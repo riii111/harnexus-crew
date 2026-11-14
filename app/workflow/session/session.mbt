@@ -36,6 +36,7 @@ fn Session::open(
   summarize~ : (Map[String, Json]?, Map[String, Json]?) -> Map[String, Json],
 ) -> Session raise @failure.TaskFailed {
   let records = @store.read_records(directory)
+
   {
     ports,
     state_path: records.state_path,
@@ -58,6 +59,7 @@ async fn Session::send(
   extra : Array[(String, Json)],
 ) -> Json raise @failure.TaskFailed {
   self.check_idle()
+
   let record : Map[String, Json] = {
     "status": Json::string("sending"),
     "tool": Json::string(tool),
@@ -205,6 +207,7 @@ fn Session::confirm(
       None => Json::null()
     }
   }
+
   let expected = Json::object({
     "model": value_of(args, "model"),
     "effort": value_of(args, "thinking"),
@@ -233,6 +236,7 @@ fn Session::confirm(
   let next = (self.confirmed)(id, record, sent, self.state)
   (self.ports.save)(self.state_path, Json::object(next), false)
   @store.remove_record(self.pending_path)
+
   // A message to an existing thread that asked for no model or effort learns neither, so nulls would only mislead.
   let unasked = value_of(record, "tool") is String("send_message_to_thread") &&
     !args.contains("model") &&
@@ -249,6 +253,7 @@ fn Session::confirm(
   }
 
   shown["state"] = Json::string(self.state_path)
+
   Json::object(shown)
 }
 
@@ -279,6 +284,7 @@ fn Session::show(self : Session) -> Json raise @failure.TaskFailed {
       _ => []
     },
   )
+
   Json::object(shown)
 }
 
@@ -290,6 +296,7 @@ fn Session::check_idle(self : Session) -> Unit raise @failure.TaskFailed {
 ///|
 fn check_idle(pending : Map[String, Json]?) -> Unit raise @failure.TaskFailed {
   guard pending is Some(pending) else { return }
+
   let thread = @jsonio.as_text(value_of(pending, "threadId"))
 
   if value_of(pending, "status") is String("refused") {

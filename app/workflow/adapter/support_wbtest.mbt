@@ -25,6 +25,7 @@ async fn with_place(name : String, body : async (Place) -> Unit) -> Unit {
     @store.prepare_directory(at.review_home) catch {
       failed => abort(failed.user_message())
     }
+
     body(at)
   })
 }
@@ -109,6 +110,7 @@ fn connect(
   let logs = []
   let cell : Ref[Adapter?] = Ref(None)
   let locks = "\{at.observe}/locks"
+
   let adapter = Adapter::new({
     adapter_id: "taskctl",
     send: text => {
@@ -120,6 +122,7 @@ fn connect(
 
         group.spawn_bg(no_wait=true, () => {
           @async.sleep(1)
+
           let members = [
             ("v", Json::number(1.0)),
             ("type", str("response")),
@@ -143,8 +146,10 @@ fn connect(
     review_home: at.review_home,
     log: entry => logs.push(object(entry)),
   })
+
   cell.val = Some(adapter)
   group.spawn_bg(no_wait=true, () => adapter.run_jobs())
+
   { adapter, sent, logs, events: 0, }
 }
 
@@ -327,6 +332,7 @@ fn write_file(path : String, text : String) -> Unit {
   @store.prepare_directory(@path.dirname(path)) catch {
     failed => abort(failed.user_message())
   }
+
   @store.write_atomic(path, text) catch {
     failed => abort(failed.user_message())
   }

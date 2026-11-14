@@ -5,6 +5,7 @@ async test "E1 a missing command is reported as not started with ENOENT" {
       describe_run("/nonexistent/cmd", []),
       "failed started=false: cannot run /nonexistent/cmd (ENOENT)",
     )
+
     assert_eq(
       describe_run("nonexistent-cmd", []),
       "failed started=false: cannot run nonexistent-cmd (ENOENT)",
@@ -262,6 +263,7 @@ async test "a bare command name is looked up in the PATH of the given environmen
       describe_run("sh", ["-c", "exit 4"], env={ "PATH": "/bin" }),
       "started ended=exit status=4",
     )
+
     let missing = describe_run("sh", ["-c", "exit 4"], env={
       "PATH": "/nonexistent",
     })
@@ -335,6 +337,7 @@ async test "a command started while another's stdin is still open does not inher
         assert_eq(
           result, "started ended=exit status=0 stdout=\"hello\" stderr=\"\"",
         )
+
         cat_ended.val = ms
       })
 
@@ -398,6 +401,7 @@ async test "cancelling a run closes every descriptor" {
     let dir = @testkit.scratch("cancel-fds")
     defer @async.protect_from_cancel(() => @testkit.remove_tree(dir))
     let pidfile = "\{dir}/pid"
+
     // The runtime's own descriptors exist only after a first start, so start once before counting.
     ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
@@ -420,6 +424,7 @@ async test "every finished run leaves no descriptor behind" {
   @testkit.serial(() => {
     ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
+
     ignore(describe_run("/bin/sh", ["-c", "exit 2"]))
     ignore(describe_run("/nonexistent/cmd", []))
     ignore(describe_run("/bin/sleep", ["5"], timeout_ms=200, kill_grace_ms=200))
@@ -486,6 +491,7 @@ async test "run_command kills a command that ignores SIGTERM after a grace" {
       "trap '' TERM; sleep 5",
       timeout_ms=100,
     )
+
     assert_eq(
       result, "command=/bin/sh message=/bin/sh was stopped after 100 ms code=none",
     )
@@ -499,10 +505,12 @@ async test "run_command stops a grandchild that keeps the output open after the 
     let dir = @testkit.scratch("stop-grandchild")
     defer @async.protect_from_cancel(() => @testkit.remove_tree(dir))
     let pidfile = "\{dir}/pid"
+
     let (result, elapsed) = describe_command_run(
       "sleep 30 & echo $! > \{pidfile}; exit 0",
       timeout_ms=300,
     )
+
     assert_eq(
       result, "command=/bin/sh message=/bin/sh was stopped after 300 ms code=none",
     )
@@ -518,6 +526,7 @@ async test "run_command gives up on a grandchild that left the group and keeps t
       "perl -MPOSIX -e 'POSIX::setsid(); exec q(sleep), q(4)' & exit 0",
       timeout_ms=300,
     )
+
     assert_eq(
       mask_pid(result),
       "command=/bin/sh message=/bin/sh did not finish: pid <pid> did not exit after SIGKILL code=none",
@@ -571,6 +580,7 @@ async test "cancelling run_command closes every descriptor" {
     let dir = @testkit.scratch("cancel-command-fds")
     defer @async.protect_from_cancel(() => @testkit.remove_tree(dir))
     let pidfile = "\{dir}/pid"
+
     ignore(run_shell("true"))
     let before = @testkit.open_fds()
 
@@ -602,6 +612,7 @@ async test "run_command fails on output past 16 MiB" {
 async test "run_inherited returns the exit status, and 128 plus the signal for a killed command" {
   @testkit.serial(() => {
     assert_eq(run_inherited("/bin/sh", ["-c", "exit 7"], plain_env()), 7)
+
     assert_eq(run_inherited("/bin/sh", ["-c", "kill -9 $$"], plain_env()), 137)
   })
 }
@@ -684,6 +695,7 @@ async test "B1 cancelling a run whose leader already exited still closes every d
     let dir = @testkit.scratch("b1-fds")
     defer @async.protect_from_cancel(() => @testkit.remove_tree(dir))
     let pidfile = "\{dir}/pid"
+
     ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
 
@@ -725,6 +737,7 @@ async test "B3 a relative PATH entry is looked up under the working directory" {
       describe_run("hxc-cmd", [], cwd=dir, env={ "PATH": "./bin" }, output=true),
       found_output,
     )
+
     assert_eq(
       describe_run("hxc-cmd", [], cwd="/", env={ "PATH": "./bin" }),
       "failed started=false: cannot run hxc-cmd (ENOENT)",
@@ -759,6 +772,7 @@ async test "run_command keeps the error code Node attaches for a command that ca
       run_command_failure("git-not-here", []),
       "command=git-not-here message=cannot run git-not-here code=ENOENT",
     )
+
     assert_eq(
       run_command_failure(
         "/bin/sh",
@@ -777,6 +791,7 @@ async test "run_command attaches no error code to a timeout or a signal death" {
       run_command_failure("/bin/sleep", ["5"], timeout_ms=50),
       "command=/bin/sleep message=/bin/sleep was stopped after 50 ms code=none",
     )
+
     assert_eq(
       run_command_failure("/bin/sh", ["-c", "kill -9 $$"]),
       "command=/bin/sh message=cannot run /bin/sh code=none",
@@ -880,6 +895,7 @@ fn spawn_missing_with_stdio_closed() -> (Int32, Int32, Int32) raise {
 
   let after = @testkit.open_fds()
   @testkit.restore_stdio(saved)
+
   (errno, before, after)
 }
 
@@ -945,6 +961,7 @@ async fn run_command_failure(
 ///|
 fn mask_pid(message : String) -> String {
   guard message.find("pid ") is Some(at) else { return message }
+
   let digits_start = at + 4
   let mut digits_end = digits_start
   while digits_end < message.length() &&

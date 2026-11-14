@@ -115,6 +115,7 @@ pub async fn serial(body : async () -> Unit) -> Unit {
 pub async fn[T] timed(work : async () -> T) -> (T, Int32) {
   let started = @async.now()
   let value = work()
+
   (value, (@async.now() - started).to_int())
 }
 
@@ -145,6 +146,7 @@ pub async fn scratch(name : String) -> String {
   scratch_count.val += 1
   let path = "\{temp_base()}/hx-\{name}.\{pid()}.\{@async.now()}.\{scratch_count.val}"
   @fs.mkdir(path)
+
   path
 }
 

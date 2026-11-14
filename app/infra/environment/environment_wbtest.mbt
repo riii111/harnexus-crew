@@ -4,6 +4,7 @@ test "an explicit local names the app that runs it" {
     detected([("HARNEXUS_EXECUTION_ENV", "local")]),
     content="{\"environment\":\"local\",\"source\":\"explicit\",\"app\":\"codex\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
   )
+
   inspect(
     detected([
       ("HARNEXUS_EXECUTION_ENV", "local"),
@@ -11,6 +12,7 @@ test "an explicit local names the app that runs it" {
     ]),
     content="{\"environment\":\"local\",\"source\":\"explicit\",\"app\":\"codex\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
   )
+
   inspect(
     detected([("HARNEXUS_EXECUTION_ENV", "local"), ("T3CODE_THREAD_ID", "t")]),
     content="{\"environment\":\"local\",\"source\":\"explicit\",\"app\":\"t3\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
@@ -23,6 +25,7 @@ test "an explicit cloud names the Cloud host or none" {
     detected([("HARNEXUS_EXECUTION_ENV", "cloud")]),
     content="{\"environment\":\"cloud\",\"source\":\"explicit\",\"host\":null,\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
   )
+
   inspect(
     detected([
       ("HARNEXUS_EXECUTION_ENV", "cloud"),
@@ -31,6 +34,7 @@ test "an explicit cloud names the Cloud host or none" {
     ]),
     content="{\"environment\":\"cloud\",\"source\":\"explicit\",\"host\":\"codex\",\"note\":\"set by HARNEXUS_EXECUTION_ENV\"}",
   )
+
   inspect(
     detected([
       ("HARNEXUS_EXECUTION_ENV", "cloud"),
@@ -46,6 +50,7 @@ test "a Cloud variable names the Cloud without printing its value" {
     detected([("CODEX_ENVIRONMENT_ID", "secret")]),
     content="{\"environment\":\"cloud\",\"source\":\"CODEX_ENVIRONMENT_ID\",\"host\":\"codex\",\"note\":\"CODEX_ENVIRONMENT_ID is an observed variable of Codex Cloud tasks, not a documented guarantee; set HARNEXUS_EXECUTION_ENV=cloud|local to decide explicitly\"}",
   )
+
   inspect(
     detected([("CLAUDE_CODE_REMOTE", "true")]),
     content="{\"environment\":\"cloud\",\"source\":\"CLAUDE_CODE_REMOTE\",\"host\":\"claude\",\"note\":\"CLAUDE_CODE_REMOTE is set in Claude Code cloud sessions\"}",
@@ -116,6 +121,7 @@ test "CLAUDE_CODE_REMOTE declares the Cloud only when it is true" {
     detected([("CLAUDE_CODE_REMOTE", "true"), ("HOME", "/h")]),
     content="{\"environment\":\"cloud\",\"source\":\"CLAUDE_CODE_REMOTE\",\"host\":\"claude\",\"note\":\"CLAUDE_CODE_REMOTE is set in Claude Code cloud sessions\"}",
   )
+
   inspect(
     detected([("CLAUDE_CODE_REMOTE", "1"), ("HOME", "/h")]),
     content="ask /h/.local/state/harnexus/call.sock",
@@ -138,6 +144,7 @@ test "an empty T3 variable leaves the app as Codex" {
 ///|
 test "each app has its own thread variable" {
   inspect(thread_variable(T3), content="T3CODE_THREAD_ID")
+
   inspect(thread_variable(Codex), content="CODEX_THREAD_ID")
 }
 
@@ -164,6 +171,7 @@ test "an absolute directory setting is used as the directory" {
 ///|
 test "an empty HOME is used as it is" {
   inspect(env_of([("HOME", "")]).home(), content="")
+
   inspect(env_of([("HOME", "")]).config_home(), content=".config/harnexus")
 }
 
@@ -193,6 +201,7 @@ test "a caller has no socket when HARNEXUS_CALL_SOCKET is off" {
     resolve_caller_socket(env_of([("HOME", "/h")])),
     Some("/h/.local/state/harnexus/call.sock"),
   )
+
   assert_eq(
     resolve_caller_socket(env_of([("HARNEXUS_CALL_SOCKET", "off")])),
     None,

@@ -3,6 +3,7 @@ async fn serve(env : @environment.Env, adapter_id : String) -> @run.CommandRun {
   let out_gate = @async.Mutex()
   let err_gate = @async.Mutex()
   let lines : Array[String] = []
+
   @delivery.serve(
     env,
     adapter_id,
@@ -22,6 +23,7 @@ async fn serve(env : @environment.Env, adapter_id : String) -> @run.CommandRun {
       return { code: 1, stdout: "", stderr: "\{message}\n", }
     other => raise other
   }
+
   { code: 0, stdout: "", stderr: "", }
 }
 

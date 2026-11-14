@@ -6,12 +6,14 @@ test "projects come from structured content first, then the result, then JSON te
     ),
     content="[{\"projectId\":\"a\"}]",
   )
+
   inspect(
     projects_of(
       "{\"projects\":[{\"projectId\":\"b\"}],\"content\":[{\"type\":\"text\",\"text\":\"{\\\"projects\\\":[1,2]}\"}]}",
     ),
     content="[{\"projectId\":\"b\"}]",
   )
+
   inspect(
     projects_of(
       "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"projects\\\":[1,2]}\"}]}",
@@ -59,6 +61,7 @@ test "a content item that is not text is passed over" {
 ///|
 test "a result without a projects list holds no projects" {
   assert_eq(projects_of("{\"projects\":[1]}"), "[1]")
+
   assert_eq(projects_in(None), [])
 
   for text in ["null", "[]", "\"x\"", "{}", "{\"content\":3}"] {

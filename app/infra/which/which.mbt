@@ -5,6 +5,7 @@
 pub fn in_env(env : @environment.Env) -> (String) -> String? {
   let path_value = env.get("PATH")
   let cwd = @env.current_dir()
+
   name => find(name, path_value, cwd, is_runnable_file)
 }
 

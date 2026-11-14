@@ -32,6 +32,7 @@ fn list_names(path : String) -> Array[String] raise {
   guard list_directory_if_exists(path) is Some(names) else {
     fail("\{path} is not a directory")
   }
+
   names.sort_by(String::lexical_compare)
   names
 }

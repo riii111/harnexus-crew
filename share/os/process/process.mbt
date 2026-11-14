@@ -34,11 +34,13 @@ pub async fn run_process(
     child.stop_and_reap()
     child.release_pipes()
   }
+
   let run = supervise(child, input, timeout_ms~, kill_grace_ms~) catch {
     StillAlive =>
       raise failed(true, "pid \{child.pid} did not exit after SIGKILL")
     err => raise failed(true, err.to_string())
   }
+
   {
     status: match run.exit {
       Code(code) => code
@@ -93,6 +95,7 @@ async fn supervise(
 
     // To keep the input out of the process list, it goes through stdin.
     group.spawn_bg(no_wait=true, () => feed_input(child.stdin, input))
+
     // One count over both streams: the limit bounds what a run keeps in memory.
     let size = Ref(0)
 
@@ -112,6 +115,7 @@ async fn supervise(
   })
 
   child.sweep_group()
+
   {
     exit: exit.val,
     ended: ended.val,
