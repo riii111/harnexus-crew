@@ -10,8 +10,7 @@ fn read(text : String) -> String {
 }
 
 ///|
-test "absolute template paths are accepted, and either may be left out" {
-  inspect(read("{\"templates\":{}}"), content="ok worker=- reviewer=-")
+test "absolute template paths are accepted" {
   inspect(
     read("{\"templates\":{\"worker\":\"/w\",\"reviewer\":\"/r\"}}"),
     content="ok worker=/w reviewer=/r",
@@ -19,16 +18,32 @@ test "absolute template paths are accepted, and either may be left out" {
 }
 
 ///|
-test "a config that is not an object with templates is refused" {
+test "either template path may be left out" {
+  inspect(read("{\"templates\":{}}"), content="ok worker=- reviewer=-")
   inspect(
-    read("{}"),
-    content="/c/task.json is invalid: templates must be an object",
+    read("{\"templates\":{\"worker\":\"/w\"}}"),
+    content="ok worker=/w reviewer=-",
   )
+  inspect(
+    read("{\"templates\":{\"reviewer\":\"/r\"}}"),
+    content="ok worker=- reviewer=/r",
+  )
+}
+
+///|
+test "a config that is not an object is refused" {
   inspect(read("[]"), content="/c/task.json is invalid: it must be an object")
-  inspect(
-    read("{\"templates\":\"x\"}"),
-    content="/c/task.json is invalid: templates must be an object",
-  )
+}
+
+///|
+test "a config without a templates object is refused" {
+  for text in ["{}", "{\"templates\":\"x\"}"] {
+    assert_eq(
+      read(text),
+      "/c/task.json is invalid: templates must be an object",
+      msg=text,
+    )
+  }
 }
 
 ///|
