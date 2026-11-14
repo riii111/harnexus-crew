@@ -5,12 +5,12 @@ pub(all) enum TemplateKind {
 }
 
 ///|
-/// The replies a reviewer template must be filled for: a worker in the Codex App of either AI, and a Claude Code cloud session.
-let replies : Array[String] = ["Codex", "Claude", "Cloud"]
-
-///|
-/// The reply of a worker in T3 Code.
-const T3_REPLY : String = "T3"
+fn TemplateKind::name(self : TemplateKind) -> String {
+  match self {
+    Worker => "worker"
+    Reviewer => "reviewer"
+  }
+}
 
 ///|
 /// The prompt a new chat receives: the configured template of `kind`, with its links resolved and `fields` filled in.
@@ -36,6 +36,10 @@ pub fn render_task_prompt(
       @failure.fail("templates.\{kind.name()} is not set in \{config_path}")
   }
 }
+
+///|
+/// The replies a reviewer template must be filled for: a worker in the Codex App of either AI, and a Claude Code cloud session.
+let replies : Array[String] = ["Codex", "Claude", "Cloud"]
 
 ///|
 /// Renders every configured template as launch and review would, so an update can tell before it is switched to that it cannot fill them.
@@ -101,6 +105,10 @@ fn read_text(path : String) -> String raise @failure.TaskFailed {
 }
 
 ///|
+/// The reply of a worker in T3 Code.
+const T3_REPLY : String = "T3"
+
+///|
 fn check_t3_readiness(path : String) -> Json {
   // A template written before T3 Code must still be installable, and the review in T3 Code refuses it before sending, so the T3 reply is reported apart instead of failing the check.
   try {
@@ -137,12 +145,4 @@ fn name_or_null(path : String?) -> Json {
 ///|
 fn object(members : Array[(String, Json)]) -> Json {
   Json::object(Map::from_array(members))
-}
-
-///|
-fn TemplateKind::name(self : TemplateKind) -> String {
-  match self {
-    Worker => "worker"
-    Reviewer => "reviewer"
-  }
 }

@@ -65,3 +65,18 @@ pub fn CallAnswer::is_unsent(self : CallAnswer) -> Bool {
   // An outcome this program does not know may have acted, so only outcomes after which the bridge surely did not act let the call be sent again.
   self.outcome is ("not_sent" | "rejected" | "invalid" | "unsupported")
 }
+
+///|
+fn not_sent(error : String) -> CallAnswer {
+  CallAnswer::failed(NotSent, error~)
+}
+
+///|
+fn unsupported(error : String) -> CallAnswer {
+  CallAnswer::failed(Unsupported, error~)
+}
+
+///|
+fn unknown(error : String) -> CallAnswer {
+  CallAnswer::failed(Unknown, error~)
+}

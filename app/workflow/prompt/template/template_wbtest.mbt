@@ -1,22 +1,4 @@
 ///|
-fn outcome(
-  template : String,
-  fields : Map[String, String],
-  refuse~ : (String) -> String? = fn(_) { None },
-) -> String {
-  format(template, fields, refuse~) catch {
-    @failure.TaskFailed(message) => "refused: \{message}"
-  }
-}
-
-///|
-let fields : Map[String, String] = {
-  "task_id": "T-1",
-  "pr_url": "https://x/1",
-  "checkout": "/p q",
-}
-
-///|
 test "a field is filled" {
   inspect(outcome("Work on {task_id}", fields), content="Work on T-1")
 }
@@ -96,4 +78,22 @@ test "a name may hold only ASCII letters and digits, _ and -" {
 test "braces are escaped for a later fill" {
   inspect(escape_braces("a{b}c"), content="a{{b}}c")
   inspect(outcome(escape_braces("a{b}c"), fields), content="a{b}c")
+}
+
+///|
+fn outcome(
+  template : String,
+  fields : Map[String, String],
+  refuse~ : (String) -> String? = fn(_) { None },
+) -> String {
+  format(template, fields, refuse~) catch {
+    @failure.TaskFailed(message) => "refused: \{message}"
+  }
+}
+
+///|
+let fields : Map[String, String] = {
+  "task_id": "T-1",
+  "pr_url": "https://x/1",
+  "checkout": "/p q",
 }

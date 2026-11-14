@@ -1,9 +1,4 @@
 ///|
-fn projects_of(text : String) -> String {
-  json_text(Json::array(projects_in(Some(parse(text)))))
-}
-
-///|
 test "projects come from structured content first, then the result, then JSON text in its content" {
   inspect(
     projects_of(
@@ -68,4 +63,9 @@ test "a result without a projects list holds no projects" {
   for text in ["null", "[]", "\"x\"", "{}", "{\"content\":3}"] {
     assert_eq(projects_of(text), "[]", msg=text)
   }
+}
+
+///|
+fn projects_of(text : String) -> String {
+  json_text(Json::array(projects_in(Some(parse(text)))))
 }

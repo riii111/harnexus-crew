@@ -1,8 +1,4 @@
 ///|
-/// The kinds of state this CLI keeps; the watch directory beside them belongs to pr-wake and is never read.
-let owned_kinds : Array[String] = ["cloud-review", "launch", "review"]
-
-///|
 /// Every state file of the owned kinds, by path.
 pub fn state_command(env : @environment.Env) -> Json raise @failure.TaskFailed {
   let listed : Array[(String, Json)] = []
@@ -11,6 +7,10 @@ pub fn state_command(env : @environment.Env) -> Json raise @failure.TaskFailed {
   }
   Json::object(Map::from_array(listed))
 }
+
+///|
+/// The kinds of state this CLI keeps; the watch directory beside them belongs to pr-wake and is never read.
+let owned_kinds : Array[String] = ["cloud-review", "launch", "review"]
 
 ///|
 fn list_state_paths(root : String) -> Array[String] raise @failure.TaskFailed {
