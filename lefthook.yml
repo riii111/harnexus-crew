@@ -4,6 +4,10 @@ pre-commit:
       glob: "{moon.mod,{app,share,cmd,test/probes}/**/*.{mbt,mbti},{app,share,cmd,test/probes}/**/moon.pkg}"
       run: moon fmt
       stage_fixed: true
+    blank-lines:
+      glob: "{app,share,cmd,test}/**/*.{mbt,py}"
+      run: python3 scripts/check-blank-lines.py --fix {staged_files}
+      stage_fixed: true
     clang-format:
       glob: "{app,share,cmd}/**/*.c"
       run: clang-format -i {staged_files}

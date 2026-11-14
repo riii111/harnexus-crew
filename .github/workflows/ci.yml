@@ -45,6 +45,8 @@ jobs:
         run: nix fmt --no-write-lock-file -- --check flake.nix
       - name: Check formatting
         run: moon fmt --check
+      - name: Check blank lines
+        run: python3 scripts/check-blank-lines.py
       - name: Check warnings
         run: moon check --deny-warn
       - name: Check C
