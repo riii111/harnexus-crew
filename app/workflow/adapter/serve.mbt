@@ -1,11 +1,4 @@
 ///|
-priv struct Parts {
-  store : ReviewStore
-  observations : Observations
-  locks : String
-}
-
-///|
 pub async fn serve(
   env : @environment.Env,
   adapter_id : String,
@@ -37,6 +30,13 @@ pub async fn serve(
     })
     adapter.finish()
   })
+}
+
+///|
+priv struct Parts {
+  store : ReviewStore
+  observations : Observations
+  locks : String
 }
 
 ///|

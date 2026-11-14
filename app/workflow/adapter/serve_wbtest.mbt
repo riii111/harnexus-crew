@@ -1,28 +1,4 @@
 ///|
-/// Waits until the adapter has sent `count` requests, which a bridge that answers nothing leaves waiting.
-async fn wait_for_requests(link : Link, count : Int32) -> Unit {
-  for _ in 0..<400 {
-    if link.requests().length() >= count {
-      return
-    }
-    @async.sleep(5)
-  }
-  abort("only \{link.requests().length()} of \{count} requests were sent")
-}
-
-///|
-fn response_line(id : String, outcome : String) -> String {
-  text_of(
-    object([
-      ("v", Json::number(1.0)),
-      ("type", str("response")),
-      ("id", str(id)),
-      ("outcome", str(outcome)),
-    ]),
-  )
-}
-
-///|
 async test "a review whose post is still waiting when the bridge closes is recorded as sent and leaves the pending list" {
   with_place("serve-close-waiting", at => {
     @async.with_task_group(group => {
@@ -268,4 +244,28 @@ async test "history requests handled at the same time each get a response carryi
       assert_eq(ids, expected)
     })
   })
+}
+
+///|
+/// Waits until the adapter has sent `count` requests, which a bridge that answers nothing leaves waiting.
+async fn wait_for_requests(link : Link, count : Int32) -> Unit {
+  for _ in 0..<400 {
+    if link.requests().length() >= count {
+      return
+    }
+    @async.sleep(5)
+  }
+  abort("only \{link.requests().length()} of \{count} requests were sent")
+}
+
+///|
+fn response_line(id : String, outcome : String) -> String {
+  text_of(
+    object([
+      ("v", Json::number(1.0)),
+      ("type", str("response")),
+      ("id", str(id)),
+      ("outcome", str(outcome)),
+    ]),
+  )
 }

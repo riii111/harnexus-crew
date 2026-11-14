@@ -1,9 +1,4 @@
 ///|
-fn read_position_file(at : Place) -> Json {
-  read_json_file("\{at.observe}/sessions/\{session}.json")
-}
-
-///|
 async test "only the reviews after the link are taken" {
   with_place("position-after-link", at => {
     @async.with_task_group(group => {
@@ -210,6 +205,11 @@ async test "a session id that is not an id is refused: it is logged, and nothing
       assert_eq(list_names("\{at.observe}/sessions"), [])
     })
   })
+}
+
+///|
+fn read_position_file(at : Place) -> Json {
+  read_json_file("\{at.observe}/sessions/\{session}.json")
 }
 
 ///|
