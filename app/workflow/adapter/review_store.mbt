@@ -377,6 +377,6 @@ fn ReviewStore::write(
   path : String,
   value : Json,
 ) -> Unit raise @failure.TaskFailed {
-  with_task_failure(() => @store.prepare_directory(self.dir))
-  with_task_failure(() => @store.write_atomic(path, value.stringify()))
+  lift_file_failure(() => @store.prepare_directory(self.dir))
+  lift_file_failure(() => @store.write_atomic(path, value.stringify()))
 }

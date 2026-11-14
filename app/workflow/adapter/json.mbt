@@ -96,7 +96,7 @@ fn short_hash(text : String) -> String {
 }
 
 ///|
-fn[T] with_task_failure(
+fn[T] lift_file_failure(
   work : () -> T raise @store.FileFailed,
 ) -> T raise @failure.TaskFailed {
   work() catch {

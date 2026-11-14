@@ -121,7 +121,7 @@ fn Observations::drop_opening(
   self : Observations,
   reviewer : String,
 ) -> Unit raise @failure.TaskFailed {
-  with_task_failure(() => @store.remove_file(self.opening_path(reviewer)))
+  lift_file_failure(() => @store.remove_file(self.opening_path(reviewer)))
 }
 
 ///|
