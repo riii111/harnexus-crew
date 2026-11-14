@@ -1,89 +1,4 @@
 ///|
-struct Fake {
-  root : String
-  fake_dir : String
-  bin : String
-}
-
-///|
-fn mock_bin() -> String {
-  "\{@env.current_dir().unwrap()}/test/native/mocks/fake-cli.sh"
-}
-
-///|
-async fn with_fake(name : String, body : async (Fake) -> Unit) -> Unit {
-  let root = scratch(name)
-  let fake_dir = "\{root}/fake"
-  @store.prepare_directory(fake_dir) catch {
-    failed => abort(failed.user_message())
-  }
-  errdefer @async.protect_from_cancel(() => remove_tree(root))
-  body({ root, fake_dir, bin: mock_bin(), })
-  remove_tree(root)
-}
-
-///|
-fn Fake::plan(
-  self : Fake,
-  run : Int32,
-  out~ : String = "",
-  exit~ : Int32 = 0,
-  stderr? : String,
-  sleep? : String,
-) -> Unit {
-  write_file("\{self.fake_dir}/out.\{run}", out)
-  write_file("\{self.fake_dir}/exit.\{run}", exit.to_string())
-  if stderr is Some(text) {
-    write_file("\{self.fake_dir}/stderr.\{run}", text)
-  }
-  if sleep is Some(seconds) {
-    write_file("\{self.fake_dir}/sleep.\{run}", seconds)
-  }
-}
-
-///|
-fn write_file(path : String, text : String) -> Unit {
-  @store.write_atomic(path, text) catch {
-    failed => abort(failed.user_message())
-  }
-}
-
-///|
-fn Fake::recorded(self : Fake, name : String, run : Int32) -> String {
-  let found = @store.read_text_if_exists("\{self.fake_dir}/\{name}.\{run}") catch {
-    failed => abort(failed.user_message())
-  }
-  found.unwrap_or("")
-}
-
-///|
-fn Fake::args(self : Fake, run : Int32) -> Array[String] {
-  let lines = []
-  for line in @text.js_trim(self.recorded("args", run)).split("\n") {
-    lines.push(line.to_owned())
-  }
-  lines
-}
-
-///|
-fn Fake::ran(self : Fake) -> Bool {
-  @store.path_exists("\{self.fake_dir}/count")
-}
-
-///|
-fn Fake::deps(self : Fake) -> T3Deps {
-  {
-    env: env_of([
-      ("HARNEXUS_T3_BIN", self.bin),
-      ("FAKE_DIR", self.fake_dir),
-      ("HOME", self.root),
-      ("PATH", "/usr/bin:/bin"),
-    ]),
-    which: _ => None,
-  }
-}
-
-///|
 async fn t3_json(
   deps : T3Deps,
   tool : String,
@@ -129,16 +44,17 @@ fn shown(model : String) -> String {
 }
 
 ///|
-async test "create_thread starts the thread in a new worktree with the prompt on stdin and reports the model T3 Code shows" {
-  serial(() => {
-    with_fake("t3-1", fake => {
+async test "create_thread starts the thread in a new worktree from the starting branch" {
+  @testkit.serial(() => {
+    with_t3("t3-1", fake => {
       fake.plan(
         1,
         out="{\"threadId\":\"t1\",\"projectId\":\"p1\",\"runId\":\"r1\"}",
       )
       fake.plan(2, out=shown("claude-sonnet-5-5"))
+
       let answer = t3_json(
-        fake.deps(),
+        t3_deps(fake),
         "create_thread",
         create_args(
           target=worker_target(
@@ -147,128 +63,210 @@ async test "create_thread starts the thread in a new worktree with the prompt on
               "branchName": Json::string("feat/base"),
             }),
           ),
-          extra=[("prompt", Json::string("--prompt that looks like a flag"))],
         ),
       )
-      assert_eq(
-        answer, "{\"outcome\":\"done\",\"threadId\":\"t1\",\"model\":\"claude-sonnet-5-5\",\"effort\":null}",
-      )
+
+      assert_eq(answer, done_answer("t1", "claude-sonnet-5-5"))
       assert_eq(fake.args(1), [
         "thread", "start", "p1", "-", "--title", "T", "--provider", "claudeAgent",
         "--model", "claude-sonnet-5-5", "--worktree", "feat/base", "--json",
       ])
-      assert_eq(fake.recorded("stdin", 1), "--prompt that looks like a flag")
-      assert_eq(fake.args(2), [
-        "thread", "show", "t1", "--messages", "0", "--json",
-      ])
-      assert_eq(
-        @text.js_trim(fake.recorded("cwd", 1)),
-        @store.resolve_real_path_or_self(fake.root),
-      )
     })
   })
 }
 
 ///|
-async test "a Codex model is started with the codex provider and a worker without a starting branch from HEAD" {
-  serial(() => {
-    with_fake("t3-2", fake => {
+async test "create_thread gives the prompt on stdin, even when it looks like a flag" {
+  @testkit.serial(() => {
+    with_t3("t3-1b", fake => {
+      fake.plan(1, out="{\"threadId\":\"t1\"}")
+      fake.plan(2, out=shown("claude-sonnet-5-5"))
+
+      let answer = t3_json(
+        t3_deps(fake),
+        "create_thread",
+        create_args(extra=[
+          ("prompt", Json::string("--prompt that looks like a flag")),
+        ]),
+      )
+
+      assert_eq(answer, done_answer("t1", "claude-sonnet-5-5"))
+      assert_eq(fake.recorded("stdin", 1), "--prompt that looks like a flag")
+      assert_eq(fake.args(1)[3], "-")
+    })
+  })
+}
+
+///|
+async test "create_thread runs t3 in the home directory" {
+  @testkit.serial(() => {
+    with_t3("t3-1c", fake => {
+      fake.plan(1, out="{\"threadId\":\"t1\"}")
+      fake.plan(2, out=shown("claude-sonnet-5-5"))
+
+      let answer = t3_json(t3_deps(fake), "create_thread", create_args())
+
+      assert_eq(answer, done_answer("t1", "claude-sonnet-5-5"))
+      assert_eq(@text.js_trim(fake.recorded("cwd", 1)), fake.root)
+    })
+  })
+}
+
+///|
+async test "create_thread reports the model T3 Code shows for the new thread" {
+  @testkit.serial(() => {
+    with_t3("t3-1d", fake => {
+      fake.plan(1, out="{\"threadId\":\"t1\"}")
+      fake.plan(2, out=shown("claude-opus-4-8"))
+
+      let answer = t3_json(t3_deps(fake), "create_thread", create_args())
+
+      assert_eq(answer, done_answer("t1", "claude-opus-4-8"))
+      assert_eq(fake.args(2), [
+        "thread", "show", "t1", "--messages", "0", "--json",
+      ])
+    })
+  })
+}
+
+///|
+async test "a Codex model is started with the codex provider" {
+  @testkit.serial(() => {
+    with_t3("t3-2", fake => {
       fake.plan(1, out="{\"threadId\":\"t1\"}")
       fake.plan(2, out=shown("gpt-6.1-sol"))
+
       let answer = t3_json(
-        fake.deps(),
+        t3_deps(fake),
         "create_thread",
         create_args(extra=[("model", Json::string("gpt-6.1-sol"))]),
       )
-      assert_eq(
-        answer, "{\"outcome\":\"done\",\"threadId\":\"t1\",\"model\":\"gpt-6.1-sol\",\"effort\":null}",
-      )
-      let args = fake.args(1)
-      assert_eq(args[6:8].to_owned(), ["--provider", "codex"])
-      assert_eq(args[10:12].to_owned(), ["--worktree", "HEAD"])
+
+      assert_eq(answer, done_answer("t1", "gpt-6.1-sol"))
+      assert_eq(fake.args(1)[6:8].to_owned(), ["--provider", "codex"])
+    })
+  })
+}
+
+///|
+async test "a worker without a starting branch starts from HEAD" {
+  @testkit.serial(() => {
+    with_t3("t3-2b", fake => {
+      fake.plan(1, out="{\"threadId\":\"t1\"}")
+      fake.plan(2, out=shown("claude-sonnet-5-5"))
+
+      let answer = t3_json(t3_deps(fake), "create_thread", create_args())
+
+      assert_eq(answer, done_answer("t1", "claude-sonnet-5-5"))
+      assert_eq(fake.args(1)[10:12].to_owned(), ["--worktree", "HEAD"])
     })
   })
 }
 
 ///|
 async test "a chat outside a worktree starts without naming one" {
-  serial(() => {
-    with_fake("t3-3", fake => {
+  @testkit.serial(() => {
+    with_t3("t3-3", fake => {
       fake.plan(1, out="{\"threadId\":\"t1\"}")
-      fake.plan(2, out=shown("m"))
+      fake.plan(2, out=shown("claude-sonnet-5-5"))
       let target = Json::object({
         "projectId": Json::string("p1"),
         "environment": Json::object({ "type": Json::string("local") }),
       })
-      ignore(t3_json(fake.deps(), "create_thread", create_args(target~)))
-      assert_false(fake.args(1).contains("--worktree"))
+
+      let answer = t3_json(t3_deps(fake), "create_thread", create_args(target~))
+
+      assert_eq(answer, done_answer("t1", "claude-sonnet-5-5"))
+      assert_eq(fake.args(1), [
+        "thread", "start", "p1", "-", "--title", "T", "--provider", "claudeAgent",
+        "--model", "claude-sonnet-5-5", "--json",
+      ])
     })
   })
 }
 
 ///|
 async test "a thinking level is refused without running t3" {
-  serial(() => {
-    with_fake("t3-4", fake => {
-      let answer = t3_json(
-        fake.deps(),
-        "create_thread",
-        create_args(extra=[("thinking", Json::string("high"))]),
-      )
-      assert_eq(
-        answer, "{\"outcome\":\"unsupported\",\"error\":\"T3 Code's t3 CLI cannot set a thinking level; leave out --thinking, and set it in T3 Code instead\"}",
-      )
+  @testkit.serial(() => {
+    with_t3("t3-4", fake => {
+      for thinking in [Json::string("high"), Json::null()] {
+        let answer = t3_json(
+          t3_deps(fake),
+          "create_thread",
+          create_args(extra=[("thinking", thinking)]),
+        )
+
+        assert_eq(
+          answer,
+          failed_json(
+            "unsupported", "T3 Code's t3 CLI cannot set a thinking level; leave out --thinking, and set it in T3 Code instead",
+          ),
+          msg=thinking.stringify(),
+        )
+      }
       assert_false(fake.ran())
-      let null_thinking = t3_json(
-        fake.deps(),
-        "create_thread",
-        create_args(extra=[("thinking", Json::null())]),
-      )
-      assert_true(null_thinking.contains("\"outcome\":\"unsupported\""))
-      assert_false(fake.ran())
+      assert_true(t3_runs_for_valid_create(fake))
     })
   })
 }
 
 ///|
-async test "a failure is unsent only when the CLI says it left nothing behind" {
-  for
-    failure in [
-      (
-        "No running T3 Code server uses /x/.t3. Start T3 Code, then retry.", "not_sent",
-        "No running T3 Code server uses /x/.t3. Start T3 Code, then retry.\"}",
-      ),
-      (
-        "No T3 Code project matches '/x/review-home'. Pass a project id or a path inside a project.",
-        "not_sent", "; add the folder to T3 Code as a project with `t3 project add <path>`\"}",
-      ),
-      ("No thread was created", "not_sent", "No thread was created\"}"),
-      (
-        "NetError: Failed to reserve loopback port\n listen EPERM", "not_sent", "; run outside the sandbox\"}",
-      ),
-      (
-        "Could not reach the T3 Code server at http://127.0.0.1:3773.", "unknown",
-        "Could not reach the T3 Code server at http://127.0.0.1:3773.\"}",
-      ),
-    ] {
-    let (stderr, outcome, ending) = failure
-    serial(() => {
-      with_fake("t3-5", fake => {
-        fake.plan(1, exit=1, stderr~)
-        let answer = t3_json(fake.deps(), "create_thread", create_args())
-        assert_true(answer.has_prefix("{\"outcome\":\"\{outcome}\",\"error\":"))
-        assert_true(answer.has_suffix(ending))
-      })
+async test "a failure the CLI says left nothing behind is unsent" {
+  @testkit.serial(() => {
+    with_t3("t3-5", fake => {
+      let failures = [
+        (
+          "No running T3 Code server uses /x/.t3. Start T3 Code, then retry.", "No running T3 Code server uses /x/.t3. Start T3 Code, then retry.",
+        ),
+        (
+          "No T3 Code project matches '/x/review-home'. Pass a project id or a path inside a project.",
+          "No T3 Code project matches '/x/review-home'. Pass a project id or a path inside a project.; add the folder to T3 Code as a project with `t3 project add <path>`",
+        ),
+        ("No thread was created", "No thread was created"),
+        (
+          "NetError: Failed to reserve loopback port\n listen EPERM", "NetError: Failed to reserve loopback port\n listen EPERM; run outside the sandbox",
+        ),
+      ]
+      for index, failure in failures {
+        let (stderr, error) = failure
+        fake.plan(index + 1, exit=1, stderr~)
+
+        let answer = t3_json(t3_deps(fake), "create_thread", create_args())
+
+        assert_eq(answer, failed_json("not_sent", error), msg=stderr)
+      }
     })
-  }
+  })
+}
+
+///|
+async test "a failure the CLI does not say left nothing behind is unknown" {
+  @testkit.serial(() => {
+    with_t3("t3-5b", fake => {
+      fake.plan(
+        1,
+        exit=1,
+        stderr="Could not reach the T3 Code server at http://127.0.0.1:3773.",
+      )
+
+      let answer = t3_json(t3_deps(fake), "create_thread", create_args())
+
+      assert_eq(
+        answer,
+        failed_json(
+          "unknown", "Could not reach the T3 Code server at http://127.0.0.1:3773.",
+        ),
+      )
+    })
+  })
 }
 
 ///|
 async test "a failed run with no message reports the exit status" {
-  serial(() => {
-    with_fake("t3-6", fake => {
+  @testkit.serial(() => {
+    with_t3("t3-6", fake => {
       fake.plan(1, exit=3)
-      let answer = t3_json(fake.deps(), "create_thread", create_args())
+      let answer = t3_json(t3_deps(fake), "create_thread", create_args())
       assert_eq(
         answer, "{\"outcome\":\"unknown\",\"error\":\"t3 exited with 3\"}",
       )
@@ -278,29 +276,35 @@ async test "a failed run with no message reports the exit status" {
 
 ///|
 async test "a start that printed no thread is unknown, since a thread may exist" {
-  serial(() => {
-    with_fake("t3-7", fake => {
-      fake.plan(1, out="Thread started\n")
-      let answer = t3_json(fake.deps(), "create_thread", create_args())
-      assert_eq(
-        answer, "{\"outcome\":\"unknown\",\"error\":\"t3 thread start answered without a thread: Thread started\"}",
-      )
-      fake.plan(2, out="{\"threadId\":5}")
-      let numeric = t3_json(fake.deps(), "create_thread", create_args())
-      assert_true(
-        numeric.contains("answered without a thread: {\\\"threadId\\\":5}"),
-      )
+  @testkit.serial(() => {
+    with_t3("t3-7", fake => {
+      let printed = ["Thread started\n", "{\"threadId\":5}"]
+      let excerpts = ["Thread started", "{\"threadId\":5}"]
+      for index, out in printed {
+        fake.plan(index + 1, out~)
+
+        let answer = t3_json(t3_deps(fake), "create_thread", create_args())
+
+        assert_eq(
+          answer,
+          failed_json(
+            "unknown",
+            "t3 thread start answered without a thread: \{excerpts[index]}",
+          ),
+          msg=out,
+        )
+      }
     })
   })
 }
 
 ///|
 async test "the thread is the last line of the output" {
-  serial(() => {
-    with_fake("t3-8", fake => {
+  @testkit.serial(() => {
+    with_t3("t3-8", fake => {
       fake.plan(1, out="starting\n{\"x\":1}\n{\"threadId\":\"t9\"}\n\n")
       fake.plan(2, out="log\n" + shown("m"))
-      let answer = t3_json(fake.deps(), "create_thread", create_args())
+      let answer = t3_json(t3_deps(fake), "create_thread", create_args())
       assert_eq(
         answer, "{\"outcome\":\"done\",\"threadId\":\"t9\",\"model\":\"m\",\"effort\":null}",
       )
@@ -310,61 +314,86 @@ async test "the thread is the last line of the output" {
 
 ///|
 async test "no model is reported when T3 Code cannot show the thread it started" {
-  serial(() => {
-    with_fake("t3-9", fake => {
+  @testkit.serial(() => {
+    with_t3("t3-9", fake => {
       fake.plan(1, out="{\"threadId\":\"t1\"}")
       fake.plan(2, exit=1, stderr="boom")
-      let answer = t3_json(fake.deps(), "create_thread", create_args())
+      let answer = t3_json(t3_deps(fake), "create_thread", create_args())
       assert_eq(
-        answer, "{\"outcome\":\"done\",\"threadId\":\"t1\",\"model\":null,\"effort\":null}",
+        answer,
+        "{\"outcome\":\"done\",\"threadId\":\"t1\",\"model\":null,\"effort\":null}",
+        msg="show fails",
       )
       fake.plan(3, out="{\"threadId\":\"t1\"}")
       fake.plan(4, out="{\"thread\":{\"model\":7}}")
-      let numeric = t3_json(fake.deps(), "create_thread", create_args())
-      assert_true(numeric.contains("\"model\":null"))
+      let numeric = t3_json(t3_deps(fake), "create_thread", create_args())
+      assert_eq(
+        numeric,
+        "{\"outcome\":\"done\",\"threadId\":\"t1\",\"model\":null,\"effort\":null}",
+        msg="model is a number",
+      )
     })
   })
 }
 
 ///|
 async test "create_thread without what it needs sends nothing" {
-  serial(() => {
-    with_fake("t3-10", fake => {
-      for missing in ["prompt", "title", "model"] {
-        let args = create_args()
-        args.remove(missing)
+  @testkit.serial(() => {
+    with_t3("t3-10", fake => {
+      let refused = [
+        ("prompt", create_args_without("prompt")),
+        ("title", create_args_without("title")),
+        ("model", create_args_without("model")),
+        ("project", create_args(target=Json::object({}))),
+      ]
+      for item in refused {
+        let (label, args) = item
         assert_eq(
-          t3_json(fake.deps(), "create_thread", args),
-          "{\"outcome\":\"not_sent\",\"error\":\"create_thread needs prompt, title, model and a project\"}",
+          t3_json(t3_deps(fake), "create_thread", args),
+          failed_json(
+            "not_sent", "create_thread needs prompt, title, model and a project",
+          ),
+          msg=label,
         )
       }
-      let no_project = create_args(target=Json::object({}))
-      assert_true(
-        t3_json(fake.deps(), "create_thread", no_project).contains(
-          "needs prompt",
-        ),
-      )
       assert_false(fake.ran())
+      assert_true(t3_runs_for_valid_create(fake))
     })
   })
 }
 
 ///|
-async test "nothing is sent when the t3 CLI cannot start" {
-  serial(() => {
-    with_fake("t3-11", fake => {
+async test "an absolute t3 path that cannot be started leaves the call unsent" {
+  @testkit.serial(() => {
+    with_t3("t3-11", fake => {
       let deps = {
-        env: env_of([
+        env: @app_testkit.env_of([
           ("HARNEXUS_T3_BIN", "\{fake.root}/missing"),
           ("HOME", fake.root),
         ]),
         which: _ => None,
       }
-      let answer = parse(t3_json(deps, "create_thread", create_args()))
-      assert_true(json_text(answer).has_prefix("{\"outcome\":\"not_sent\""))
-      assert_true(json_text(answer).contains("HARNEXUS_T3_BIN"))
+      let answer = t3_json(deps, "create_thread", create_args())
+      assert_eq(
+        answer,
+        failed_json(
+          "not_sent",
+          "cannot run \{fake.root}/missing (ENOENT); install T3 Code, or set HARNEXUS_T3_BIN to its t3 CLI",
+        ),
+      )
+    })
+  })
+}
+
+///|
+async test "a relative t3 path is refused" {
+  @testkit.serial(() => {
+    with_t3("t3-11b", fake => {
       let relative = {
-        env: env_of([("HARNEXUS_T3_BIN", "t3"), ("HOME", fake.root)]),
+        env: @app_testkit.env_of([
+          ("HARNEXUS_T3_BIN", "t3"),
+          ("HOME", fake.root),
+        ]),
         which: _ => None,
       }
       assert_eq(
@@ -376,38 +405,44 @@ async test "nothing is sent when the t3 CLI cannot start" {
 }
 
 ///|
-async test "the t3 CLI is found on PATH first and then in T3 Code's own folder" {
-  serial(() => {
-    with_fake("t3-12", fake => {
+async test "a t3 found on PATH is run" {
+  @testkit.serial(() => {
+    with_t3("t3-12", fake => {
       fake.plan(1, out="{\"threadId\":\"t1\"}")
       fake.plan(2, out=shown("m"))
       let on_path = {
-        env: env_of([
-          ("HARNEXUS_T3_BIN", ""),
-          ("FAKE_DIR", fake.fake_dir),
-          ("HOME", fake.root),
-          ("PATH", "/usr/bin:/bin"),
-        ]),
-        which: name => if name == "t3" { Some(fake.bin) } else { None },
+        env: fake.env([("HARNEXUS_T3_BIN", ""), ("PATH", "/usr/bin:/bin")]),
+        which: name => if name == "t3" { Some("\{fake.bin}/t3") } else { None },
       }
-      assert_true(
-        t3_json(on_path, "create_thread", create_args()).contains(
-          "\"threadId\":\"t1\"",
-        ),
-      )
+
+      let answer = t3_json(on_path, "create_thread", create_args())
+
+      assert_eq(answer, done_answer("t1", "m"))
+    })
+  })
+}
+
+///|
+async test "without a t3 on PATH, the t3 in T3 Code's own folder is tried" {
+  @testkit.serial(() => {
+    with_t3("t3-12b", fake => {
       let in_folder = {
-        env: env_of([
+        env: @app_testkit.env_of([
           ("T3CODE_HOME", "\{fake.root}/t3"),
           ("HOME", fake.root),
           ("PATH", "/usr/bin:/bin"),
         ]),
         which: _ => None,
       }
+
       let answer = t3_json(in_folder, "create_thread", create_args())
-      assert_true(answer.has_prefix("{\"outcome\":\"not_sent\""))
-      assert_true(answer.contains("\{fake.root}/t3/bin/t3"))
-      assert_true(
-        answer.contains("install T3 Code, or set HARNEXUS_T3_BIN to its t3 CLI"),
+
+      assert_eq(
+        answer,
+        failed_json(
+          "not_sent",
+          "cannot run \{fake.root}/t3/bin/t3 (ENOENT); install T3 Code, or set HARNEXUS_T3_BIN to its t3 CLI",
+        ),
       )
     })
   })
@@ -415,10 +450,10 @@ async test "the t3 CLI is found on PATH first and then in T3 Code's own folder" 
 
 ///|
 async test "send_message_to_thread queues the prompt on the thread from stdin" {
-  serial(() => {
-    with_fake("t3-13", fake => {
+  @testkit.serial(() => {
+    with_t3("t3-13", fake => {
       fake.plan(1, out="{\"delivery\":\"queued\"}")
-      let answer = t3_json(fake.deps(), "send_message_to_thread", {
+      let answer = t3_json(t3_deps(fake), "send_message_to_thread", {
         "threadId": Json::string("t1"),
         "prompt": Json::string("re-review"),
       })
@@ -431,80 +466,120 @@ async test "send_message_to_thread queues the prompt on the thread from stdin" {
 
 ///|
 async test "a send cannot change the model or thinking, so naming either is refused" {
-  serial(() => {
-    with_fake("t3-14", fake => {
-      for
-        extra in [
-          ("model", Json::string("gpt-6.1-sol")),
-          ("thinking", Json::string("high")),
-        ] {
+  @testkit.serial(() => {
+    with_t3("t3-14", fake => {
+      let refusals = [
+        (
+          "model",
+          Json::string("gpt-6.1-sol"),
+          "T3 Code's t3 CLI cannot change a thread's model; leave out --model, and change it in T3 Code instead",
+        ),
+        (
+          "thinking",
+          Json::string("high"),
+          "T3 Code's t3 CLI cannot set a thinking level; leave out --thinking, and set it in T3 Code instead",
+        ),
+      ]
+      for refusal in refusals {
+        let (name, value, error) = refusal
         let args : Map[String, Json] = {
           "threadId": Json::string("t1"),
           "prompt": Json::string("p"),
         }
-        let (name, value) = extra
         args[name] = value
-        let answer = t3_json(fake.deps(), "send_message_to_thread", args)
-        assert_true(answer.has_prefix("{\"outcome\":\"unsupported\""))
+
+        let answer = t3_json(t3_deps(fake), "send_message_to_thread", args)
+
+        assert_eq(answer, failed_json("unsupported", error), msg=name)
       }
       assert_false(fake.ran())
-      assert_eq(
-        t3_json(fake.deps(), "send_message_to_thread", {
-          "prompt": Json::string("p"),
-        }),
-        "{\"outcome\":\"not_sent\",\"error\":\"send_message_to_thread needs threadId and prompt\"}",
-      )
+      assert_true(t3_runs_for_valid_create(fake))
     })
   })
 }
 
 ///|
-async test "a send that fails is classified like a start" {
-  serial(() => {
-    with_fake("t3-15", fake => {
+async test "a send without a thread is refused without running t3" {
+  @testkit.serial(() => {
+    with_t3("t3-14b", fake => {
+      let answer = t3_json(t3_deps(fake), "send_message_to_thread", {
+        "prompt": Json::string("p"),
+      })
+
+      assert_eq(
+        answer,
+        failed_json(
+          "not_sent", "send_message_to_thread needs threadId and prompt",
+        ),
+      )
+      assert_false(fake.ran())
+      assert_true(t3_runs_for_valid_create(fake))
+    })
+  })
+}
+
+///|
+async test "a send that fails with a message that left nothing behind is unsent" {
+  @testkit.serial(() => {
+    with_t3("t3-15", fake => {
       fake.plan(1, exit=1, stderr="No running T3 Code server")
-      fake.plan(2, exit=1, stderr="Could not reach the server")
       let args : Map[String, Json] = {
         "threadId": Json::string("t1"),
         "prompt": Json::string("p"),
       }
-      assert_eq(
-        t3_json(fake.deps(), "send_message_to_thread", args),
-        "{\"outcome\":\"not_sent\",\"error\":\"No running T3 Code server\"}",
-      )
-      assert_eq(
-        t3_json(fake.deps(), "send_message_to_thread", args),
-        "{\"outcome\":\"unknown\",\"error\":\"Could not reach the server\"}",
-      )
+
+      let answer = t3_json(t3_deps(fake), "send_message_to_thread", args)
+
+      assert_eq(answer, failed_json("not_sent", "No running T3 Code server"))
     })
   })
 }
 
 ///|
-async test "T3 Code offers no other App operation" {
-  serial(() => {
-    with_fake("t3-16", fake => {
+async test "a send that fails with any other message is unknown" {
+  @testkit.serial(() => {
+    with_t3("t3-15b", fake => {
+      fake.plan(1, exit=1, stderr="Could not reach the server")
+      let args : Map[String, Json] = {
+        "threadId": Json::string("t1"),
+        "prompt": Json::string("p"),
+      }
+
+      let answer = t3_json(t3_deps(fake), "send_message_to_thread", args)
+
+      assert_eq(answer, failed_json("unknown", "Could not reach the server"))
+    })
+  })
+}
+
+///|
+async test "an operation T3 Code does not offer is unsupported without running t3" {
+  @testkit.serial(() => {
+    with_t3("t3-16", fake => {
+      let answer = t3_json(t3_deps(fake), "name_thread", {
+        "name": Json::string("x"),
+      })
+
       assert_eq(
-        t3_json(fake.deps(), "name_thread", { "name": Json::string("x") }),
-        "{\"outcome\":\"unsupported\",\"error\":\"T3 Code does not offer name_thread\"}",
+        answer,
+        failed_json("unsupported", "T3 Code does not offer name_thread"),
       )
       assert_false(fake.ran())
+      assert_true(t3_runs_for_valid_create(fake))
     })
   })
 }
 
 ///|
-async test "a run past its deadline is unknown, and nothing is claimed about what t3 did" {
-  serial(() => {
-    with_fake("t3-17", fake => {
+async test "a run past its deadline is stopped and reported as unknown" {
+  @testkit.serial(() => {
+    with_t3("t3-17", fake => {
       fake.plan(1, sleep="30")
-      let started = @async.now()
-      let ran = run_t3(
-        fake.deps(),
-        ["thread", "send", "t1", "-", "--json"],
-        "p",
-        150,
-      )
+
+      let (ran, elapsed) = @testkit.timed(() => {
+        run_t3(t3_deps(fake), ["thread", "send", "t1", "-", "--json"], "p", 150)
+      })
+
       match ran {
         Refused(answer) =>
           assert_eq(
@@ -513,43 +588,90 @@ async test "a run past its deadline is unknown, and nothing is claimed about wha
           )
         Ran(_) => fail("a run that timed out is not a success")
       }
-      assert_true(@async.now() - started < 5000)
+      @testkit.assert_between(elapsed, 0, 5000)
     })
   })
 }
 
 ///|
-test "the worktree base is the starting branch, else HEAD, and none outside a worktree" {
-  let state = Json::object({ "branchName": Json::string("feat/x") })
-  let target = fn(environment : Json) -> Map[String, Json] {
-    { "environment": environment }
+test "a worktree with a starting branch is based on that branch" {
+  let environment = Json::object({
+    "type": Json::string("worktree"),
+    "startingState": Json::object({ "branchName": Json::string("feat/x") }),
+  })
+  assert_eq(worktree_base({ "environment": environment }), Some("feat/x"))
+}
+
+///|
+test "a worktree without a usable starting branch is based on HEAD" {
+  let environments = [
+    Json::object({ "type": Json::string("worktree") }),
+    Json::object({
+      "type": Json::string("worktree"),
+      "startingState": Json::object({ "branchName": Json::number(1.0) }),
+    }),
+  ]
+  for environment in environments {
+    assert_eq(
+      worktree_base({ "environment": environment }),
+      Some("HEAD"),
+      msg=environment.stringify(),
+    )
   }
-  assert_true(
-    worktree_base(
-      target(
-        Json::object({
-          "type": Json::string("worktree"),
-          "startingState": state,
-        }),
-      ),
-    ) ==
-    Some("feat/x"),
-  )
-  assert_true(
-    worktree_base(target(Json::object({ "type": Json::string("worktree") }))) ==
-    Some("HEAD"),
-  )
-  assert_true(
-    worktree_base(
-      target(
-        Json::object({
-          "type": Json::string("worktree"),
-          "startingState": Json::object({ "branchName": Json::number(1.0) }),
-        }),
-      ),
-    ) ==
-    Some("HEAD"),
-  )
-  assert_true(worktree_base(target(Json::string("worktree"))) is None)
-  assert_true(worktree_base({}) is None)
+}
+
+///|
+test "only a worktree environment has a base" {
+  let worktree = Json::object({ "type": Json::string("worktree") })
+  assert_eq(worktree_base({ "environment": worktree }), Some("HEAD"))
+  let others = [
+    Json::string("worktree"),
+    Json::object({ "type": Json::string("local") }),
+  ]
+  for environment in others {
+    assert_eq(
+      worktree_base({ "environment": environment }),
+      None,
+      msg=environment.stringify(),
+    )
+  }
+  assert_eq(worktree_base({}), None)
+}
+
+///|
+async fn with_t3(
+  name : String,
+  body : async (@app_testkit.FakeCli) -> Unit,
+) -> Unit {
+  @app_testkit.with_fake_cli(name, mock="fake-cli.sh", stand_ins=["t3"], body)
+}
+
+///|
+fn t3_deps(fake : @app_testkit.FakeCli) -> T3Deps {
+  {
+    env: fake.env([
+      ("HARNEXUS_T3_BIN", "\{fake.bin}/t3"),
+      ("PATH", "/usr/bin:/bin"),
+    ]),
+    which: _ => None,
+  }
+}
+
+///|
+async fn t3_runs_for_valid_create(fake : @app_testkit.FakeCli) -> Bool {
+  fake.plan(1, out="{\"threadId\":\"t1\"}")
+  ignore(t3_json(t3_deps(fake), "create_thread", create_args()))
+  fake.ran()
+}
+
+///|
+fn done_answer(thread_id : String, model : String) -> String {
+  "{\"outcome\":\"done\",\"threadId\":\"\{thread_id}\",\"model\":\"\{model}\",\"effort\":null}"
+}
+
+///|
+fn create_args_without(name : String) -> Map[String, Json] {
+  let args = create_args()
+  args.remove(name)
+  args
 }

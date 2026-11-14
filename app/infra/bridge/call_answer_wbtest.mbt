@@ -24,8 +24,13 @@ test "an answer keeps the fields it was not asked about" {
 
 ///|
 test "an answer without a string outcome is refused" {
-  assert_true(
-    CallAnswer::of_json(@jsonio.parse("{\"threadId\":\"t\"}")) is None,
+  for text in ["{\"threadId\":\"t\"}", "{\"outcome\":1}"] {
+    assert_true(CallAnswer::of_json(@jsonio.parse(text)) is None, msg=text)
+  }
+  assert_eq(
+    CallAnswer::of_json(@jsonio.parse("{\"outcome\":\"done\"}")).map(answer => {
+      answer.outcome
+    }),
+    Some("done"),
   )
-  assert_true(CallAnswer::of_json(@jsonio.parse("{\"outcome\":1}")) is None)
 }
