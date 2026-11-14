@@ -76,14 +76,14 @@ async fn answer(stream : @raw_fd.RawFdStream) -> Unit {
 }
 
 ///|
-async fn silent(stream : @raw_fd.RawFdStream) -> Unit {
+async fn stay_silent(stream : @raw_fd.RawFdStream) -> Unit {
   ignore(read_request(stream))
   @async.sleep(60000)
 }
 
 ///|
 /// Answers in parts, five times 300 ms apart, so the whole answer arrives later than a one second deadline.
-async fn drip(stream : @raw_fd.RawFdStream) -> Unit {
+async fn drip_answer(stream : @raw_fd.RawFdStream) -> Unit {
   ignore(read_request(stream))
   for i in 0..<5 {
     @async.sleep(300)
@@ -94,7 +94,7 @@ async fn drip(stream : @raw_fd.RawFdStream) -> Unit {
 
 ///|
 /// Accepts and never reads, so a large request fills the socket buffer and the client's write has to wait.
-async fn noread(_stream : @raw_fd.RawFdStream) -> Unit {
+async fn never_read(_stream : @raw_fd.RawFdStream) -> Unit {
   @async.sleep(60000)
 }
 
@@ -106,7 +106,7 @@ fn describe_failure(error : @boundary.LineExchangeFailed) -> String {
 
 ///|
 /// What an exchange came to: its answer, or whether the line was sent and the code of the failure.
-async fn outcome_of(
+async fn describe_exchange(
   path : String,
   line : String,
   timeout_ms : Int32,
@@ -155,7 +155,7 @@ async test "S1 a round trip returns the answer without its newline" {
 async test "S2 a missing socket is not sent and says ENOENT" {
   serial(() => {
     let before = @testkit.open_fds()
-    let result = outcome_of(socket_path("missing"), "{\"x\":1}", 1000)
+    let result = describe_exchange(socket_path("missing"), "{\"x\":1}", 1000)
     assert_eq(result, "not_sent ENOENT")
     assert_eq(@testkit.open_fds(), before)
   })
@@ -164,10 +164,10 @@ async test "S2 a missing socket is not sent and says ENOENT" {
 ///|
 async test "S3 a server that never answers leaves the line unknown at the deadline" {
   serial(() => {
-    with_server("s3", silent, path => {
+    with_server("s3", stay_silent, path => {
       let opened = Ref(-1)
       let (result, elapsed) = timed(() => {
-        outcome_of(
+        describe_exchange(
           path,
           "{\"x\":1}",
           1000,
@@ -187,7 +187,7 @@ async test "S4 a socket file with no server behind it is refused and not sent" {
     let path = socket_path("s4")
     @testkit.close_fd(@testkit.listen(path))
     defer @testkit.remove_file(path)
-    let result = outcome_of(path, "{\"x\":1}", 1000)
+    let result = describe_exchange(path, "{\"x\":1}", 1000)
     assert_eq(result, "not_sent ECONNREFUSED")
   })
 }
@@ -227,7 +227,9 @@ async test "C1 real full listen queue: macOS refuses at once, Linux holds the co
       held.push(fd)
     }
     assert_true(held.length() < 64)
-    let (result, elapsed) = timed(() => outcome_of(path, "{\"x\":1}", 1000))
+    let (result, elapsed) = timed(() => {
+      describe_exchange(path, "{\"x\":1}", 1000)
+    })
     if @testkit.is_macos() {
       assert_eq(result, "not_sent ECONNREFUSED")
       assert_between(elapsed, 0, 500)
@@ -253,7 +255,7 @@ async test "C2 injected: a connect that keeps answering EAGAIN ends at the deadl
         }
       })
       let (result, ms) = timed(() => {
-        outcome_of(socket_path("c2"), "{\"x\":1}", 1000, connect=_ => {
+        describe_exchange(socket_path("c2"), "{\"x\":1}", 1000, connect=_ => {
           @testkit.eagain()
         })
       })
@@ -290,13 +292,13 @@ async test "C3 injected: a connect that answers EAGAIN 20 times then succeeds is
 ///|
 async test "C4 injected: connect, write and read share one deadline" {
   serial(() => {
-    with_server("c4", drip, path => {
+    with_server("c4", drip_answer, path => {
       let attempts = Ref(0)
       let connected_at = Ref(-1)
       let started = @async.now()
       let target = @sys.c_string(path).unwrap()
       let (result, elapsed) = timed(() => {
-        outcome_of(path, "{\"x\":1}", 1000, connect=fd => {
+        describe_exchange(path, "{\"x\":1}", 1000, connect=fd => {
           attempts.val += 1
           if attempts.val <= 50 {
             return @testkit.eagain()
@@ -318,8 +320,10 @@ async test "C4 injected: connect, write and read share one deadline" {
 ///|
 async test "C5 a slow answer past the deadline is unknown" {
   serial(() => {
-    with_server("c5", drip, path => {
-      let (result, elapsed) = timed(() => outcome_of(path, "{\"x\":1}", 1000))
+    with_server("c5", drip_answer, path => {
+      let (result, elapsed) = timed(() => {
+        describe_exchange(path, "{\"x\":1}", 1000)
+      })
       assert_eq(result, "unknown ETIMEDOUT")
       assert_between(elapsed, 800, 1600)
     })
@@ -329,11 +333,16 @@ async test "C5 a slow answer past the deadline is unknown" {
 ///|
 async test "C6 a peer that never reads leaves a large request unknown at the deadline" {
   serial(() => {
-    with_server("c6", noread, path => {
+    with_server("c6", never_read, path => {
       let opened = Ref(-1)
       let line = String::make(4 * 1024 * 1024, 'x')
       let (result, elapsed) = timed(() => {
-        outcome_of(path, line, 1000, connect=tracked_connect(path, opened))
+        describe_exchange(
+          path,
+          line,
+          1000,
+          connect=tracked_connect(path, opened),
+        )
       })
       assert_eq(result, "unknown ETIMEDOUT")
       assert_between(elapsed, 800, 1600)
@@ -345,7 +354,7 @@ async test "C6 a peer that never reads leaves a large request unknown at the dea
 ///|
 async test "cancelling an exchange closes its descriptor" {
   serial(() => {
-    with_server("cancel", silent, path => {
+    with_server("cancel", stay_silent, path => {
       let opened = Ref(-1)
       let connect = tracked_connect(path, opened)
       let finished = @async.with_timeout_opt(100, () => {
@@ -400,9 +409,12 @@ async test "trailing white space is trimmed the way JavaScript trims" {
 async test "a path that cannot be a socket address is refused before anything is sent" {
   serial(() => {
     let long = String::make(300, 'a')
-    assert_eq(outcome_of("/tmp/\{long}", "x", 1000), "not_sent ENAMETOOLONG")
     assert_eq(
-      outcome_of("/tmp/a\u{0}b", "x", 1000),
+      describe_exchange("/tmp/\{long}", "x", 1000),
+      "not_sent ENAMETOOLONG",
+    )
+    assert_eq(
+      describe_exchange("/tmp/a\u{0}b", "x", 1000),
       "not_sent ERR_INVALID_ARG_VALUE",
     )
   })

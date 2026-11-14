@@ -43,7 +43,7 @@ fn assert_between(value : Int32, low : Int32, high : Int32) -> Unit raise {
 
 ///|
 /// How a run ended in one line, with the output only when asked for.
-async fn outcome(
+async fn describe_run(
   file : String,
   args : Array[String],
   input~ : String = "",
@@ -76,14 +76,14 @@ async fn outcome(
 }
 
 ///|
-async fn shell(script : String) -> String {
+async fn run_shell(script : String) -> String {
   let ran = run_command("/bin/sh", ["-c", script], plain_env())
   ran.stdout
 }
 
 ///|
 /// Waits for a process to be gone: signalled children are collected by init a moment after they die.
-async fn is_gone(pid : Int32) -> Bool {
+async fn wait_until_gone(pid : Int32) -> Bool {
   for _ in 0..<200 {
     if !@testkit.alive(pid) {
       return true
@@ -94,8 +94,8 @@ async fn is_gone(pid : Int32) -> Bool {
 }
 
 ///|
-async fn pid_in(file : String) -> Int32 {
-  @string.parse_int(shell("cat \{file}").trim().to_owned()) catch {
+async fn read_pid(file : String) -> Int32 {
+  @string.parse_int(run_shell("cat \{file}").trim().to_owned()) catch {
     _ => -1
   }
 }
@@ -105,11 +105,11 @@ async test "E1 a missing command never started" {
   serial(() => {
     let before = @testkit.open_fds()
     assert_eq(
-      outcome("/nonexistent/cmd", []),
+      describe_run("/nonexistent/cmd", []),
       "failed started=false: cannot run /nonexistent/cmd (ENOENT)",
     )
     assert_eq(
-      outcome("nonexistent-cmd", []),
+      describe_run("nonexistent-cmd", []),
       "failed started=false: cannot run nonexistent-cmd (ENOENT)",
     )
     assert_eq(@testkit.open_fds(), before)
@@ -119,7 +119,7 @@ async test "E1 a missing command never started" {
 ///|
 async test "E2 a file without execute permission never started" {
   serial(() => {
-    let result = outcome(mock("noexec.sh"), [])
+    let result = describe_run(mock("noexec.sh"), [])
     assert_true(result.has_prefix("failed started=false: "))
     assert_true(result.contains("(EACCES)"))
   })
@@ -128,7 +128,7 @@ async test "E2 a file without execute permission never started" {
 ///|
 async test "E3 a script whose interpreter is missing never started" {
   serial(() => {
-    let result = outcome(mock("badshebang.sh"), [])
+    let result = describe_run(mock("badshebang.sh"), [])
     assert_true(result.has_prefix("failed started=false: "))
     assert_true(result.contains("ENOENT"))
   })
@@ -137,7 +137,11 @@ async test "E3 a script whose interpreter is missing never started" {
 ///|
 async test "a missing working directory never started" {
   serial(() => {
-    let result = outcome("/bin/sh", ["-c", "exit 0"], cwd="/nonexistent/dir")
+    let result = describe_run(
+      "/bin/sh",
+      ["-c", "exit 0"],
+      cwd="/nonexistent/dir",
+    )
     assert_true(result.has_prefix("failed started=false: "))
     assert_true(result.contains("ENOENT"))
   })
@@ -147,7 +151,7 @@ async test "a missing working directory never started" {
 async test "E4 a program that exits 127 is a result, not a start failure" {
   serial(() => {
     assert_eq(
-      outcome("/bin/sh", ["-c", "exit 127"]),
+      describe_run("/bin/sh", ["-c", "exit 127"]),
       "started ended=exit status=127",
     )
   })
@@ -192,7 +196,7 @@ async test "a missing command never started even when stdin, stdout and stderr a
 async test "P1 stdin reaches the command and a character split across writes is read whole" {
   serial(() => {
     assert_eq(
-      outcome(
+      describe_run(
         "/bin/sh",
         [mock("child.sh"), "echo"],
         input="hello-stdin",
@@ -210,7 +214,7 @@ async test "a character split across chunks is whole on stdout and on stderr" {
   serial(() => {
     let script = "printf '{\"text\":\"\\343'; sleep 0.2; printf '\\201\\202\"}'; printf '\\343' >&2; sleep 0.2; printf '\\201\\202' >&2"
     assert_eq(
-      outcome(
+      describe_run(
         "/bin/sh",
         ["-c", script],
         timeout_ms=10000,
@@ -226,7 +230,11 @@ async test "a character split across chunks is whole on stdout and on stderr" {
 async test "output that is not UTF-8 becomes U+FFFD like Node decodes it" {
   serial(() => {
     assert_eq(
-      outcome("/usr/bin/printf", ["\\377\\343A\\355\\240\\200"], output=true),
+      describe_run(
+        "/usr/bin/printf",
+        ["\\377\\343A\\355\\240\\200"],
+        output=true,
+      ),
       "started ended=exit status=0 stdout=\"\u{fffd}\u{fffd}A\u{fffd}\u{fffd}\u{fffd}\" stderr=\"\"",
     )
   })
@@ -236,16 +244,16 @@ async test "output that is not UTF-8 becomes U+FFFD like Node decodes it" {
 async test "P3 a grandchild that ignores SIGTERM is killed after the grace, with the leader's status kept" {
   serial(() => {
     let dir = scratch("p3")
-    ignore(shell("mkdir -p \{dir}"))
-    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    ignore(run_shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(run_shell("rm -rf \{dir}")))
     let pidfile = "\{dir}/pid"
     let (result, elapsed) = timed(() => {
-      outcome("/bin/sh", [mock("child.sh"), "term-ok", pidfile])
+      describe_run("/bin/sh", [mock("child.sh"), "term-ok", pidfile])
     })
     assert_eq(result, "started ended=timeout status=143")
     assert_between(elapsed, 1200, 2300)
-    assert_true(is_gone(pid_in(pidfile)))
-    assert_true(is_gone(pid_in("\{pidfile}.gc")))
+    assert_true(wait_until_gone(read_pid(pidfile)))
+    assert_true(wait_until_gone(read_pid("\{pidfile}.gc")))
   })
 }
 
@@ -253,16 +261,16 @@ async test "P3 a grandchild that ignores SIGTERM is killed after the grace, with
 async test "P4 a leader that ignores SIGTERM is killed after the grace" {
   serial(() => {
     let dir = scratch("p4")
-    ignore(shell("mkdir -p \{dir}"))
-    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    ignore(run_shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(run_shell("rm -rf \{dir}")))
     let pidfile = "\{dir}/pid"
     let (result, elapsed) = timed(() => {
-      outcome("/bin/sh", [mock("child.sh"), "ignore-term", pidfile])
+      describe_run("/bin/sh", [mock("child.sh"), "ignore-term", pidfile])
     })
     assert_eq(result, "started ended=timeout status=1")
     assert_between(elapsed, 1200, 2300)
-    assert_true(is_gone(pid_in(pidfile)))
-    assert_true(is_gone(pid_in("\{pidfile}.gc")))
+    assert_true(wait_until_gone(read_pid(pidfile)))
+    assert_true(wait_until_gone(read_pid("\{pidfile}.gc")))
   })
 }
 
@@ -270,8 +278,8 @@ async test "P4 a leader that ignores SIGTERM is killed after the grace" {
 async test "P5 output past 16 MiB stops the command and keeps at most 16 MiB" {
   serial(() => {
     let dir = scratch("p5")
-    ignore(shell("mkdir -p \{dir}"))
-    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    ignore(run_shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(run_shell("rm -rf \{dir}")))
     let pidfile = "\{dir}/pid"
     let run = run_process(
       "/bin/sh",
@@ -285,7 +293,7 @@ async test "P5 output past 16 MiB stops the command and keeps at most 16 MiB" {
     assert_eq(run.ended.name(), "output-limit")
     assert_true(run.stdout.length() + run.stderr.length() <= 16777216)
     assert_true(run.stdout.length() > 8000000)
-    assert_true(is_gone(pid_in(pidfile)))
+    assert_true(wait_until_gone(read_pid(pidfile)))
   })
 }
 
@@ -294,7 +302,7 @@ async test "a command that exits without reading its input is not an error" {
   serial(() => {
     let input = String::make(2 * 1024 * 1024, 'x')
     assert_eq(
-      outcome("/usr/bin/true", [], input~),
+      describe_run("/usr/bin/true", [], input~),
       "started ended=exit status=0",
     )
   })
@@ -304,7 +312,7 @@ async test "a command that exits without reading its input is not an error" {
 async test "the environment is exactly the one given, and the working directory is applied" {
   serial(() => {
     assert_eq(
-      outcome(
+      describe_run(
         "/usr/bin/env",
         [],
         env={ "A": "1", "B": "two words" },
@@ -313,7 +321,7 @@ async test "the environment is exactly the one given, and the working directory 
       "started ended=exit status=0 stdout=\"A=1\\nB=two words\\n\" stderr=\"\"",
     )
     assert_eq(
-      outcome("/bin/pwd", [], cwd="/", output=true),
+      describe_run("/bin/pwd", [], cwd="/", output=true),
       "started ended=exit status=0 stdout=\"/\\n\" stderr=\"\"",
     )
   })
@@ -323,10 +331,12 @@ async test "the environment is exactly the one given, and the working directory 
 async test "a bare command name is looked up in the PATH of the given environment" {
   serial(() => {
     assert_eq(
-      outcome("sh", ["-c", "exit 4"], env={ "PATH": "/bin" }),
+      describe_run("sh", ["-c", "exit 4"], env={ "PATH": "/bin" }),
       "started ended=exit status=4",
     )
-    let missing = outcome("sh", ["-c", "exit 4"], env={ "PATH": "/nonexistent" })
+    let missing = describe_run("sh", ["-c", "exit 4"], env={
+      "PATH": "/nonexistent",
+    })
     assert_true(missing.has_prefix("failed started=false: "))
   })
 }
@@ -355,9 +365,9 @@ async test "several commands started at once keep their own results" {
       for i in 0..<12 {
         group.spawn_bg(() => {
           results[i] = if i % 2 == 0 {
-            outcome("/bin/echo", ["n\{i}"], output=true)
+            describe_run("/bin/echo", ["n\{i}"], output=true)
           } else {
-            outcome("/nonexistent/cmd\{i}", [])
+            describe_run("/nonexistent/cmd\{i}", [])
           }
         })
       }
@@ -387,7 +397,7 @@ async test "a command started while another's stdin is still open does not inher
     @async.with_task_group(group => {
       group.spawn_bg(() => {
         let (result, ms) = timed(() => {
-          outcome("/bin/cat", [], input="hello", output=true)
+          describe_run("/bin/cat", [], input="hello", output=true)
         })
         assert_eq(
           result, "started ended=exit status=0 stdout=\"hello\" stderr=\"\"",
@@ -396,7 +406,7 @@ async test "a command started while another's stdin is still open does not inher
       })
       group.spawn_bg(() => {
         let (_, ms) = timed(() => {
-          outcome("/bin/sleep", ["1.5"], timeout_ms=5000)
+          describe_run("/bin/sleep", ["1.5"], timeout_ms=5000)
         })
         sleeper_ms.val = ms
       })
@@ -409,13 +419,13 @@ async test "a command started while another's stdin is still open does not inher
 ///|
 async test "a command sees only the descriptors it was given, whatever else is starting" {
   serial(() => {
-    let alone = outcome("/bin/ls", ["/dev/fd"], output=true)
+    let alone = describe_run("/bin/ls", ["/dev/fd"], output=true)
     let crowded = Ref("")
     @async.with_task_group(group => {
-      group.spawn_bg(() => ignore(outcome("/bin/cat", [], input="x")))
-      group.spawn_bg(() => ignore(outcome("/bin/sleep", ["0.5"])))
+      group.spawn_bg(() => ignore(describe_run("/bin/cat", [], input="x")))
+      group.spawn_bg(() => ignore(describe_run("/bin/sleep", ["0.5"])))
       group.spawn_bg(() => {
-        crowded.val = outcome("/bin/ls", ["/dev/fd"], output=true)
+        crowded.val = describe_run("/bin/ls", ["/dev/fd"], output=true)
       })
     })
     assert_eq(crowded.val, alone)
@@ -426,22 +436,22 @@ async test "a command sees only the descriptors it was given, whatever else is s
 async test "cancelling a run stops the command and its group and closes every descriptor" {
   serial(() => {
     let dir = scratch("cancel")
-    ignore(shell("mkdir -p \{dir}"))
-    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    ignore(run_shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(run_shell("rm -rf \{dir}")))
     let pidfile = "\{dir}/pid"
     // Start once so the runtime's own descriptors exist before they are counted.
-    ignore(outcome("/usr/bin/true", []))
+    ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
     let finished = @async.with_timeout_opt(300, () => {
-      outcome(
+      describe_run(
         "/bin/sh",
         [mock("child.sh"), "term-ok", pidfile],
         timeout_ms=30000,
       )
     })
     assert_true(finished is None)
-    assert_true(is_gone(pid_in(pidfile)))
-    assert_true(is_gone(pid_in("\{pidfile}.gc")))
+    assert_true(wait_until_gone(read_pid(pidfile)))
+    assert_true(wait_until_gone(read_pid("\{pidfile}.gc")))
     assert_eq(@testkit.open_fds(), before)
   })
 }
@@ -449,11 +459,11 @@ async test "cancelling a run stops the command and its group and closes every de
 ///|
 async test "every finished run leaves no descriptor behind" {
   serial(() => {
-    ignore(outcome("/usr/bin/true", []))
+    ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
-    ignore(outcome("/bin/sh", ["-c", "exit 2"]))
-    ignore(outcome("/nonexistent/cmd", []))
-    ignore(outcome("/bin/sleep", ["5"], timeout_ms=200, kill_grace_ms=200))
+    ignore(describe_run("/bin/sh", ["-c", "exit 2"]))
+    ignore(describe_run("/nonexistent/cmd", []))
+    ignore(describe_run("/bin/sleep", ["5"], timeout_ms=200, kill_grace_ms=200))
     assert_eq(@testkit.open_fds(), before)
   })
 }
@@ -514,7 +524,7 @@ async test "run_command ends a command that reads stdin to its end instead of wa
 }
 
 ///|
-async fn command_outcome(
+async fn describe_command_run(
   script : String,
   timeout_ms~ : Int32,
 ) -> (String, Int32) {
@@ -532,7 +542,7 @@ async fn command_outcome(
 ///|
 async test "run_command kills a command that ignores SIGTERM after a grace" {
   serial(() => {
-    let (result, elapsed) = command_outcome(
+    let (result, elapsed) = describe_command_run(
       "trap '' TERM; sleep 5",
       timeout_ms=100,
     )
@@ -545,16 +555,16 @@ async test "run_command kills a command that ignores SIGTERM after a grace" {
 async test "run_command stops a grandchild that keeps the output open after the leader exits" {
   serial(() => {
     let dir = scratch("stop-grandchild")
-    ignore(shell("mkdir -p \{dir}"))
-    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    ignore(run_shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(run_shell("rm -rf \{dir}")))
     let pidfile = "\{dir}/pid"
-    let (result, elapsed) = command_outcome(
+    let (result, elapsed) = describe_command_run(
       "sleep 30 & echo $! > \{pidfile}; exit 0",
       timeout_ms=300,
     )
     assert_eq(result, "/bin/sh was stopped after 300 ms (none)")
     assert_between(elapsed, 250, 1500)
-    assert_true(is_gone(pid_in(pidfile)))
+    assert_true(wait_until_gone(read_pid(pidfile)))
   })
 }
 
@@ -562,7 +572,7 @@ async test "run_command stops a grandchild that keeps the output open after the 
 async test "run_command gives up on a grandchild that left the group and keeps the output open" {
   serial(() => {
     let before = @testkit.open_fds()
-    let (result, elapsed) = command_outcome(
+    let (result, elapsed) = describe_command_run(
       "perl -MPOSIX -e 'POSIX::setsid(); exec q(sleep), q(4)' & exit 0",
       timeout_ms=300,
     )
@@ -577,10 +587,10 @@ async test "run_command gives up on a grandchild that left the group and keeps t
 async test "cancelling run_command ends the command's group and closes every descriptor" {
   serial(() => {
     let dir = scratch("cancel-command")
-    ignore(shell("mkdir -p \{dir}"))
-    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    ignore(run_shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(run_shell("rm -rf \{dir}")))
     let pidfile = "\{dir}/pid"
-    ignore(shell("true"))
+    ignore(run_shell("true"))
     let before = @testkit.open_fds()
     let finished = @async.with_timeout_opt(300, () => {
       run_command(
@@ -591,7 +601,7 @@ async test "cancelling run_command ends the command's group and closes every des
       )
     })
     assert_true(finished is None)
-    assert_true(is_gone(pid_in(pidfile)))
+    assert_true(wait_until_gone(read_pid(pidfile)))
     assert_eq(@testkit.open_fds(), before)
   })
 }
@@ -631,7 +641,7 @@ async test "a command that cannot be stopped makes the run fail as started" {
     let script = "perl -MPOSIX -e 'POSIX::setsid(); exec q(sleep), q(3)' & exit 0"
     let before = @testkit.open_fds()
     let (result, elapsed) = timed(() => {
-      outcome("/bin/sh", ["-c", script], timeout_ms=300, kill_grace_ms=200)
+      describe_run("/bin/sh", ["-c", script], timeout_ms=300, kill_grace_ms=200)
     })
     assert_true(
       result.has_prefix("failed started=true: /bin/sh did not finish: pid "),
@@ -646,20 +656,20 @@ async test "a command that cannot be stopped makes the run fail as started" {
 async test "B1 cancelling a run whose leader already exited still ends the group and frees the descriptors" {
   serial(() => {
     let dir = scratch("b1")
-    ignore(shell("mkdir -p \{dir}"))
-    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    ignore(run_shell("mkdir -p \{dir}"))
+    defer @async.protect_from_cancel(() => ignore(run_shell("rm -rf \{dir}")))
     let pidfile = "\{dir}/pid"
-    ignore(outcome("/usr/bin/true", []))
+    ignore(describe_run("/usr/bin/true", []))
     let before = @testkit.open_fds()
     let finished = @async.with_timeout_opt(300, () => {
-      outcome(
+      describe_run(
         "/bin/sh",
         ["-c", "sleep 30 & echo $! > \{pidfile}; exit 0"],
         timeout_ms=30000,
       )
     })
     assert_true(finished is None)
-    assert_true(is_gone(pid_in(pidfile)))
+    assert_true(wait_until_gone(read_pid(pidfile)))
     assert_eq(@testkit.open_fds(), before)
   })
 }
@@ -667,7 +677,7 @@ async test "B1 cancelling a run whose leader already exited still ends the group
 ///|
 async test "B2 run_command counts both streams against one 16 MiB limit" {
   serial(() => {
-    let (result, _) = command_outcome(
+    let (result, _) = describe_command_run(
       "head -c 10000000 /dev/zero; head -c 10000000 /dev/zero >&2",
       timeout_ms=20000,
     )
@@ -680,18 +690,18 @@ async test "B3 a relative PATH entry is looked up under the working directory" {
   serial(() => {
     let dir = scratch("b3")
     ignore(
-      shell(
+      run_shell(
         "mkdir -p \{dir}/bin && printf '#!/bin/sh\\necho found\\n' > \{dir}/bin/hxc-cmd && chmod +x \{dir}/bin/hxc-cmd",
       ),
     )
-    defer @async.protect_from_cancel(() => ignore(shell("rm -rf \{dir}")))
+    defer @async.protect_from_cancel(() => ignore(run_shell("rm -rf \{dir}")))
     let found = "started ended=exit status=0 stdout=\"found\\n\" stderr=\"\""
     assert_eq(
-      outcome("hxc-cmd", [], cwd=dir, env={ "PATH": "./bin" }, output=true),
+      describe_run("hxc-cmd", [], cwd=dir, env={ "PATH": "./bin" }, output=true),
       found,
     )
     assert_eq(
-      outcome(
+      describe_run(
         "hxc-cmd",
         [],
         cwd="\{dir}/bin",
@@ -701,7 +711,7 @@ async test "B3 a relative PATH entry is looked up under the working directory" {
       found,
     )
     // An entry that exists only under the parent's directory is not a candidate.
-    let missing = outcome("hxc-cmd", [], cwd="/", env={ "PATH": "./bin" })
+    let missing = describe_run("hxc-cmd", [], cwd="/", env={ "PATH": "./bin" })
     assert_true(missing.has_prefix("failed started=false: "))
   })
 }

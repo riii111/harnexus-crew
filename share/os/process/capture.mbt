@@ -19,7 +19,7 @@ async fn drain(
   size : Ref[Int32],
   on_limit : () -> Unit,
 ) -> Unit {
-  let stream = slot.stream()
+  let stream = slot.into_stream()
   defer stream.close()
   while stream.read() is Some(chunk) {
     size.val += chunk.length()
