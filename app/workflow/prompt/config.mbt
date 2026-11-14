@@ -21,7 +21,9 @@ fn TemplateConfig::from_json(
   if unknown_key(templates, ["worker", "reviewer"]) is Some(key) {
     fail_invalid(path, "unknown field \"templates.\{key}\"")
   }
-  let template_path = fn(kind : String) -> String? raise @failure.TaskFailed {
+  let parse_template_path = fn(
+    kind : String,
+  ) -> String? raise @failure.TaskFailed {
     match templates.get(kind) {
       None => None
       Some(String(text)) if text.has_prefix("/") => Some(text)
@@ -29,7 +31,10 @@ fn TemplateConfig::from_json(
         fail_invalid(path, "templates.\{kind} must be an absolute path")
     }
   }
-  { worker: template_path("worker"), reviewer: template_path("reviewer"), }
+  {
+    worker: parse_template_path("worker"),
+    reviewer: parse_template_path("reviewer"),
+  }
 }
 
 ///|

@@ -195,7 +195,7 @@ fn open_review_session(
 fn resolve_session_value(request : Json, key : String) -> Json {
   let value = @jsonio.field(request, key)
   if key == "checkout" && truthy(value) {
-    Json::string(@store.real_path_or_self(@jsonio.as_text(value)))
+    Json::string(@store.resolve_real_path_or_self(@jsonio.as_text(value)))
   } else {
     value
   }

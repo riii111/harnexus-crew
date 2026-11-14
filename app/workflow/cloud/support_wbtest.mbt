@@ -63,7 +63,7 @@ async fn with_rig(name : String, body : async (Rig) -> Unit) -> Unit {
   @store.prepare_directory("\{made}/fake") catch {
     failed => abort(failed.user_message())
   }
-  let root = @store.real_path_or_self(made)
+  let root = @store.resolve_real_path_or_self(made)
   errdefer @async.protect_from_cancel(() => remove_tree(root))
   body({
     root,
@@ -104,7 +104,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
     probe: {
       path_exists: _ => true,
       is_directory: _ => true,
-      real_path_or_self: path => path,
+      resolve_real_path_or_self: path => path,
     },
     git: @git.Git::new(
       {

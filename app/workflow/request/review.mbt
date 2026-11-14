@@ -183,12 +183,12 @@ async fn resolve_checkout(
   probe : FileProbe,
   git : @git.Git,
 ) -> String raise @failure.TaskFailed {
-  let checkout = (probe.real_path_or_self)(requested)
+  let checkout = (probe.resolve_real_path_or_self)(requested)
   let (refused, in_place) = match scope {
     Cloud =>
       ("checkout must be the absolute path of a repository's top level", true)
     Worktrees(folder) => {
-      let root = (probe.real_path_or_self)(folder)
+      let root = (probe.resolve_real_path_or_self)(folder)
       (
         "checkout must be the top level of a worker worktree \{root}/<id>/<name>",
         @path.dirname(@path.dirname(checkout)) == root,

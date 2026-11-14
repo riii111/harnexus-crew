@@ -66,7 +66,7 @@ fn read_text(path : String) -> String raise {
 }
 
 ///|
-fn names_in(path : String) -> Array[String] raise {
+fn list_names(path : String) -> Array[String] raise {
   let names = list_directory_if_exists(path).unwrap()
   names.sort_by(String::lexical_compare)
   names

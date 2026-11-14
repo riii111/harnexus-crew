@@ -164,7 +164,7 @@ async test "create_thread starts the thread in a new worktree with the prompt on
       ])
       assert_eq(
         @text.js_trim(fake.recorded("cwd", 1)),
-        @store.real_path_or_self(fake.root),
+        @store.resolve_real_path_or_self(fake.root),
       )
     })
   })

@@ -18,7 +18,7 @@ test "save_json writes one space of indent and read_json_or_null reads it back" 
       read_json_or_null(path).stringify(),
       "{\"a\":[1,{\"b\":null}],\"c\":{}}",
     )
-    assert_eq(names_in("\{directory}/session"), ["state.json"])
+    assert_eq(list_names("\{directory}/session"), ["state.json"])
   })
 }
 

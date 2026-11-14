@@ -20,7 +20,7 @@ async fn with_home(
     failed => abort(failed.user_message())
   }
   errdefer @async.protect_from_cancel(() => remove_tree(home))
-  body(home, @store.real_path_or_self(review_home))
+  body(home, @store.resolve_real_path_or_self(review_home))
   remove_tree(home)
 }
 

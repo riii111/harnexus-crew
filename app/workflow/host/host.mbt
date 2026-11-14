@@ -90,5 +90,5 @@ async fn find_codex_review_project(
 ///|
 fn resolve_review_home(env : @environment.Env) -> String {
   // To avoid creating a worktree for each review, use the existing empty project.
-  @store.real_path_or_self(@path.join([env.home(), "review-home"]))
+  @store.resolve_real_path_or_self(@path.join([env.home(), "review-home"]))
 }

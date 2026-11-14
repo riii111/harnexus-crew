@@ -25,7 +25,7 @@ pub fn sample_worker_fields() -> Map[String, String]
 pub(all) struct FileProbe {
   path_exists : async (String) -> Bool noraise
   is_directory : async (String) -> Bool noraise
-  real_path_or_self : async (String) -> String noraise
+  resolve_real_path_or_self : async (String) -> String noraise
 }
 pub fn FileProbe::of_machine() -> Self
 

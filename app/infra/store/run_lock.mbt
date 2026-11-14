@@ -101,8 +101,8 @@ fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
     Some(now) => now.get("token") == observed && is_dead_holder(now)
     None => false
   }
-  let lock_failure = if reclaimable { removal_failure(lock) } else { None }
-  let takeover_failure = removal_failure(takeover)
+  let lock_failure = if reclaimable { try_remove_file(lock) } else { None }
+  let takeover_failure = try_remove_file(takeover)
   if lock_failure is Some(failed) {
     raise failed
   }
@@ -113,7 +113,7 @@ fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
 }
 
 ///|
-fn removal_failure(path : String) -> @failure.TaskFailed? {
+fn try_remove_file(path : String) -> @failure.TaskFailed? {
   try {
     lift_file_failure(() => remove_file(path))
     None

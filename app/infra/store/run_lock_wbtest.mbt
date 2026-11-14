@@ -13,7 +13,7 @@ fn write_lock(lock : String, pid : Double, token : String) -> Unit raise {
 }
 
 ///|
-fn token_of(lock : String) -> String raise {
+fn read_lock_token(lock : String) -> String raise {
   match read_json_or_null(lock) {
     Object(members) =>
       match members.get("token") {
@@ -76,7 +76,7 @@ test "acquire keeps a live taker's marker and does not take the lock" {
       "another review is taking over this session",
     )
     assert_true(is_file(marker))
-    assert_eq(token_of(lock), "dead")
+    assert_eq(read_lock_token(lock), "dead")
   })
 }
 
@@ -123,7 +123,7 @@ test "release leaves a lock another run took in the meantime" {
     let mine = acquire(lock, "review")
     write_lock(lock, current_pid().to_double(), "other")
     release(lock, mine)
-    assert_eq(token_of(lock), "other")
+    assert_eq(read_lock_token(lock), "other")
     release(lock, "other")
     assert_false(path_exists(lock))
   })

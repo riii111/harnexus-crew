@@ -29,7 +29,7 @@ fn probe() -> FileProbe {
       dirs.contains(real) || real == "/fx/doc.md"
     },
     is_directory: path => dirs.contains(resolved(path)),
-    real_path_or_self: path => resolved(path),
+    resolve_real_path_or_self: path => resolved(path),
   }
 }
 

@@ -91,7 +91,7 @@ fn resolve_engine(
       "pr-wake is not on PATH; install pr-wake, or set \{PR_WAKE_VARIABLE} to its absolute path",
     )
   }
-  @path.join([@path.dirname(@store.real_path_or_self(found)), ENGINE])
+  @path.join([@path.dirname(@store.resolve_real_path_or_self(found)), ENGINE])
 }
 
 ///|

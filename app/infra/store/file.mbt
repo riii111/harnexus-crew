@@ -169,7 +169,7 @@ pub fn path_exists(path : String) -> Bool {
 
 ///|
 /// The absolute path with symbolic links resolved, or the absolute path as written when it cannot be resolved.
-pub fn real_path_or_self(path : String) -> String {
+pub fn resolve_real_path_or_self(path : String) -> String {
   let absolute = @path.resolve(cwd=@env.current_dir().unwrap_or("/"), [path])
   let out : FixedArray[Byte] = FixedArray::make(4096, b'\x00')
   let len = match @sys.c_string(absolute) {

@@ -33,13 +33,13 @@ pub fn read_regular_text(String) -> String raise FileFailed
 
 pub fn read_text_if_exists(String) -> String? raise FileFailed
 
-pub fn real_path_or_self(String) -> String
-
 pub fn release(String, String) -> Unit
 
 pub fn remove_file(String) -> Unit raise FileFailed
 
 pub fn remove_record(String) -> Unit raise @failure.TaskFailed
+
+pub fn resolve_real_path_or_self(String) -> String
 
 pub fn save_json(String, @json.Json, exclusive~ : Bool) -> Unit raise @failure.TaskFailed
 

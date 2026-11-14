@@ -6,7 +6,7 @@ fn resolve_links(
   fields : Map[String, String],
 ) -> String raise @failure.TaskFailed {
   // The layout is the one the templates were written in, so a symlinked template resolves beside its real file.
-  let folder = @path.dirname(@store.real_path_or_self(path))
+  let folder = @path.dirname(@store.resolve_real_path_or_self(path))
   let nonce = @store.new_uuid().replace_all(old="-", new="")
   let out = StringBuilder()
   let mut last = 0
@@ -35,7 +35,7 @@ fn resolve_links(
     if !@store.is_file(file) {
       @failure.fail("links to \{file}, which is not a file")
     }
-    let real = @store.real_path_or_self(file)
+    let real = @store.resolve_real_path_or_self(file)
     // A link target ends at a space or parenthesis, and Markdown reads a # as an anchor and a backslash as an escape.
     if has_unsafe_character(real) {
       @failure.fail(
