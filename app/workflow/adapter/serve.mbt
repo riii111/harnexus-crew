@@ -41,11 +41,11 @@ pub async fn serve(
 
 ///|
 fn build_parts(env : @environment.Env) -> Parts raise @failure.TaskFailed {
-  let root = observation_root(env)
-  let locks = @path.join([root, "locks"])
+  let observations = Observations::new(observation_root(env))
+  let locks = observations.locks_directory()
   {
     store: ReviewStore::new(resolve_reviews_directory(env), locks),
-    observations: Observations::new(root),
+    observations,
     locks,
   }
 }

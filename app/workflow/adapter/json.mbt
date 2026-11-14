@@ -25,6 +25,11 @@ fn text_member(value : Json, name : String) -> String? {
 }
 
 ///|
+fn text_member_or_empty(value : Json, name : String) -> String {
+  text_member(value, name).unwrap_or("")
+}
+
+///|
 fn is_object(value : Json) -> Bool {
   value is Object(_)
 }

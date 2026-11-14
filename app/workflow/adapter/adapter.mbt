@@ -200,7 +200,7 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
   if !self.writing {
     return
   }
-  let session_id = text_member(event, "sessionId").unwrap_or("")
+  let session_id = text_member_or_empty(event, "sessionId")
   let records = objects_in(field(event, "records"))
   let known = self.deps.observations.read_position(session_id) catch {
     failed => {
@@ -229,7 +229,7 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
   let fresh = @host.reviews_in(records, from~).filter(review => {
     !seen.contains(review.key)
   })
-  let parent = text_member(event, "parentThreadId").unwrap_or("")
+  let parent = text_member_or_empty(event, "parentThreadId")
   let entries : Array[PendingReview] = fresh.map(review => {
     parent_thread_id: parent,
     session_id: Some(session_id),
@@ -263,8 +263,8 @@ async fn Adapter::take_records(self : Adapter, event : Json) -> Unit noraise {
 
 ///|
 async fn Adapter::take_turn(self : Adapter, event : Json) -> Unit noraise {
-  let turn_id = text_member(event, "turnId").unwrap_or("")
-  let conversation = text_member(event, "conversationId").unwrap_or("")
+  let turn_id = text_member_or_empty(event, "turnId")
+  let conversation = text_member_or_empty(event, "conversationId")
   if !self.writing {
     self.end_turn(
       turn_id,
@@ -291,16 +291,16 @@ async fn Adapter::take_turn(self : Adapter, event : Json) -> Unit noraise {
   }
   self.ask_reviewer(
     turn_id,
-    text_member(event, "threadId").unwrap_or(""),
+    text_member_or_empty(event, "threadId"),
     conversation,
-    text_member(event, "text").unwrap_or(""),
+    text_member_or_empty(event, "text"),
   )
 }
 
 ///|
 async fn Adapter::take_bound(self : Adapter, event : Json) -> Unit noraise {
-  let reviewer = text_member(event, "conversationId").unwrap_or("")
-  let thread_id = text_member(event, "threadId").unwrap_or("")
+  let reviewer = text_member_or_empty(event, "conversationId")
+  let thread_id = text_member_or_empty(event, "threadId")
   let chats = self.deps.store.read_chats() catch { _ => return }
   if chats.get(reviewer) is Some(chat) && chat.thread_id == thread_id {
     return
@@ -313,7 +313,7 @@ async fn Adapter::take_bound(self : Adapter, event : Json) -> Unit noraise {
 
 ///|
 async fn Adapter::answer_history(self : Adapter, line : Json) -> Unit noraise {
-  let thread_id = text_member(line, "threadId").unwrap_or("")
+  let thread_id = text_member_or_empty(line, "threadId")
   let entries = self.deps.store
     .read_history(thread_id)
     .map(entry => {
@@ -437,10 +437,7 @@ async fn Adapter::post_missed_openings(
     }
     ignore(
       self.show_opening(reviewer, text => {
-        let posted = self.request("post", [
-          ("conversationId", Json::string(reviewer)),
-          ("text", Json::string(text)),
-        ])
+        let posted = self.post_text(reviewer, text)
         posted.outcome == "done" || posted.outcome == "unknown"
       }),
     )
@@ -667,10 +664,7 @@ async fn Adapter::deliver_locked(
   }
   let mut shown : Delivery? = None
   if chats.get(review.reviewer) is Some(chat) {
-    let posted = self.request("post", [
-      ("conversationId", Json::string(review.reviewer)),
-      ("text", Json::string(text)),
-    ])
+    let posted = self.post_text(review.reviewer, text)
     // Only a chat the bridge no longer binds is replaced by a new one.
     if !(posted.outcome == "rejected" && posted.reason() == Some("unbound")) {
       shown = Some({ outcome: posted.outcome, thread_id: Some(chat.thread_id), })
@@ -775,10 +769,7 @@ async fn Adapter::open_chat(
     self.deps.observations.drop_opening(review.reviewer) catch {
       _ => ()
     }
-    let posted = self.request("post", [
-      ("conversationId", Json::string(review.reviewer)),
-      ("text", Json::string(text)),
-    ])
+    let posted = self.post_text(review.reviewer, text)
     return { outcome: posted.outcome, thread_id, }
   }
   { outcome: created.outcome, thread_id, }
@@ -847,6 +838,18 @@ async fn Adapter::request(
 }
 
 ///|
+async fn Adapter::post_text(
+  self : Adapter,
+  reviewer : String,
+  text : String,
+) -> Answer noraise {
+  self.request("post", [
+    ("conversationId", Json::string(reviewer)),
+    ("text", Json::string(text)),
+  ])
+}
+
+///|
 async fn Adapter::send_line(
   self : Adapter,
   line : Array[(String, Json)],
@@ -882,7 +885,7 @@ fn first_position(
   }
   let position : SessionPosition = {
     session_id,
-    parent_thread_id: text_member(event, "parentThreadId").unwrap_or(""),
+    parent_thread_id: text_member_or_empty(event, "parentThreadId"),
     baseline: { uuid: base, estimated: !linked, at: @store.now_iso(), },
     cursor: if end > 0 {
       @host.uuid_of(Some(records[end - 1]))
