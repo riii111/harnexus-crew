@@ -90,7 +90,8 @@ class Harness(unittest.TestCase):
         self.assertEqual([], self.observe_differences(stub_case(), BASE, reordered))
 
     def test_a_boolean_is_not_a_number(self):
-        self.assertNotEqual([], self.observe_differences(stub_case(), {**BASE, "stdout": '{"a":1}\n'}, {**BASE, "stdout": '{"a":true}\n'}))
+        found = self.observe_differences(stub_case(), {**BASE, "stdout": '{"a":1}\n'}, {**BASE, "stdout": '{"a":true}\n'})
+        self.assertEqual(["stdout"], self.fields(found))
 
     def test_detects_a_different_result(self):
         for name, change, field in (
@@ -187,7 +188,11 @@ class BridgeSynchronization(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="hxc-bridge-") as directory:
             bridge = Bridge(os.path.join(directory, "bridge.sock"), [])
             try:
-                self.assertEqual([], bridge.collect_finished_requests())
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                    client.connect(bridge.path)
+                    client.sendall(b'{"tool":"create_thread"}\n')
+
+                self.assertEqual(['{"tool":"create_thread"}'], bridge.collect_finished_requests())
             finally:
                 bridge.stop()
 

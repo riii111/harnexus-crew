@@ -26,7 +26,7 @@ class MarkdownLinkJudgement(unittest.TestCase):
             raise RuntimeError(f"probe exited {ran.returncode}: {ran.stderr.decode('utf-8', errors='replace')}")
         return jsonvalue.loads(ran.stdout.decode("utf-8"))
 
-    def test_each_case_is_judged_as_the_typescript_build_judged_it(self):
+    def test_each_case_selects_the_links_the_recorded_judgement_selects(self):
         for item in JUDGEMENT["cases"]:
             with self.subTest(item["name"]):
                 template = item["text"] if "text" in item else (REPO / item["file"]).read_text(encoding="utf-8")
