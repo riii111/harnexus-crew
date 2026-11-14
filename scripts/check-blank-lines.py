@@ -7,7 +7,7 @@ Without FILE it checks every tracked .mbt file and every tracked Python file und
 Enforced rules:
   flow-boundary  A multi-line if, match, for, while, loop, try, with, closure or local function is separated by a
                  blank line from the statements before and after it. A defer or errdefer line is never separated.
-  assert-group   The asserts that end a test are separated by a blank line from the statements before them.
+  assert-group   A run of asserts in a test is separated by a blank line from the statement before it.
 """
 
 import ast
@@ -17,13 +17,13 @@ import sys
 from pathlib import Path
 
 FLOW_MESSAGE = "flow-boundary: separate the multi-line statement from its neighbours with a blank line"
-ASSERT_MESSAGE = "assert-group: separate the asserts that end the test from the statements before them"
+ASSERT_MESSAGE = "assert-group: separate the asserts from the statement before them"
 
 MBT_FLOW = re.compile(
     r"^(?:let\s+(?:mut\s+)?[^=]+?=\s*|[\w.]+\s*=\s*|return\s+)?(?:if|match|for|while|loop|try)\b|^(?:async\s+)?fn\b"
 )
 MBT_CLOSURE_END = re.compile(r"=>\s*\{$")
-MBT_ASSERT = re.compile(r"^(?:assert_\w+|assert|inspect)\(")
+MBT_ASSERT = re.compile(r"^(?:@\w+\.)?(?:assert_\w+|assert|inspect)\(")
 MBT_DEFER = re.compile(r"^(?:err)?defer\b")
 MBT_CONTINUED = ("+", "-", "*", "/", "%", "&&", "||", "=", "->", "|>", ",")
 MBT_CONTINUING_START = ("else", "catch", "is ", "as ", ".", "|>", "&&", "||")
@@ -242,15 +242,15 @@ def mbt_violations(path, lines):
                 continue
             if mbt_is_flow(before, masked) or mbt_is_flow(after, masked):
                 found[after.lead] = FLOW_MESSAGE
-        if is_test_file and block.in_test and (block.is_test or block.is_closure) and statements:
-            run = len(statements)
-            while run > 0 and MBT_ASSERT.match(masked[statements[run - 1].start].strip()):
-                run -= 1
-            interleaved = any(MBT_ASSERT.match(masked[item.start].strip()) for item in statements[:run])
-            if 0 < run < len(statements) and not interleaved:
-                group = statements[run]
-                previous = statements[run - 1]
-                if lines[group.lead - 1].strip() != "" and not MBT_DEFER.match(masked[previous.start].strip()):
+        if is_test_file and block.in_test and (block.is_test or block.is_closure):
+            for index in range(1, len(statements)):
+                group = statements[index]
+                previous = statements[index - 1]
+                if not MBT_ASSERT.match(masked[group.start].strip()):
+                    continue
+                if MBT_ASSERT.match(masked[previous.start].strip()) or MBT_DEFER.match(masked[previous.start].strip()):
+                    continue
+                if lines[group.lead - 1].strip() != "":
                     found.setdefault(group.lead, ASSERT_MESSAGE)
     return found
 
@@ -337,13 +337,11 @@ def py_check_body(lines, body, found, is_test):
         if py_is_flow(before) or py_is_flow(after):
             found[lead] = FLOW_MESSAGE
     if is_test:
-        run = len(body)
-        while run > 0 and py_is_assert(body[run - 1]):
-            run -= 1
-        if 0 < run < len(body) and not any(py_is_assert(node) for node in body[:run]):
-            lead = python_statement_lead(lines, body[run])
-            if lines[lead - 2].strip() != "":
-                found.setdefault(lead, ASSERT_MESSAGE)
+        for index in range(1, len(body)):
+            if py_is_assert(body[index]) and not py_is_assert(body[index - 1]):
+                lead = python_statement_lead(lines, body[index])
+                if lines[lead - 2].strip() != "":
+                    found.setdefault(lead, ASSERT_MESSAGE)
     for statement in body:
         is_with = isinstance(statement, (ast.With, ast.AsyncWith))
         for inner in py_body_lists(statement):
