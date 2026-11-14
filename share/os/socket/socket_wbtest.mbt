@@ -436,13 +436,13 @@ async test "a peer that closes without answering is an empty answer" {
 }
 
 ///|
-async test "trailing white space of an answer is trimmed" {
+async test "trailing white space of an answer is trimmed the way JavaScript trims" {
   @testkit.serial(() => {
     with_server(
       "trim",
       stream => {
         ignore(read_request(stream))
-        stream.write(@utf8.encode("{\"a\":1} \r\n\t"))
+        stream.write(@utf8.encode("{\"a\":1}\u{a0}\u{3000} \r\n\u{2028}\t"))
       },
       path => assert_eq(exchange_line(path, "x", 1000), "{\"a\":1}"),
     )
