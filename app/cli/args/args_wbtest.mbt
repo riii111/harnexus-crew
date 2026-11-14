@@ -1,34 +1,4 @@
 ///|
-fn show_option(value : String?) -> String {
-  value.unwrap_or("(none)")
-}
-
-///|
-fn describe_parse(command : String, rest : Array[String]) -> String {
-  try {
-    match parse_command(command, rest[:]) {
-      Help => "help"
-      Run(Launch(a)) =>
-        "launch request=\{a.request} model=\{show_option(a.model)} thinking=\{show_option(a.thinking)}"
-      Run(Review(a)) =>
-        "review request=\{a.request} update_base=\{a.update_base} discard=\{a.discard_pending} ask=\{show_option(a.ask)}"
-      Run(State(a)) => "state request=\{show_option(a.request)}"
-      Run(Resolve(a)) =>
-        "resolve request=\{a.request} sent=\{a.sent} thread=\{show_option(a.thread_id)}"
-      Run(Name(a)) => "name pr=\{a.pr}"
-      Run(Watch(a)) =>
-        "watch dry_run=\{a.dry_run} prs=\{a.prs.join(",")} release=\{show_option(a.release)} status=\{a.status} sender=\{a.sender} link=\{show_option(a.link)}"
-      Run(Cloud(a)) =>
-        "cloud link=\{show_option(a.link)} prompt_file=\{show_option(a.prompt_file)} project=\{show_option(a.project)}"
-      Run(Environment) => "environment"
-      Run(Check) => "check"
-    }
-  } catch {
-    UsageError(message) => "usage: " + message
-  }
-}
-
-///|
 test "an option value follows after a space or an equals sign" {
   inspect(
     describe_parse("launch", ["--request", "a"]),
@@ -312,4 +282,34 @@ test "a value after the first equals sign keeps its non-ASCII characters" {
     describe_parse("name", ["--pr=\u{1F600}\u{E9}"]),
     content="name pr=\u{1F600}\u{E9}",
   )
+}
+
+///|
+fn describe_parse(command : String, rest : Array[String]) -> String {
+  try {
+    match parse_command(command, rest[:]) {
+      Help => "help"
+      Run(Launch(a)) =>
+        "launch request=\{a.request} model=\{show_option(a.model)} thinking=\{show_option(a.thinking)}"
+      Run(Review(a)) =>
+        "review request=\{a.request} update_base=\{a.update_base} discard=\{a.discard_pending} ask=\{show_option(a.ask)}"
+      Run(State(a)) => "state request=\{show_option(a.request)}"
+      Run(Resolve(a)) =>
+        "resolve request=\{a.request} sent=\{a.sent} thread=\{show_option(a.thread_id)}"
+      Run(Name(a)) => "name pr=\{a.pr}"
+      Run(Watch(a)) =>
+        "watch dry_run=\{a.dry_run} prs=\{a.prs.join(",")} release=\{show_option(a.release)} status=\{a.status} sender=\{a.sender} link=\{show_option(a.link)}"
+      Run(Cloud(a)) =>
+        "cloud link=\{show_option(a.link)} prompt_file=\{show_option(a.prompt_file)} project=\{show_option(a.project)}"
+      Run(Environment) => "environment"
+      Run(Check) => "check"
+    }
+  } catch {
+    UsageError(message) => "usage: " + message
+  }
+}
+
+///|
+fn show_option(value : String?) -> String {
+  value.unwrap_or("(none)")
 }

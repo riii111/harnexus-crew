@@ -1,116 +1,4 @@
 ///|
-/// The real connect, which also records the descriptor the exchange opened so a test can check it is closed afterwards.
-fn tracked_connect(path : String, opened : Ref[Int32]) -> (Int32) -> Int32 {
-  let target = @sys.c_string(path).unwrap()
-  fd => {
-    opened.val = fd
-    connect_once(fd, target)
-  }
-}
-
-///|
-fn socket_path(name : String) -> String {
-  "\{@testkit.temp_base()}/hxc-\{@testkit.pid()}-\{name}.sock"
-}
-
-///|
-/// A server socket that accepts, removed with the test.
-/// `handle` runs once for each accepted connection.
-async fn with_server(
-  name : String,
-  handle : async (@raw_fd.RawFdStream) -> Unit,
-  body : async (String) -> Unit,
-) -> Unit {
-  let path = socket_path(name)
-  let listener = @testkit.listen(path)
-  defer {
-    @testkit.close_fd(listener)
-    @testkit.remove_file(path)
-  }
-  @async.with_task_group(group => {
-    group.spawn_bg(no_wait=true, () => {
-      while true {
-        match @testkit.accept(listener) {
-          Some(fd) =>
-            group.spawn_bg(no_wait=true, () => {
-              let stream = @raw_fd.RawFdStream(fd)
-              defer stream.close()
-              handle(stream)
-            })
-          None => @async.sleep(5)
-        }
-      }
-    })
-    body(path)
-  })
-}
-
-///|
-/// None when the peer closed before sending a line, which differs from a line that is empty.
-async fn read_request(stream : @raw_fd.RawFdStream) -> String? {
-  let line = stream.read_until(b"\n") catch { _ => None }
-  line.map(bytes => @utf8.decode_lossy(bytes))
-}
-
-///|
-async fn answer(stream : @raw_fd.RawFdStream) -> Unit {
-  let line = read_request(stream).unwrap_or("")
-  stream.write(
-    @utf8.encode(
-      "{\"outcome\":\"done\",\"echoed\":\{Json::string(line).stringify()},\"text\":\"あい🌙\"}\n",
-    ),
-  )
-}
-
-///|
-async fn stay_silent(stream : @raw_fd.RawFdStream) -> Unit {
-  ignore(read_request(stream))
-  @async.sleep(60000)
-}
-
-///|
-/// Answers in parts spaced so the whole answer arrives later than a one second deadline.
-async fn drip_answer(stream : @raw_fd.RawFdStream) -> Unit {
-  ignore(read_request(stream))
-  for i in 0..<5 {
-    @async.sleep(300)
-    stream.write(@utf8.encode("part\{i};"))
-  }
-  stream.write(@utf8.encode("\n"))
-}
-
-///|
-/// Accepts and never reads, so a large request fills the socket buffer and the client's write has to wait.
-async fn never_read(_stream : @raw_fd.RawFdStream) -> Unit {
-  @async.sleep(60000)
-}
-
-///|
-fn describe_failure(error : @boundary.LineExchangeFailed) -> String {
-  let @boundary.LineExchangeFailed(code~, connected~, ..) = error
-  "\{if connected { "unknown" } else { "not_sent" }} \{code.unwrap_or("none")}"
-}
-
-///|
-/// What an exchange came to: its answer, or whether the line was sent and the code of the failure.
-async fn describe_exchange(
-  path : String,
-  line : String,
-  timeout_ms : Int32,
-  connect? : (Int32) -> Int32,
-) -> String {
-  try {
-    let reply = match connect {
-      Some(attempt) => exchange_with(path, line, timeout_ms, attempt)
-      None => exchange_line(path, line, timeout_ms)
-    }
-    "done \{Json::string(reply).stringify()}"
-  } catch {
-    error => describe_failure(error)
-  }
-}
-
-///|
 async test "S1 a round trip returns the answer without its newline" {
   @testkit.serial(() => {
     with_server("s1", answer, path => {
@@ -489,6 +377,118 @@ async test "the failure carries the message callers show" {
 
     assert_eq(message, "cannot reach \{path}")
   })
+}
+
+///|
+/// The real connect, which also records the descriptor the exchange opened so a test can check it is closed afterwards.
+fn tracked_connect(path : String, opened : Ref[Int32]) -> (Int32) -> Int32 {
+  let target = @sys.c_string(path).unwrap()
+  fd => {
+    opened.val = fd
+    connect_once(fd, target)
+  }
+}
+
+///|
+fn socket_path(name : String) -> String {
+  "\{@testkit.temp_base()}/hxc-\{@testkit.pid()}-\{name}.sock"
+}
+
+///|
+/// A server socket that accepts, removed with the test.
+/// `handle` runs once for each accepted connection.
+async fn with_server(
+  name : String,
+  handle : async (@raw_fd.RawFdStream) -> Unit,
+  body : async (String) -> Unit,
+) -> Unit {
+  let path = socket_path(name)
+  let listener = @testkit.listen(path)
+  defer {
+    @testkit.close_fd(listener)
+    @testkit.remove_file(path)
+  }
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => {
+      while true {
+        match @testkit.accept(listener) {
+          Some(fd) =>
+            group.spawn_bg(no_wait=true, () => {
+              let stream = @raw_fd.RawFdStream(fd)
+              defer stream.close()
+              handle(stream)
+            })
+          None => @async.sleep(5)
+        }
+      }
+    })
+    body(path)
+  })
+}
+
+///|
+/// None when the peer closed before sending a line, which differs from a line that is empty.
+async fn read_request(stream : @raw_fd.RawFdStream) -> String? {
+  let line = stream.read_until(b"\n") catch { _ => None }
+  line.map(bytes => @utf8.decode_lossy(bytes))
+}
+
+///|
+async fn answer(stream : @raw_fd.RawFdStream) -> Unit {
+  let line = read_request(stream).unwrap_or("")
+  stream.write(
+    @utf8.encode(
+      "{\"outcome\":\"done\",\"echoed\":\{Json::string(line).stringify()},\"text\":\"あい🌙\"}\n",
+    ),
+  )
+}
+
+///|
+async fn stay_silent(stream : @raw_fd.RawFdStream) -> Unit {
+  ignore(read_request(stream))
+  @async.sleep(60000)
+}
+
+///|
+/// Answers in parts spaced so the whole answer arrives later than a one second deadline.
+async fn drip_answer(stream : @raw_fd.RawFdStream) -> Unit {
+  ignore(read_request(stream))
+  for i in 0..<5 {
+    @async.sleep(300)
+    stream.write(@utf8.encode("part\{i};"))
+  }
+  stream.write(@utf8.encode("\n"))
+}
+
+///|
+/// Accepts and never reads, so a large request fills the socket buffer and the client's write has to wait.
+async fn never_read(_stream : @raw_fd.RawFdStream) -> Unit {
+  @async.sleep(60000)
+}
+
+///|
+fn describe_failure(error : @boundary.LineExchangeFailed) -> String {
+  let @boundary.LineExchangeFailed(code~, connected~, ..) = error
+  "\{if connected { "unknown" } else { "not_sent" }} \{code.unwrap_or("none")}"
+}
+
+///|
+/// What an exchange came to: its answer, or whether the line was sent and the code of the failure.
+async fn describe_exchange(
+  path : String,
+  line : String,
+  timeout_ms : Int32,
+  connect? : (Int32) -> Int32,
+) -> String {
+  try {
+    let reply = match connect {
+      Some(attempt) => exchange_with(path, line, timeout_ms, attempt)
+      None => exchange_line(path, line, timeout_ms)
+    }
+    "done \{Json::string(reply).stringify()}"
+  } catch {
+    error => describe_failure(error)
+  }
 }
 
 ///|

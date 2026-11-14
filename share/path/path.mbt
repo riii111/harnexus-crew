@@ -10,12 +10,6 @@ pub fn join(parts : Array[String]) -> String {
 }
 
 ///|
-/// Same results as Node's `path.posix.normalize`.
-fn normalize(path : String) -> String {
-  @core_path.Path(path).normalize().to_string()
-}
-
-///|
 pub fn is_absolute(path : String) -> Bool {
   @core_path.Path(path).is_absolute()
 }
@@ -53,4 +47,10 @@ pub fn resolve(cwd~ : String, parts : Array[String]) -> String {
   } else {
     body
   }
+}
+
+///|
+/// Same results as Node's `path.posix.normalize`.
+fn normalize(path : String) -> String {
+  @core_path.Path(path).normalize().to_string()
 }

@@ -1,14 +1,4 @@
 ///|
-fn refusal(reply : Bytes) -> String {
-  try {
-    ignore(read_destinations(reply))
-    "accepted"
-  } catch {
-    @failure.TaskFailed(message) => message
-  }
-}
-
-///|
 test "offsets are UTF-16 positions of the target in the template" {
   let template = "日本 [a](x.md) 😀 [b](y.md)"
   let found = links(template, nonce="n")
@@ -64,4 +54,14 @@ test "records carry their length, so a destination may hold any byte" {
   assert_eq(found.length(), 2)
   assert_true(found.contains("a\u{0}b"))
   assert_true(found.contains("c"))
+}
+
+///|
+fn refusal(reply : Bytes) -> String {
+  try {
+    ignore(read_destinations(reply))
+    "accepted"
+  } catch {
+    @failure.TaskFailed(message) => message
+  }
 }

@@ -98,9 +98,6 @@ pub fn restore_stdio(saved : FixedArray[Int32]) -> Unit {
 let gate : @async.Mutex = @async.Mutex()
 
 ///|
-let scratch_count : Ref[Int32] = Ref(0)
-
-///|
 pub async fn serial(body : async () -> Unit) -> Unit {
   // The test driver runs up to ten tests at once on one thread, so a test that counts descriptors, times a deadline or counts a child's runs holds the gate to keep another test's sockets, children and sleeps out of it.
   gate.acquire()
@@ -133,6 +130,9 @@ pub fn temp_base() -> String {
     base
   }
 }
+
+///|
+let scratch_count : Ref[Int32] = Ref(0)
 
 ///|
 pub async fn scratch(name : String) -> String {
