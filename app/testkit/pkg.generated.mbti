@@ -11,9 +11,21 @@ pub fn env_of(Array[(String, String)]) -> @environment.Env
 
 pub async fn failure_of(async () -> Unit raise @failure.TaskFailed) -> String
 
+pub async fn with_fake_cli(String, mock~ : String, stand_ins~ : Array[String], async (FakeCli) -> Unit) -> Unit
+
 // Errors
 
 // Types and methods
+pub struct FakeCli {
+  root : String
+  fake_dir : String
+  bin : String
+}
+pub async fn FakeCli::args(Self, Int32, name? : String) -> Array[String]
+pub fn FakeCli::env(Self, Array[(String, String)]) -> @environment.Env
+pub async fn FakeCli::plan(Self, Int32, name? : String, out? : String, exit? : Int32, stderr? : String, sleep? : String) -> Unit
+pub async fn FakeCli::ran(Self, name? : String) -> Bool
+pub async fn FakeCli::recorded(Self, String, Int32, name? : String) -> String
 
 // Type aliases
 

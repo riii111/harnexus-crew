@@ -1,6 +1,11 @@
 import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+  "moonbitlang/core/env",
   "riii111/harnexus-crew/app/infra/environment",
   "riii111/harnexus-crew/share/failure",
+  "riii111/harnexus-crew/share/os/testkit" @os_testkit,
+  "riii111/harnexus-crew/share/text",
 }
 
 options(
