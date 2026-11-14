@@ -2,6 +2,7 @@
 test "offsets are UTF-16 positions of the target in the template" {
   let template = "日本 [a](x.md) 😀 [b](y.md)"
   let found = links(template, nonce="n")
+
   inspect(
     found.map(fn(link) { "\{link.start}-\{link.end}" }).join(","),
     content="7-11,20-24",

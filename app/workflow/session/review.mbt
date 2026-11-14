@@ -41,18 +41,23 @@ async fn review_in(
     is Some({ environment: Cloud, runner: InCloud(Some(ClaudeCloud)), }) {
     return cloud(args)
   }
+
   @workflow.refuse_in_cloud(ctx.env, "review")
+
   // In the app the reviewer is a chat of its own, which is asked there.
   if args.ask is Some(_) {
     @failure.fail("--ask applies to review only in a Claude Code cloud session")
   }
+
   if args.discard_pending {
     @failure.fail(
       "--recover applies to review only in a Claude Code cloud session",
     )
   }
+
   let request = read_review_request(ctx, args.request)
   let worker = @request.read_caller_id(ctx.env)
+
   let request = match request.worker_chat_id {
     None => request.with_worker_chat_id(worker)
     Some(id) if id == worker => request
@@ -61,6 +66,7 @@ async fn review_in(
         "workerChatId in the request must equal \{ctx.host.thread_variable}",
       )
   }
+
   let session = open_review_session(ctx.env, ctx.ports, request, worker)
   session.check_idle()
   let state = state_json(session.state)
@@ -68,41 +74,52 @@ async fn review_in(
   if truthy(recorded) && !(recorded is Object(_)) {
     @failure.fail("\{session.state_path} holds an invalid candidate")
   }
+
   let previous = match recorded {
     Object(members) if !members.is_empty() => Some(members)
     _ => None
   }
+
   let candidate = request.resolve_candidate(previous, args.update_base, ctx.git)
   let data = candidate.to_json()
+
   if previous is Some(previous) {
     check_kept(Json::object(previous), data, app_session_keys)
+
     if value_of(previous, "head") == @jsonio.field(data, "head") {
       @failure.fail(
         "head \{@jsonio.as_text(@jsonio.field(data, "head"))} was already sent to reviewer \{@jsonio.as_text(@jsonio.field(state, "reviewer"))}; wait for its result",
       )
     }
   }
+
   let fields = candidate.build_reviewer_fields(
     (ctx.host.reply_to)(request.worker_ai.name()),
     ctx.probe,
   )
   let prompt = (ctx.prompt)(Reviewer, fields)
   let sent : Map[String, Json] = { "prompt": Json::string(prompt) }
+
   let tool = if session.state is Some(kept) {
     sent["threadId"] = value_of(kept, "reviewer")
+
     if args.model is Some(model) {
       sent["model"] = Json::string(model)
     }
+
     if args.thinking is Some(thinking) {
       sent["thinking"] = Json::string(thinking)
     }
+
     "send_message_to_thread"
   } else {
     let project = (ctx.review_project)(worker)
+
     let thinking = match @text.nonempty(args.thinking) {
       Some(thinking) => Some(thinking)
       None => ctx.host.thinking.map(thinking => thinking.reviewer)
     }
+
     sent["target"] = Json::object({
       "type": Json::string("project"),
       "projectId": Json::string(project),
@@ -112,11 +129,14 @@ async fn review_in(
     sent["model"] = Json::string(
       @text.nonempty(args.model).unwrap_or("gpt-6.1-sol"),
     )
+
     if thinking is Some(thinking) {
       sent["thinking"] = Json::string(thinking)
     }
+
     "create_thread"
   }
+
   session.send(worker, tool, sent, [
     ("candidate", data),
     ("workspace", @jsonio.field(data, "checkout")),
@@ -156,10 +176,12 @@ fn open_review_session(
         !(value_of(kept, "reviewer") is String(reviewer) && reviewer == thread) {
         @failure.fail("review session must keep the same reviewer")
       }
+
       let candidate = value_of(pending, "candidate")
       if @jsonio.field(candidate, "workerChatId") is String(id) && id == thread {
         @failure.fail("a worker cannot review itself")
       }
+
       let previous = state_json(state)
       let settings = [
         sent_settings(sent),
@@ -213,5 +235,6 @@ fn first_set(values : Array[Json]) -> Json {
       return value
     }
   }
+
   Json::null()
 }

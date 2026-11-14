@@ -36,8 +36,10 @@ class LockBetweenProcesses(StoreBetweenProcesses):
 
         taken = [answer for answer in replies if answer["ok"] is True]
         self.assertEqual(1, len(taken))
+
         for answer in [item for item in replies if item["ok"] is False]:
             self.assertRegex(answer["message"], r"^another review( \(pid \d+\))? is using this session$")
+
         self.assertFalse(lock.exists())
 
     def test_runs_racing_for_a_dead_holders_lock_never_hold_it_together(self):
@@ -48,6 +50,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
             key=lambda span: span[0],
         )
         self.assertGreaterEqual(len(spans), 1)
+
         for index in range(1, len(spans)):
             self.assertGreaterEqual(spans[index][0], spans[index - 1][1])
 
@@ -81,6 +84,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         for answer in replies:
             self.assertIs(False, answer["ok"])
             self.assertIn(f"left {lock} and {marker}", answer["message"])
+
         self.assertEqual("dead", read_token(lock))
 
         marker.unlink()
@@ -91,6 +95,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
 
         for answer in replies:
             self.assertIs(True, answer["ok"])
+
         self.assertEqual("90", counter.read_text(encoding="utf-8"))
 
     def test_work_under_the_lock_leaves_no_lock_file_behind(self):
@@ -98,6 +103,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
 
         for answer in replies:
             self.assertIs(True, answer["ok"])
+
         self.assertEqual([], list(locks.iterdir()))
 
     def test_a_run_that_waits_longer_than_allowed_fails_and_names_the_holder(self):
@@ -143,6 +149,7 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
         replies = run_together(16, lambda index: ("exclusive", str(target), str(index), "200000", at))
 
         winners = [index for index, answer in enumerate(replies) if answer["created"] is True]
+
         self.assertEqual(1, len(winners))
         self.assertEqual(contents[winners[0]], target.read_text(encoding="utf-8"))
         self.assertEqual(["created.json"], [path.name for path in directory.iterdir()])
@@ -161,14 +168,17 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
         while time.monotonic() < until:
             seen = target.read_text(encoding="utf-8")
             reads += 1
+
             if len(seen) != size or len(set(seen)) != 1:
                 torn.append(seen[:20])
+
             if not killed and reads > 20:
                 writers[1].kill()
                 writers[3].kill()
                 killed = True
 
         survivors = [read_reply(writers[0]), read_reply(writers[2])]
+
         for writer in (writers[1], writers[3]):
             writer.wait()
             writer.stdout.close()
@@ -176,6 +186,7 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
 
         for answer in survivors:
             self.assertGreater(int(answer["writes"]), 0)
+
         self.assertEqual([], torn)
         self.assertGreater(reads, 20)
         last = target.read_text(encoding="utf-8")
@@ -187,8 +198,10 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
 class ReadingAndWritingFiles(StoreBetweenProcesses):
     def test_text_is_read_as_node_reads_it_including_a_byte_order_mark_and_invalid_bytes(self):
         directory = self.make_case_directory()
+
         for sample in EXPECTATIONS["reads"]:
             path = directory / sample["name"]
+
             if sample["name"] == "large":
                 text = "0123456789" * 30000
                 path.write_bytes(text.encode("utf-8"))
@@ -278,8 +291,10 @@ def read_token(lock):
 
 def read_reply(process):
     out, err = process.communicate()
+
     if process.returncode != 0:
         raise RuntimeError(f"probe exited {process.returncode}: {err.decode('utf-8', errors='replace')}")
+
     return jsonvalue.loads(out.decode("utf-8").strip().split("\n")[-1])
 
 

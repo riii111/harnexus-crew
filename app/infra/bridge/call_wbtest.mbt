@@ -43,6 +43,7 @@ async test "a bridge's answer keeps every field" {
     },
     (path, _) => {
       let answer = call_json(bridge_env(path), "create_thread", {})
+
       assert_eq(
         @jsonio.parse(answer),
         @jsonio.parse(
@@ -63,6 +64,7 @@ async test "a call sent without an answer in time is unknown" {
         {},
         timeout_ms=50,
       )
+
       assert_eq(
         answer, "{\"outcome\":\"unknown\",\"error\":\"no answer: ETIMEDOUT\"}",
       )
@@ -76,6 +78,7 @@ async test "an answer without an outcome is unknown" {
   for reply in ["{\"version\":1}", "{\"outcome\":3}", "[]", "nope", ""] {
     with_bridge("call-7", _ => Some(reply), (path, _) => {
       let answer = call_json(bridge_env(path), "create_thread", {})
+
       assert_eq(
         answer,
         "{\"outcome\":\"unknown\",\"error\":\"no answer: answer without outcome\"}",
@@ -89,6 +92,7 @@ async test "an answer without an outcome is unknown" {
 async test "a bridge that hangs up on the call leaves it unknown" {
   with_server("call-8", stream => ignore(read_request(stream)), path => {
     let answer = call_json(bridge_env(path), "create_thread", {})
+
     assert_eq(
       answer, "{\"outcome\":\"unknown\",\"error\":\"no answer: answer without outcome\"}",
     )
@@ -199,6 +203,7 @@ async fn with_bridge(
     stream => {
       let line = read_request(stream).unwrap_or("")
       lines.push(line)
+
       match rule(line) {
         Some(reply) => stream.write(@utf8.encode(reply + "\n"))
         // A bridge that does not answer keeps the connection open.
@@ -225,6 +230,7 @@ async fn call_json(
     Some(limit) => call_app(env, "w1", tool, args, timeout_ms=limit)
     None => call_app(env, "w1", tool, args)
   }
+
   json_text(answer.to_json())
 }
 
@@ -256,6 +262,7 @@ async fn with_server(
         }
       }
     })
+
     body(path)
   })
 }

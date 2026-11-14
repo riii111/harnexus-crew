@@ -3,6 +3,7 @@ fn sent_settings(sent : Json) -> Json {
   let requested = settings_of(@jsonio.field(sent, "expected"))
   let asked = !(@jsonio.field(requested, "model") is Null) ||
     !(@jsonio.field(requested, "effort") is Null)
+
   if @jsonio.field(sent, "tool") is String("create_thread") || asked {
     Json::object({
       "requested": requested,

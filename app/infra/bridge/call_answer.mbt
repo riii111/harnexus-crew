@@ -54,9 +54,11 @@ pub fn CallAnswer::of_json(value : Json) -> CallAnswer? {
 ///|
 pub fn CallAnswer::to_json(self : CallAnswer) -> Json {
   let members = { "outcome": Json::string(self.outcome) }
+
   for name, item in self.fields {
     members[name] = item
   }
+
   Json::object(members)
 }
 

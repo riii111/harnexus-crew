@@ -7,15 +7,18 @@ async test "a review whose post is still waiting when the bridge closes is recor
       link.start("write")
       link.say_records("linked", [])
       let review = review_of_head("aaa1111")
+
       let handling = group.spawn(() => {
         link.say_records("continued", judged("aaa1111"))
       })
+
       wait_for_requests(link, 1)
 
       link.adapter.close_input()
       handling.wait()
 
       let kept = read_json_file("\{at.reviews}/\{review.key}.json")
+
       assert_eq(field(kept, "sent"), Some(Json::boolean(true)))
       assert_eq(read_pending_keys(link), [])
       assert_eq(link.adapter.unanswered.length(), 0)
@@ -48,12 +51,15 @@ async test "a review whose chat could not be listed when the bridge closes waits
       link.start("write")
       link.say_records("linked", [])
       let review = review_of_head("aaa1111")
+
       let handling = group.spawn(() => {
         link.say_records("continued", judged("aaa1111"))
       })
+
       wait_for_requests(link, 1)
       link.adapter.close_input()
       handling.wait()
+
       assert_eq(read_pending_keys(link), [review.key])
       assert_eq(list_names(at.reviews), ["\{review.key}.json"])
     })
@@ -67,13 +73,16 @@ async test "a question to a reviewer whose answer never comes ends the turn as f
       write_chats_file(at, object([("R1", bound_chat("chat-r1"))]))
       let link = connect(at, group, silent=true)
       link.start("write")
+
       let handling = group.spawn(() => {
         link.say(turn_line("t1", "chat-r1", "R1", "input", text="hello"))
       })
+
       wait_for_requests(link, 1)
       link.adapter.close_input()
       handling.wait()
       let ended = link.lines_of_type("turn_end")
+
       assert_eq(ended.length(), 1)
       assert_eq(text_member(ended[0], "status"), Some("failed"))
       assert_eq(
@@ -92,6 +101,7 @@ async test "an answer reaches the request that asked, whatever the order they ar
       link.start("write")
       let outcomes : Array[String] = ["", "", ""]
       let tasks = []
+
       for index in 0..<3 {
         tasks.push(
           group.spawn(() => {
@@ -101,6 +111,7 @@ async test "an answer reaches the request that asked, whatever the order they ar
           }),
         )
       }
+
       wait_for_requests(link, 3)
       let ids = link
         .requests()
@@ -108,14 +119,17 @@ async test "an answer reaches the request that asked, whatever the order they ar
       let texts = link
         .requests()
         .map(line => text_member(line, "text").unwrap_or(""))
+
       for index in [2, 1, 0] {
         link.adapter.receive(
           response_line(ids[index], "answer-\{texts[index]}"),
         )
       }
+
       for task in tasks {
         task.wait()
       }
+
       assert_eq(outcomes, ["answer-n0", "answer-n1", "answer-n2"])
       assert_eq(link.adapter.unanswered.length(), 0)
     })
@@ -129,9 +143,11 @@ async test "a response nobody asked for is dropped without disturbing a request 
       let link = connect(at, group, silent=true)
       link.start("write")
       let outcome = Ref("")
+
       let task = group.spawn(() => {
         outcome.val = link.adapter.request("post", [("text", str("x"))]).outcome
       })
+
       wait_for_requests(link, 1)
       link.adapter.receive(response_line("harnexus-crew-99", "done"))
       assert_eq(link.adapter.unanswered.length(), 1)
@@ -173,6 +189,7 @@ async test "a turn on a bridge in observe mode ends as failed" {
       link.say(turn_line("t1", "x", "R1", "opened"))
 
       let ended = link.lines_of_type("turn_end")
+
       assert_eq(ended.map(line => text_member(line, "status")), [Some("failed")])
     })
   })
@@ -194,6 +211,7 @@ async test "many round trips leave no descriptor, waiting request or lock behind
         let head = "h\{round.to_string()}"
         link.say_records("continued", [..judged("h000000"), ..judged(head)])
       }
+
       assert_eq(@testkit.open_fds(), before)
       assert_eq(link.adapter.unanswered.length(), 0)
       assert_eq(link.requests(op="post").length(), rounds)
@@ -210,6 +228,7 @@ async test "history requests handled at the same time each get a response carryi
       let link = connect(at, group)
       link.start("write")
       let tasks = []
+
       for index in 0..<40 {
         tasks.push(
           group.spawn(() => {
@@ -237,10 +256,13 @@ async test "history requests handled at the same time each get a response carryi
         .map(line => text_member(line, "id").unwrap_or(""))
       ids.sort_by(String::lexical_compare)
       let expected = []
+
       for index in 0..<40 {
         expected.push("h\{index}")
       }
+
       expected.sort_by(String::lexical_compare)
+
       assert_eq(ids, expected)
     })
   })
@@ -253,8 +275,10 @@ async fn wait_for_requests(link : Link, count : Int32) -> Unit {
     if link.requests().length() >= count {
       return
     }
+
     @async.sleep(5)
   }
+
   abort("only \{link.requests().length()} of \{count} requests were sent")
 }
 

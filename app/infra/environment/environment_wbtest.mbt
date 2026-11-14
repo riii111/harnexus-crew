@@ -173,6 +173,7 @@ test "the call socket sits beside the harnexus state path" {
     ("HOME", "/h"),
     ("HARNEXUS_STATE_PATH", "/a/../b/threads.json"),
   ])
+
   inspect(resolve_harnexus_state_path(state), content="/a/../b/threads.json")
 
   inspect(resolve_call_socket_path(state), content="/b/call.sock")
@@ -248,10 +249,12 @@ fn detected(pairs : Array[(String, String)]) -> String {
 ///|
 fn env_of(pairs : Array[(String, String)]) -> Env {
   let vars = Map([])
+
   for pair in pairs {
     let (name, value) = pair
     vars[name] = value
   }
+
   Env::new(vars)
 }
 

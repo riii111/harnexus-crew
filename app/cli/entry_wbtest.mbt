@@ -8,6 +8,7 @@ async test "a usage error is reported without reading the environment" {
 ///|
 async test "help is printed without reading the environment" {
   let refusing : () -> @environment.Env raise = () => fail("env was read")
+
   for argv in [["check", "-h"], ["-h"]] {
     assert_eq(run(argv[:], refusing).code, 0, msg=argv.join(" "))
   }

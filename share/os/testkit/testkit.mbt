@@ -10,6 +10,7 @@ pub fn listen(path : String, backlog~ : Int32 = 16) -> Int32 raise Errno {
   if fd < 0 {
     raise Errno(-fd)
   }
+
   fd
 }
 
@@ -20,10 +21,12 @@ pub fn accept(listener : Int32) -> Int32? raise Errno {
   if fd >= 0 {
     return Some(fd)
   }
+
   // EBADF is 9 on both systems; any other failure means no connection is waiting.
   if -fd == 9 {
     raise Errno(-fd)
   }
+
   None
 }
 
@@ -34,6 +37,7 @@ pub fn connect_and_hold(path : String) -> Int32 raise Errno {
   if fd < 0 {
     raise Errno(-fd)
   }
+
   fd
 }
 
@@ -86,6 +90,7 @@ pub fn close_stdio() -> FixedArray[Int32] raise Errno {
   if err != 0 {
     raise Errno(err)
   }
+
   saved
 }
 

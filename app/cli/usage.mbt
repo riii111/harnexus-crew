@@ -2,9 +2,11 @@
 fn usage_of(commands : Array[String], name : String) -> String {
   let buffer = StringBuilder()
   buffer.write_string("usage:\n")
+
   for command in commands {
     buffer.write_string("  \{name} \{usage_line(command)}\n")
   }
+
   buffer.to_string()
 }
 

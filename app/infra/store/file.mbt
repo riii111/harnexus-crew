@@ -35,6 +35,7 @@ pub fn read_text_if_exists(path : String) -> String? raise FileFailed {
   if fd == -enoent {
     return None
   }
+
   let fd = check(fd, Read, path, message)
   Some(decode_text(read_and_close(fd, path, message)))
 }
@@ -47,11 +48,14 @@ pub fn read_regular_text(path : String) -> String raise FileFailed {
   // Reading a FIFO or a device could wait forever, so only a regular file is read.
   if kind != kind_file {
     ignore(close_raw(fd))
+
     if kind < 0 {
       raise failure(Read, path, -kind, message)
     }
+
     raise FileFailed(action=Read, path~, code=None, message~)
   }
+
   decode_text(read_and_close(fd, path, message))
 }
 
@@ -74,15 +78,19 @@ pub fn write_exclusive(
   // Linking fails when a file already exists at the path, so exactly one writer creates it.
   let linked = link_path(temporary, path)
   let removed = unlink_path(temporary)
+
   if linked < 0 && linked != -eexist {
     raise failure(Write, path, -linked, message)
   }
+
   if removed < 0 && removed != -enoent {
     raise failure(Write, path, -removed, message)
   }
+
   if linked < 0 {
     return false
   }
+
   sync_parent(path, "wrote")
   true
 }
@@ -94,6 +102,7 @@ pub fn remove_file(path : String) -> Unit raise FileFailed {
   if removed < 0 && removed != -enoent {
     raise failure(Remove, path, -removed, "cannot remove \{path}")
   }
+
   sync_parent(path, "removed")
 }
 
@@ -105,6 +114,7 @@ pub fn prepare_directory(path : String) -> Unit raise FileFailed {
   if made < 0 {
     raise failure(Prepare, path, -made, message)
   }
+
   // Files created inside later are lost if the directory entry never reached the disk, so the parent is synced too.
   let synced = sync_directory(@path.dirname(path))
   if synced < 0 {
@@ -140,13 +150,16 @@ pub fn path_exists(path : String) -> Bool {
 pub fn resolve_real_path_or_self(path : String) -> String {
   let absolute = @path.resolve(cwd=@env.current_dir().unwrap_or("/"), [path])
   let out : FixedArray[Byte] = FixedArray::make(4096, b'\x00')
+
   let len = match @sys.c_string(absolute) {
     Some(bytes) => realpath_raw(bytes, out, 4096)
     None => -einval
   }
+
   if len < 0 {
     return absolute
   }
+
   @utf8.decode_lossy(Bytes::from_array(out[:len]))
 }
 
@@ -158,12 +171,14 @@ fn read_and_close(
 ) -> Bytes raise FileFailed {
   let read = read_to_end(fd)
   let closed = close_raw(fd)
+
   match read {
     Err(errno) => raise failure(Read, path, errno, message)
     Ok(bytes) => {
       if closed < 0 {
         raise failure(Read, path, -closed, message)
       }
+
       bytes
     }
   }
@@ -189,6 +204,7 @@ fn write_temporary(path : String, content : String) -> String raise FileFailed {
   let written = write_all_text(fd, content)
   let synced = if written < 0 { written } else { fsync_raw(fd) }
   let closed = close_raw(fd)
+
   let errno = if written < 0 {
     written
   } else if synced < 0 {
@@ -196,10 +212,12 @@ fn write_temporary(path : String, content : String) -> String raise FileFailed {
   } else {
     closed
   }
+
   if errno < 0 {
     ignore(unlink_path(temporary))
     raise failure(Write, path, -errno, message)
   }
+
   temporary
 }
 
@@ -235,8 +253,10 @@ fn sync_directory(path : String) -> Int32 {
   if fd < 0 {
     return fd
   }
+
   let synced = fsync_raw(fd)
   let closed = close_raw(fd)
+
   if synced < 0 {
     synced
   } else {
@@ -253,17 +273,21 @@ fn make_directories(path : String) -> Int32 {
   if made == -eexist {
     return if stat_kind(path) == kind_directory { 0 } else { made }
   }
+
   if made != -enoent {
     return made
   }
+
   let parent = @path.dirname(path)
   if parent == path {
     return made
   }
+
   let parent_made = make_directories(parent)
   if parent_made < 0 {
     return parent_made
   }
+
   let again = mkdir_path(path, owner_only_directory)
   if again == -eexist && stat_kind(path) == kind_directory {
     0
@@ -278,19 +302,24 @@ fn list_with_capacity(
   capacity : Int32,
 ) -> Array[String]? raise FileFailed {
   let out : FixedArray[Byte] = FixedArray::make(capacity, b'\x00')
+
   let needed = match @sys.c_string(path) {
     Some(bytes) => list_raw(bytes, out, capacity)
     None => -einval
   }
+
   if needed == -enoent || needed == -enotdir {
     return None
   }
+
   if needed < 0 {
     raise failure(Read, path, -needed, "cannot list \{path}")
   }
+
   if needed > capacity {
     return list_with_capacity(path, needed)
   }
+
   Some(split_names(Bytes::from_array(out[:needed])))
 }
 
@@ -298,12 +327,14 @@ fn list_with_capacity(
 fn split_names(listing : Bytes) -> Array[String] {
   let names = []
   let mut start = 0
+
   for at in 0..<listing.length() {
     if listing[at] == b'\x00' {
       names.push(@utf8.decode_lossy(listing[start:at]))
       start = at + 1
     }
   }
+
   names
 }
 
@@ -322,6 +353,7 @@ fn check(
   if result < 0 {
     raise failure(action, path, -result, message)
   }
+
   result
 }
 

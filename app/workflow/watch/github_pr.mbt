@@ -23,6 +23,7 @@ pub fn github_pr_number(value : String) -> String? {
   while end < units.length() && is_digit(units[end]) {
     end += 1
   }
+
   if end == units.length() ||
     (
       is_tail_start(units[end]) &&
@@ -45,6 +46,7 @@ fn after_name(units : Array[Int32], from : Int32) -> Int32? {
   while end < units.length() && is_name_char(units[end]) {
     end += 1
   }
+
   if end > from && end < units.length() && units[end] == '/'.to_int() {
     Some(end + 1)
   } else {
@@ -63,11 +65,13 @@ fn has_units(units : Array[Int32], at : Int32, text : String) -> Bool {
   if at + wanted.length() > units.length() {
     return false
   }
+
   for offset in 0..<wanted.length() {
     if units[at + offset] != wanted[offset].to_int() {
       return false
     }
   }
+
   true
 }
 

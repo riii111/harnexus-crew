@@ -159,6 +159,7 @@ async test "a thinking level is refused without running t3" {
           msg=thinking.stringify(),
         )
       }
+
       assert_false(fake.ran())
       assert_true(t3_runs_for_valid_create(fake))
     })
@@ -182,6 +183,7 @@ async test "a failure the CLI says left nothing behind is unsent" {
           "NetError: Failed to reserve loopback port\n listen EPERM", "NetError: Failed to reserve loopback port\n listen EPERM; run outside the sandbox",
         ),
       ]
+
       for index, failure in failures {
         let (stderr, error) = failure
         fake.plan(index + 1, exit=1, stderr~)
@@ -222,6 +224,7 @@ async test "a failed run with no message reports the exit status" {
     with_t3("t3-6", fake => {
       fake.plan(1, exit=3)
       let answer = t3_json(t3_deps(fake), "create_thread", create_args())
+
       assert_eq(
         answer, "{\"outcome\":\"unknown\",\"error\":\"t3 exited with 3\"}",
       )
@@ -235,6 +238,7 @@ async test "a start that printed no thread is unknown, since a thread may exist"
     with_t3("t3-7", fake => {
       let printed = ["Thread started\n", "{\"threadId\":5}"]
       let excerpts = ["Thread started", "{\"threadId\":5}"]
+
       for index, out in printed {
         fake.plan(index + 1, out~)
 
@@ -260,6 +264,7 @@ async test "the thread is the last line of the output" {
       fake.plan(1, out="starting\n{\"x\":1}\n{\"threadId\":\"t9\"}\n\n")
       fake.plan(2, out="log\n" + shown("m"))
       let answer = t3_json(t3_deps(fake), "create_thread", create_args())
+
       assert_eq(
         answer, "{\"outcome\":\"done\",\"threadId\":\"t9\",\"model\":\"m\",\"effort\":null}",
       )
@@ -301,6 +306,7 @@ async test "create_thread without what it needs sends nothing" {
         ("model", create_args_without("model")),
         ("project", create_args(target=Json::object({}))),
       ]
+
       for item in refused {
         let (label, args) = item
         assert_eq(
@@ -311,6 +317,7 @@ async test "create_thread without what it needs sends nothing" {
           msg=label,
         )
       }
+
       assert_false(fake.ran())
       assert_true(t3_runs_for_valid_create(fake))
     })
@@ -329,6 +336,7 @@ async test "an absolute t3 path that cannot be started leaves the call unsent" {
         which: _ => None,
       }
       let answer = t3_json(deps, "create_thread", create_args())
+
       assert_eq(
         answer,
         failed_json(
@@ -351,6 +359,7 @@ async test "a relative t3 path is refused" {
         ]),
         which: _ => None,
       }
+
       assert_eq(
         t3_json(relative, "create_thread", create_args()),
         "{\"outcome\":\"not_sent\",\"error\":\"HARNEXUS_T3_BIN must be an absolute path\"}",
@@ -412,6 +421,7 @@ async test "send_message_to_thread queues the prompt on the thread from stdin" {
         "threadId": Json::string("t1"),
         "prompt": Json::string("re-review"),
       })
+
       assert_eq(answer, "{\"outcome\":\"done\",\"threadId\":\"t1\"}")
       assert_eq(fake.args(1), ["thread", "send", "t1", "-", "--json"])
       assert_eq(fake.recorded("stdin", 1), "re-review")
@@ -435,6 +445,7 @@ async test "a send cannot change the model or thinking, so naming either is refu
           "T3 Code's t3 CLI cannot set a thinking level; leave out --thinking, and set it in T3 Code instead",
         ),
       ]
+
       for refusal in refusals {
         let (name, value, error) = refusal
         let args : Map[String, Json] = {
@@ -447,6 +458,7 @@ async test "a send cannot change the model or thinking, so naming either is refu
 
         assert_eq(answer, failed_json("unsupported", error), msg=name)
       }
+
       assert_false(fake.ran())
       assert_true(t3_runs_for_valid_create(fake))
     })
@@ -543,6 +555,7 @@ async test "a run past its deadline is stopped and reported as unknown" {
           )
         Ran(_) => fail("a run that timed out is not a success")
       }
+
       @testkit.assert_between(elapsed, 0, 5000)
     })
   })
@@ -554,6 +567,7 @@ test "a worktree with a starting branch is based on that branch" {
     "type": Json::string("worktree"),
     "startingState": Json::object({ "branchName": Json::string("feat/x") }),
   })
+
   assert_eq(worktree_base({ "environment": environment }), Some("feat/x"))
 }
 
@@ -566,6 +580,7 @@ test "a worktree without a usable starting branch is based on HEAD" {
       "startingState": Json::object({ "branchName": Json::number(1.0) }),
     }),
   ]
+
   for environment in environments {
     assert_eq(
       worktree_base({ "environment": environment }),
@@ -583,6 +598,7 @@ test "only a worktree environment has a base" {
     Json::string("worktree"),
     Json::object({ "type": Json::string("local") }),
   ]
+
   for environment in others {
     assert_eq(
       worktree_base({ "environment": environment }),
@@ -590,6 +606,7 @@ test "only a worktree environment has a base" {
       msg=environment.stringify(),
     )
   }
+
   assert_eq(worktree_base({}), None)
 }
 
@@ -605,9 +622,11 @@ async fn t3_json(
 ///|
 fn worker_target(starting_state? : Json) -> Json {
   let environment = { "type": Json::string("worktree") }
+
   if starting_state is Some(state) {
     environment["startingState"] = state
   }
+
   Json::object({
     "type": Json::string("project"),
     "projectId": Json::string("p1"),
@@ -626,10 +645,12 @@ fn create_args(
     "title": Json::string("T"),
     "model": Json::string("claude-sonnet-5-5"),
   }
+
   for pair in extra.unwrap_or([]) {
     let (name, value) = pair
     args[name] = value
   }
+
   args
 }
 

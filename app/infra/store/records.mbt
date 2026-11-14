@@ -32,10 +32,12 @@ pub fn save_json(
 ) -> Unit raise @failure.TaskFailed {
   lift_file_failure(() => prepare_directory(@path.dirname(path)))
   let content = data.stringify(indent=1)
+
   if !exclusive {
     lift_file_failure(() => write_atomic(path, content))
     return
   }
+
   let created = lift_file_failure(() => write_exclusive(path, content))
   if !created {
     @failure.fail("another harnexus-crew run is sending; inspect \{path}")

@@ -4,6 +4,7 @@ pub async fn environment_command(env : @environment.Env) -> Json {
     Settled(declared) => declared
     AskSocket(path) => {
       @workflow.require_home(env)
+
       if socket_accepts(path) {
         @environment.Detected::socket_accepted()
       } else {
@@ -15,6 +16,7 @@ pub async fn environment_command(env : @environment.Env) -> Json {
       @environment.Detected::undetermined()
     }
   }
+
   detected.to_json()
 }
 

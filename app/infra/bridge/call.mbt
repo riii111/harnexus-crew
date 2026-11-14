@@ -16,10 +16,12 @@ pub async fn call_app(
   let socket = @environment.resolve_caller_socket(env) catch {
     @failure.TaskFailed(message) => return not_sent(message)
   }
+
   let path = match socket {
     Some(path) => path
     None => return not_sent("the call socket is off (HARNEXUS_CALL_SOCKET=off)")
   }
+
   let line = Json::object({
     "version": Json::number(PROTOCOL_VERSION.to_double()),
     "threadId": Json::string(caller),
@@ -29,6 +31,7 @@ pub async fn call_app(
   let answer = @socket.exchange_line(path, line, timeout_ms) catch {
     @boundary.LineExchangeFailed(code~, connected~, message~, ..) => {
       let reason = code.unwrap_or(message)
+
       // After the connection the call may or may not have been written, so only a failure to connect leaves it unsent.
       return if connected {
         unknown("no answer: \{reason}")
@@ -62,6 +65,7 @@ fn answer_of(line : String) -> CallAnswer {
     // The version only frames the message, so remove it from the recorded answer.
     members.remove("version")
   }
+
   CallAnswer::of_json(parsed).unwrap_or(
     unknown("no answer: answer without outcome"),
   )

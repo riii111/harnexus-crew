@@ -3,6 +3,7 @@
 /// It is not part of the CLI.
 fn main {
   let path = @env.args().get(1).unwrap_or("")
+
   let reply = try {
     let template = @store.read_regular_text(path)
     let nonce = @store.new_uuid().replace_all(old="-", new="")
@@ -18,6 +19,7 @@ fn main {
       Json::object({ "error": Json::string(message) })
     failed => Json::object({ "error": Json::string(failed.to_string()) })
   }
+
   @sys.write_text(1, reply.stringify() + "\n") catch {
     _ => abort("cannot write")
   }

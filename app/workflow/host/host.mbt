@@ -77,10 +77,12 @@ async fn find_codex_review_project(
   if answer.outcome != "done" {
     @failure.fail("list_projects failed: \{answer.to_json().stringify()}")
   }
+
   if @bridge.find_project_id(answer.fields.get("result"), home)
     is Some(project_id) {
     return project_id
   }
+
   @failure.fail(
     "add \{home} to the Codex app as a project, so reviewers run there instead of in a worktree of their own",
   )

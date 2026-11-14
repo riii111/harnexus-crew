@@ -35,11 +35,14 @@ class Case:
 
 def load_cases():
     cases = []
+
     for path in sorted(CASES.glob("*.json")):
         case = parse_case(json.loads(path.read_text(encoding="utf-8")))
         if f"{case.name}.json" != path.name:
             raise InvalidCase(f"{path.name} must be named after its case, {case.name}")
+
         cases.append(case)
+
     return cases
 
 
@@ -63,6 +66,7 @@ def parse_case(data):
     _check(_strings(data.get("argv")), name, "argv must be strings")
     _check(_string_map(data.get("env", {})), name, "env must map strings")
     _check(isinstance(data.get("stdin", ""), str), name, "stdin must be a string")
+
     for step in data.get("steps", []):
         _check(
             (set(step) == {"send"} and isinstance(step["send"], str))
@@ -70,6 +74,7 @@ def parse_case(data):
             name,
             "a step is send or wait",
         )
+
     _check(_string_map(data.get("files", {})), name, "files must map strings")
     _check(_string_map(data.get("seed", {})), name, "seed must map strings")
     _check(
@@ -77,6 +82,7 @@ def parse_case(data):
         name,
         "git must be lists of strings",
     )
+
     for step in data.get("bridge") or []:
         _check(set(step) <= {"match", "answer"} and "answer" in step, name, "a bridge step has match and answer")
         _check(
@@ -84,8 +90,10 @@ def parse_case(data):
             name,
             "a bridge answer is an object, drop or silent",
         )
+
     for command in data.get("commands", {}).values():
         _check(set(command) <= {"stdout", "stderr", "exit"}, name, "a command has stdout, stderr and exit")
+
     _check(_strings(data.get("snapshot", [])), name, "snapshot must be strings")
     compare = data.get("compare", {})
     _check(set(compare) <= {"stdout", "stderr"} and set(compare.values()) <= set(MODES), name, "compare is invalid")

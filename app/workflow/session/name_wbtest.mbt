@@ -50,6 +50,7 @@ test "a value counts as present unless it is null, false, zero or empty" {
     (Json::array([Json::null()]), true),
     (Json::number(-1.0), true),
   ]
+
   for entry in cases {
     let (value, present) = entry
     assert_eq(truthy(value), present, msg=value.stringify())

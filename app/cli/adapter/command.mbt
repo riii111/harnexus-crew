@@ -9,9 +9,11 @@ pub async fn run(
     [] => return usage_error("expected serve")
     [command, .. rest] => (command, rest)
   }
+
   if command == "-h" || command == "--help" {
     return { code: 0, stdout: usage(@environment.NAME), stderr: "", }
   }
+
   if command == "serve" {
     let id = @args.parse_adapter_serve(rest) catch {
       @args.UsageError(message) => return usage_error(message)
@@ -21,6 +23,7 @@ pub async fn run(
     }
     return serve(read_env(), id)
   }
+
   usage_error("unknown adapter command \{command}")
 }
 
@@ -42,6 +45,7 @@ fn is_adapter_id(text : String) -> Bool {
   if units.length() < 1 || units.length() > 64 {
     return false
   }
+
   units
   .iter()
   .all(unit => {

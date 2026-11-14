@@ -63,17 +63,21 @@ async fn Session::send(
     "tool": Json::string(tool),
     "arguments": Json::object(args),
   }
+
   for pair in extra {
     record[pair.0] = pair.1
   }
+
   // To prevent resending an operation whose answer was lost, create its pending record exclusively before sending.
   (self.ports.save)(self.pending_path, Json::object(record), true)
+
   if @store.read_json_or_null(self.state_path) != self.loaded {
     @store.remove_record(self.pending_path)
     @failure.fail(
       "another \{@environment.NAME} run changed the state; rerun to check it",
     )
   }
+
   let answer = (self.ports.call)(caller, tool, args)
   let outcome = answer.outcome
   let answered = value_of(answer.fields, "threadId")
@@ -82,6 +86,7 @@ async fn Session::send(
   } else {
     value_of(args, "threadId")
   }
+
   fn keep_for_resolve(
     status : String,
     extra : Array[(String, Json)],
@@ -89,9 +94,11 @@ async fn Session::send(
     record["status"] = Json::string(status)
     record["threadId"] = thread
     record["answer"] = answer.to_json()
+
     for pair in extra {
       record[pair.0] = pair.1
     }
+
     (self.ports.save)(self.pending_path, Json::object(record), false)
   }
 
@@ -100,6 +107,7 @@ async fn Session::send(
     errdefer keep_for_resolve("unknown", [])
     return self.confirm(record, thread, Some(answer))
   }
+
   // Either way the thread exists but never ran, so it is kept for resolve rather than sent again.
   let refusal : Array[(String, Json)]? = match outcome {
     "model_mismatch" =>
@@ -111,16 +119,20 @@ async fn Session::send(
       Some([("reason", value_of(answer.fields, "reason"))])
     _ => None
   }
+
   if refusal is Some(refusal) {
     keep_for_resolve("refused", refusal)
     self.pending = Some(record)
     self.check_idle()
   }
+
   let text = answer.to_json().stringify()
+
   if answer.is_unsent() {
     @store.remove_record(self.pending_path)
     @failure.fail("\{tool} was not sent: \{text}")
   }
+
   keep_for_resolve("unknown", [])
   @failure.fail(
     "\{tool} result is unknown (\{text}); never resend. Ask the user to check the App",
@@ -137,6 +149,7 @@ fn Session::resolve(
   guard self.pending is Some(pending) else {
     @failure.fail("nothing is pending")
   }
+
   if !sent {
     if value_of(pending, "status") is String("refused") {
       let history = @store.read_json_or_null(self.history_path)
@@ -144,22 +157,27 @@ fn Session::resolve(
         Array(items) => items.copy()
         _ => []
       }
+
       kept.push(Json::object(pending))
       (self.ports.save)(self.history_path, Json::array(kept), false)
     }
+
     @store.remove_record(self.pending_path)
     return Json::object({
       "released": value_of(pending, "tool"),
       "status": value_of(pending, "status"),
     })
   }
+
   if value_of(pending, "status") is String("refused") {
     @failure.fail("a refused first turn never ran; use --not-sent")
   }
+
   let named = match thread {
     Some(id) if id != "" => Json::string(id)
     _ => value_of(pending, "threadId")
   }
+
   self.confirm(pending, named, None)
 }
 
@@ -175,10 +193,12 @@ fn Session::confirm(
       "thread ID is unknown; check the App, then resolve --sent --thread-id",
     )
   }
+
   let args = match value_of(record, "arguments") {
     Object(args) => args
     _ => {}
   }
+
   let answered = fn(key : String) -> Json {
     match answer {
       Some(answer) => value_of(answer.fields, key)
@@ -204,10 +224,12 @@ fn Session::confirm(
       None => Json::null()
     },
   })
+
   let id = match thread {
     String(text) => @request.check_chat_id(text, "threadId")
     _ => @failure.fail("threadId must be a nonempty single-line string")
   }
+
   let next = (self.confirmed)(id, record, sent, self.state)
   (self.ports.save)(self.state_path, Json::object(next), false)
   @store.remove_record(self.pending_path)
@@ -219,11 +241,13 @@ fn Session::confirm(
     "tool": value_of(record, "tool"),
     "threadId": thread,
   }
+
   if !unasked {
     shown["model"] = answered("model")
     shown["effort"] = answered("effort")
     shown["expected"] = expected
   }
+
   shown["state"] = Json::string(self.state_path)
   Json::object(shown)
 }
@@ -234,11 +258,13 @@ fn Session::show(self : Session) -> Json raise @failure.TaskFailed {
   let refused = @store.read_json_or_null(self.history_path)
   let state = state_json(self.state)
   let sent = @jsonio.field(state, "sent")
+
   // A state without kept settings holds them in its create send, so they are read from there.
   let settings = match @jsonio.field(state, "settings") {
     Null => sent_settings(sent)
     kept => kept
   }
+
   let pending = state_json(self.pending)
   let shown = (self.summarize)(self.state, self.pending)
   shown["requested"] = settings_of(@jsonio.field(settings, "requested"))
@@ -265,6 +291,7 @@ fn Session::check_idle(self : Session) -> Unit raise @failure.TaskFailed {
 fn check_idle(pending : Map[String, Json]?) -> Unit raise @failure.TaskFailed {
   guard pending is Some(pending) else { return }
   let thread = @jsonio.as_text(value_of(pending, "threadId"))
+
   if value_of(pending, "status") is String("refused") {
     let reason = value_of(pending, "reason")
     if truthy(reason) {
@@ -272,12 +299,14 @@ fn check_idle(pending : Map[String, Json]?) -> Unit raise @failure.TaskFailed {
         "the bridge refused the first turn of thread \{thread}: \{@jsonio.as_text(reason)}; fix the cause, then resolve --not-sent",
       )
     }
+
     let expected = value_of(pending, "expected")
     let actual = value_of(pending, "actual")
     @failure.fail(
       "thread \{thread} refused its first turn: \{refusal_text(expected, actual)}; fix the model, then resolve --not-sent",
     )
   }
+
   @failure.fail(
     "previous \{@jsonio.as_text(value_of(pending, "tool"))} ended as \{@jsonio.as_text(value_of(pending, "status"))}; never resend. Ask the user to check the App, then run resolve --sent or --not-sent",
   )

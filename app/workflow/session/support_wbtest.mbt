@@ -23,10 +23,12 @@ fn Rig::env(self : Rig, extra : Array[(String, String)]) -> @environment.Env {
   vars["XDG_STATE_HOME"] = "\{self.root}/state"
   vars["CODEX_HOME"] = "\{self.root}/codex"
   vars["CODEX_THREAD_ID"] = "w1"
+
   for pair in extra {
     let (name, value) = pair
     vars[name] = value
   }
+
   @environment.Env::new(vars)
 }
 
@@ -50,6 +52,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
   let ports : Ports = {
     call: (caller, tool, args) => {
       self.calls.push((caller, tool, args))
+
       if self.answers.is_empty() {
         @bridge.CallAnswer::failed(NotSent, error="no answer planned")
       } else {
@@ -82,6 +85,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
             .find("-C \{checkout} ")
             .map(at => at + checkout.length() + 4)
             .unwrap_or(0)
+
           let out = match words[after:].to_owned() {
             "rev-parse --show-toplevel" => checkout
             "rev-parse HEAD" => head.val
@@ -95,6 +99,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
               other.split(" ").collect()[1].to_owned()
             other => abort("git was asked for \{other}")
           }
+
           { status: 0, stdout: "\{out}\n", stderr: "", }
         },
       },
@@ -105,6 +110,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
         Worker => "worker"
         Reviewer => "reviewer"
       }
+
       self.prompts.push("\{name}:\{fields.get("reply_to").unwrap_or("-")}")
       "\{name} prompt for \{fields.get("task_id").unwrap_or("?")}"
     },
@@ -207,6 +213,7 @@ fn launch_args(
 ) -> @workflow.LaunchInput {
   let argv = ["--request", request]
   argv.append(extra)
+
   match parse_arguments("launch", argv) {
     Launch(args) => args
     _ => abort("not a launch")
@@ -220,6 +227,7 @@ fn review_args(
 ) -> @workflow.ReviewInput {
   let argv = ["--request", request]
   argv.append(extra)
+
   match parse_arguments("review", argv) {
     Review(args) => args
     _ => abort("not a review")

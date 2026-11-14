@@ -22,16 +22,19 @@ pub async fn with_fake_cli(
       _ => abort("cannot create \{directory}")
     }
   }
+
   let script = "\{@env.current_dir().unwrap()}/test/native/mocks/\{mock}"
   let content = @fs.read_binary(script) catch {
     _ => abort("cannot read \{script}")
   }
+
   for stand_in in stand_ins {
     let path = "\{fake.bin}/\{stand_in}"
     @fs.write_binary(path, content, permission=0o755) catch {
       _ => abort("cannot write \{path}")
     }
   }
+
   body(fake)
   @os_testkit.remove_tree(root)
 }
@@ -49,9 +52,11 @@ pub async fn FakeCli::plan(
 ) -> Unit {
   write_record(self.record_path("out.\{run}", name), out)
   write_record(self.record_path("exit.\{run}", name), exit.to_string())
+
   if stderr is Some(text) {
     write_record(self.record_path("stderr.\{run}", name), text)
   }
+
   if sleep is Some(seconds) {
     write_record(self.record_path("sleep.\{run}", name), seconds)
   }
@@ -82,9 +87,11 @@ pub async fn FakeCli::args(
   name? : String,
 ) -> Array[String] {
   let lines = []
+
   for line in @text.js_trim(self.recorded("args", run, name?)).split("\n") {
     lines.push(line.to_owned())
   }
+
   lines
 }
 
@@ -147,5 +154,6 @@ async fn new_root(name : String) -> String {
       }
     }
   }
+
   abort("no free scratch directory for \{name}")
 }

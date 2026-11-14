@@ -16,18 +16,23 @@ pub async fn serve(
     review_home: @path.join([env.home(), "review-home"]),
     log,
   })
+
   @async.with_task_group(outer => {
     outer.spawn_bg(() => adapter.run_jobs())
+
     @async.with_task_group(handlers => {
       while true {
         guard read_line() is Some(line) else { break }
+
         match adapter.accept(line) {
           Handled => ()
           Later(work) => handlers.spawn_bg(() => work())
         }
       }
+
       adapter.close_input()
     })
+
     adapter.finish()
   })
 }

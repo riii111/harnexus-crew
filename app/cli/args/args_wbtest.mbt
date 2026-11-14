@@ -49,6 +49,7 @@ test "an unknown option is refused with its name" {
     ("---x", "---x"),
     ("--req", "--req"),
   ]
+
   for option in unknown {
     assert_eq(
       describe_parse("check", [option.0]),
@@ -81,6 +82,7 @@ test "a lone double dash ends the options" {
 ///|
 test "an argument after a lone double dash is refused as a stray argument" {
   inspect(describe_parse("check", ["--"]), content="check")
+
   for arg in ["--", "--help"] {
     assert_eq(
       describe_parse("check", ["--", arg]),
@@ -93,6 +95,7 @@ test "an argument after a lone double dash is refused as a stray argument" {
 ///|
 test "a value that looks like an option is ambiguous" {
   let ambiguous = "usage: Option '--request' argument is ambiguous.\nDid you forget to specify the option argument for '--request'?\nTo specify an option argument starting with a dash use '--request=-XYZ'."
+
   for value in ["--model", "-1", "--"] {
     assert_eq(
       describe_parse("launch", ["--request", value]),
@@ -124,6 +127,7 @@ test "a flag takes no value" {
     (["--request", "a", "--update-base=1"], "--update-base"),
     (["--help=1"], "--help"),
   ]
+
   for flag in flags {
     assert_eq(
       describe_parse("review", flag.0),

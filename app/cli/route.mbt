@@ -1,6 +1,7 @@
 ///|
 async fn run_command(command : @args.Command, env : @environment.Env) -> Json {
   let which = @which.in_env(env)
+
   match command {
     Environment => @status.environment_command(env)
     State({ request: None, }) => @status.state_command(env)

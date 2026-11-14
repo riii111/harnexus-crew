@@ -3,6 +3,7 @@ async test "acquire writes the pid, token and start time of the holder" {
   in_scratch(directory => {
     let lock = lock_in(directory)
     let token = acquire(lock, "review")
+
     match read_json_or_null(lock) {
       Object(members) => {
         assert_eq(
@@ -10,10 +11,12 @@ async test "acquire writes the pid, token and start time of the holder" {
           Some(Json::number(current_pid().to_double())),
         )
         assert_eq(members.get("token"), Some(Json::string(token)))
+
         match members.get("startedAt") {
           Some(String(at)) => assert_eq(at.length(), 24)
           _ => fail("no startedAt")
         }
+
         assert_eq(members.length(), 3)
       }
       _ => fail("not a lock")
@@ -162,6 +165,7 @@ async test "with_lock releases the lock when the work fails" {
         held = is_file(lock)
         (@failure.fail("work failed") : Unit)
       })
+
       ""
     } catch {
       failed => failed.message()
@@ -199,6 +203,7 @@ async test "with_lock waits for a lock released while it waits" {
         released = true
         release(lock, held)
       })
+
       ran_after_release = with_lock(
         directory,
         "chats",

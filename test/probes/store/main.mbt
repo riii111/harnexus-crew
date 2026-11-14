@@ -16,6 +16,7 @@ async fn main {
     "save-json" => save_record(args)
     _ => object([("error", Json::string("unknown command \{command}"))])
   }
+
   emit(line)
 }
 
@@ -27,6 +28,7 @@ async fn main {
 /// args[5]: Start time.
 async fn acquire_and_hold(args : Array[String]) -> Json {
   wait_until(number_arg(args, 5))
+
   try {
     let token = @storage.acquire(arg(args, 2), arg(args, 3))
     let from = now_millis_json()
@@ -62,6 +64,7 @@ async fn hold(args : Array[String]) -> Json {
 fn leave_marker(args : Array[String]) -> Json {
   let marker = arg(args, 2) + ".reap"
   let pid = Json::number(@testkit.pid().to_double())
+
   try {
     let made = @storage.write_exclusive(
       marker,
@@ -82,6 +85,7 @@ fn leave_marker(args : Array[String]) -> Json {
 async fn create_exclusive(args : Array[String]) -> Json {
   let content = arg(args, 3).repeat(number_arg(args, 4).to_int())
   wait_until(number_arg(args, 5))
+
   try {
     let created = @storage.write_exclusive(arg(args, 2), content)
     object([("created", Json::boolean(created))])
@@ -100,12 +104,14 @@ async fn write_in_loop(args : Array[String]) -> Json {
   let content = arg(args, 3).repeat(number_arg(args, 4).to_int())
   let until = now_millis() + number_arg(args, 5)
   let mut writes = 0
+
   try {
     while now_millis() < until {
       @storage.write_atomic(arg(args, 2), content)
       writes += 1
       @async.pause()
     }
+
     object([("writes", Json::number(writes.to_double()))])
   } catch {
     failed => refused(failed.user_message())
@@ -123,6 +129,7 @@ async fn write_in_loop(args : Array[String]) -> Json {
 async fn count_under_lock(args : Array[String]) -> Json {
   wait_until(number_arg(args, 6))
   let counter = arg(args, 4)
+
   try {
     for _ in 0..<number_arg(args, 5).to_int() {
       @storage.with_lock(
@@ -132,6 +139,7 @@ async fn count_under_lock(args : Array[String]) -> Json {
         wait_ms=number_arg(args, 7).to_int(),
       )
     }
+
     object([("ok", Json::boolean(true))])
   } catch {
     failed => refused(failed.message())
@@ -165,6 +173,7 @@ fn save_record(args : Array[String]) -> Json {
   let data = @jsonio.parse(arg(args, 3)) catch {
     @jsonio.JsonError(message) => return refused(message)
   }
+
   try {
     @storage.save_json(
       arg(args, 2),
@@ -199,12 +208,15 @@ fn arg(args : Array[String], index : Int32) -> String {
 /// A non-negative whole number written in decimal.
 fn number_of(text : String) -> Int64 {
   let mut value = 0L
+
   for unit in text.code_units() {
     if unit < '0' || unit > '9' {
       break
     }
+
     value = value * 10L + (unit - '0').to_int64()
   }
+
   value
 }
 

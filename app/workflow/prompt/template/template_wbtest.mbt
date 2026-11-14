@@ -65,6 +65,7 @@ test "a value can be refused at the place it goes" {
 ///|
 test "a name may hold only ASCII letters and digits, _ and -" {
   assert_eq(refuse_unless_name("Name_2-x"), None)
+
   for value in ["名前", "", "a.b"] {
     assert_eq(
       refuse_unless_name(value),

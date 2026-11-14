@@ -12,6 +12,7 @@ async fn serve(env : @environment.Env, adapter_id : String) -> @run.CommandRun {
         guard bytes is Some(bytes) else { return None }
         lines.append(split_lines(@utf8.decode_lossy(bytes)))
       }
+
       Some(lines.remove(0))
     },
     send=line => emit(@stdio.stdout, out_gate, line + "\n"),
@@ -53,5 +54,6 @@ fn split_lines(chunk : String) -> Array[String] {
   } else {
     chunk
   }
+
   text.split("\r").map(line => line.to_owned()).collect()
 }

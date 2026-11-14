@@ -25,12 +25,15 @@ class _Output:
 
     def wait_lines(self, wanted, what):
         started = time.monotonic()
+
         while True:
             with self._lock:
                 if self.lines >= wanted:
                     return
+
             if time.monotonic() - started > RUN_TIMEOUT_SECONDS:
                 raise TimeoutError(f"timed out waiting for {what}")
+
             time.sleep(0.005)
 
     def finish(self):
@@ -42,6 +45,7 @@ class _Output:
             chunk = stream.read1(65536)
             if chunk == b"":
                 return
+
             with self._lock:
                 self.chunks.append(chunk)
                 self.lines += chunk.count(b"\n")
@@ -82,6 +86,7 @@ class Running:
 
     def kill(self):
         self.killed = True
+
         try:
             os.killpg(self.process.pid, signals.SIGKILL)
         except OSError:
@@ -93,11 +98,14 @@ class Running:
         out = self.stdout.finish()
         err = self.stderr.finish()
         self._timer.cancel()
+
         for stream in (self.process.stdout, self.process.stderr, self.process.stdin):
             stream.close()
+
         returned = self.process.returncode
         if returned < 0:
             return None, signals.Signals(-returned).name, out, err
+
         return returned, None, out, err
 
 
@@ -105,8 +113,10 @@ def observe(argv, case):
     """Returns (observation, root) for the CLI started as `argv` plus the case's arguments."""
     sandbox = create_sandbox(case)
     bridge = start_bridge(case, sandbox)
+
     try:
         running = Running([*argv, *case.argv], sandbox)
+
         if case.kind == "session":
             for step in case.steps:
                 if "send" in step:
@@ -115,6 +125,7 @@ def observe(argv, case):
                     running.stdout.wait_lines(step["wait"], f"{step['wait']} lines")
         else:
             running.write(case.stdin)
+
         running.close_stdin()
         code, signal, stdout, stderr = running.end()
         observation = {
@@ -130,11 +141,13 @@ def observe(argv, case):
     finally:
         if bridge:
             bridge.stop()
+
         sandbox.cleanup()
 
 
 def start_bridge(case, sandbox):
     if case.bridge is None:
         return None
+
     steps = jsonvalue.loads(sandbox.expand(jsonvalue.dumps(case.bridge)))
     return Bridge(sandbox.bridge_socket, steps)

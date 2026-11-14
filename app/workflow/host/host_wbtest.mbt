@@ -183,6 +183,7 @@ async fn with_bridge(
     stream => {
       let line = read_request(stream).unwrap_or("")
       lines.push(line)
+
       match rule(line) {
         Some(reply) => stream.write(@utf8.encode(reply + "\n"))
         // A bridge that does not answer keeps the connection open.
@@ -221,6 +222,7 @@ async fn with_server(
         }
       }
     })
+
     body(path)
   })
 }

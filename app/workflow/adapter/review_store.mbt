@@ -79,6 +79,7 @@ fn ReviewStore::read_chats(
 ) -> Map[String, Chat] raise @failure.TaskFailed {
   let path = self.chats_path()
   let found : Map[String, Chat] = Map([])
+
   match read_object(path) {
     // An unreadable record may name an existing chat, so fail instead of treating it as empty and opening another.
     Unreadable => @failure.fail("\{path} is unreadable")
@@ -90,6 +91,7 @@ fn ReviewStore::read_chats(
         }
       }
   }
+
   found
 }
 
@@ -107,6 +109,7 @@ async fn ReviewStore::keep_chat(
       Absent => Map([])
       Found(members) => members
     }
+
     latest[reviewer] = chat.to_json()
     self.write(path, Json::object(latest))
   })
@@ -135,6 +138,7 @@ fn ReviewStore::claim(self : ReviewStore, key : String) -> Claim {
   if (Ok(@store.prepare_directory(self.dir)) catch { e => Err(e) }) is Err(_) {
     return Failed
   }
+
   let path = self.reservation_path(key)
   let reserved = object([("reservedAt", Json::string(@store.now_iso()))])
   match
@@ -211,6 +215,7 @@ fn ReviewStore::read_history(
     _ => return []
   }
   let shown : Array[Shown] = []
+
   for name in names {
     guard name.has_suffix(".json") && name != CHATS else { continue }
     guard read_object(@path.join([self.dir, name])) is Found(kept) else {
@@ -221,6 +226,7 @@ fn ReviewStore::read_history(
       kept.get("shownAt") is Some(String(at)) else {
       continue
     }
+
     if name.has_prefix(ASKED) {
       if kept.get("asked") is Some(String(asked)) {
         shown.push({
@@ -232,8 +238,10 @@ fn ReviewStore::read_history(
           ],
         })
       }
+
       continue
     }
+
     let key = name[:name.length() - 5].to_owned()
     if review_in(key, Some(kept)) is Some(review) {
       shown.push({
@@ -243,8 +251,10 @@ fn ReviewStore::read_history(
       })
     }
   }
+
   // A message is sent after the review it answers, so within one millisecond the review comes first rather than in the order the folder lists them.
   let order = shown.mapi((index, entry) => (index, entry))
+
   order.sort_by((a, b) => {
     let by_time = String::lexical_compare(a.1.at, b.1.at)
     if by_time != 0 {
@@ -259,10 +269,13 @@ fn ReviewStore::read_history(
       a.0 - b.0
     }
   })
+
   let history = []
+
   for pair in order {
     history.append(pair.1.entries)
   }
+
   history
 }
 
@@ -347,6 +360,7 @@ fn is_unsent_review_file(kept : Map[String, Json], key : String) -> Bool {
       _ => false
     }
   }
+
   kept.get("key") is Some(String(named)) &&
   named == key &&
   kept.get("reviewer") is Some(String(_)) &&

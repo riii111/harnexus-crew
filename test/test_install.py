@@ -147,6 +147,7 @@ def write_moon_with_real_binary(directory):
     binary = prefix / "harnexus-crew"
     if not binary.is_file():
         raise FileNotFoundError(f"the real build left no {binary}: {installed}")
+
     moon = directory / "moon"
     moon.write_text(
         "#!/bin/sh\n"

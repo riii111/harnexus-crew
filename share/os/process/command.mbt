@@ -16,6 +16,7 @@ pub async fn run_command(
   let failed = (message : String, code : String?) => {
     @boundary.CommandFailed(command=file, message~, code~)
   }
+
   let child = spawn(file, args, env, "", piped=true, new_session=true) catch {
     err => raise failed("cannot run \{file}", Some(err.code()))
   }
@@ -36,6 +37,7 @@ pub async fn run_command(
       )
     _ => raise failed("cannot run \{file}", None)
   }
+
   match (run.ended, run.exit) {
     (Timeout, _) =>
       raise failed("\{file} was stopped after \{timeout_ms} ms", None)
@@ -71,6 +73,7 @@ pub async fn run_inherited(
         code=Some(err.code()),
       )
   }
+
   match child.wait_exit(patience_ms=50) {
     Code(status) => status
     Signaled(sig) => 128 + sig

@@ -39,4 +39,5 @@ def _replace_in(scope, text):
         if scope in rule["scopes"]:
             replacement = rule["with"]
             text = re.sub(rule["pattern"], lambda _match: replacement, text, flags=re.ASCII)
+
     return text

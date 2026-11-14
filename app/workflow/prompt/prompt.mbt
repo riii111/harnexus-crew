@@ -25,11 +25,14 @@ pub fn render_task_prompt(
       "\{config_path} does not exist; set templates.\{kind.name()} there to the \{kind.name()} prompt template",
     )
   }
+
   let config = read_config(config_path)
+
   let configured = match kind {
     Worker => config.worker
     Reviewer => config.reviewer
   }
+
   match configured {
     Some(path) => render_as(kind, path, fields)
     None =>
@@ -51,17 +54,22 @@ pub fn check_templates(
   if !@store.path_exists(config_path) {
     return checked(None, None, Json::null())
   }
+
   let config = read_config(config_path)
   if config.worker is Some(path) {
     ignore(render_as(Worker, path, @request.sample_worker_fields()))
   }
+
   let mut t3 = Json::null()
+
   if config.reviewer is Some(path) {
     for reply in replies {
       ignore(render_as(Reviewer, path, @request.sample_reviewer_fields(reply)))
     }
+
     t3 = check_t3_readiness(path)
   }
+
   checked(config.worker, config.reviewer, t3)
 }
 

@@ -233,6 +233,7 @@ async test "list_directory_if_exists lists the entry names of a directory" {
 async test "list_directory_if_exists returns None for a missing path or a file" {
   in_scratch(directory => {
     write_atomic("\{directory}/a.json", "x")
+
     assert_eq(list_directory_if_exists(directory), Some(["a.json"]))
 
     assert_eq(
@@ -248,12 +249,15 @@ async test "list_directory_if_exists returns None for a missing path or a file" 
 async test "list_directory_if_exists retries with a larger buffer for a long listing" {
   in_scratch(directory => {
     let expected = []
+
     for index in 0..<200 {
       let name = "entry-\{index}-" + "x".repeat(60)
       write_atomic("\{directory}/\{name}", "x")
       expected.push(name)
     }
+
     expected.sort_by(String::lexical_compare)
+
     assert_eq(list_names(directory), expected)
   })
 }

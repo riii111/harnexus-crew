@@ -12,15 +12,19 @@ fn TemplateConfig::from_json(
   guard json is Object(members) else {
     fail_invalid(path, "it must be an object")
   }
+
   if unknown_key(members, ["templates"]) is Some(key) {
     fail_invalid(path, "unknown field \"\{key}\"")
   }
+
   guard members.get("templates") is Some(Object(templates)) else {
     fail_invalid(path, "templates must be an object")
   }
+
   if unknown_key(templates, ["worker", "reviewer"]) is Some(key) {
     fail_invalid(path, "unknown field \"templates.\{key}\"")
   }
+
   let parse_template_path = fn(
     kind : String,
   ) -> String? raise @failure.TaskFailed {
@@ -50,6 +54,7 @@ fn unknown_key(members : Map[String, Json], known : Array[String]) -> String? {
       return Some(key)
     }
   }
+
   None
 }
 

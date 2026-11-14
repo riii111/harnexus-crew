@@ -237,11 +237,13 @@ test "the Cloud mark is the cloud and its variation selector" {
 ///|
 fn summary(reviews : Array[CloudReview]) -> String {
   let parts = []
+
   for review in reviews {
     parts.push(
       "\{review.key} \{review.reviewer} \{or_none(review.verdict)} \{or_none(review.task_id)} \{or_none(review.head)} \{json_text(Json::string(review.answer))}",
     )
   }
+
   parts.join("; ")
 }
 

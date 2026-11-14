@@ -66,6 +66,7 @@ class Done:
 
 def with_rig(fields, body, timeout=RUN_TIMEOUT_SECONDS):
     """Runs `body(rig)` in a fresh sandbox and returns what the scenario did."""
+
     with _open_sandbox(fields) as (case, sandbox, bridge):
         rig = Rig(sandbox, bridge, [require_binary("HARNEXUS_CREW_NATIVE")], timeout)
         result = body(rig)
@@ -89,8 +90,10 @@ def observed(done, steady=False):
         },
         done.root,
     )
+
     if steady:
         plain = _mask_time_and_pid(plain)
+
     return {
         "result": _parse_stdout_json(plain["result"]),
         "requests": [parsed_or_text(line) for line in plain["requests"]],
@@ -126,11 +129,13 @@ def _open_sandbox(fields):
     case = make_case(**fields)
     sandbox = create_sandbox(case)
     bridge = start_bridge(case, sandbox)
+
     try:
         yield case, sandbox, bridge
     finally:
         if bridge:
             bridge.stop()
+
         sandbox.cleanup()
 
 
@@ -139,12 +144,16 @@ REPO_MARK = "<REPO>"
 
 def _replace_root(node, root):
     """The sandbox root and the checkout this suite runs from are named alike, as neither is the same on every machine."""
+
     if isinstance(node, str):
         return node.replace(root, ROOT_MARK).replace(str(REPO), REPO_MARK)
+
     if isinstance(node, list):
         return [_replace_root(item, root) for item in node]
+
     if isinstance(node, dict):
         return {_replace_root(name, root): _replace_root(item, root) for name, item in node.items()}
+
     return node
 
 
@@ -154,30 +163,39 @@ _PID = re.compile(r"\(pid \d+\)", re.ASCII)
 
 def _mask_time_and_pid(node):
     """Times and process IDs differ from run to run, and nothing else is replaced."""
+
     if isinstance(node, str):
         return _PID.sub("(pid <PID>)", _TIME.sub("<TIME>", node))
+
     if isinstance(node, list):
         return [_mask_time_and_pid(item) for item in node]
+
     if isinstance(node, dict):
         return {_mask_time_and_pid(name): _mask_time_and_pid(item) for name, item in node.items()}
+
     return node
 
 
 def _parse_stdout_json(node, name=""):
     if isinstance(node, list):
         return [_parse_stdout_json(item, name) for item in node]
+
     if isinstance(node, dict):
         return {key: _parse_stdout_json(item, key) for key, item in node.items()}
+
     if isinstance(node, str) and name == "stdout":
         return parsed_or_text(node)
+
     return node
 
 
 def wait_for(ready, what):
     started = time.monotonic()
+
     while not ready():
         if time.monotonic() - started > RUN_TIMEOUT_SECONDS:
             raise TimeoutError(f"timed out waiting for {what}")
+
         time.sleep(0.005)
 
 

@@ -16,12 +16,14 @@ pub async fn[T] with_lock(
   lift_file_failure(() => prepare_directory(directory))
   let path = "\{directory}/\{name}.lock"
   let until = @async.now() + wait_ms.to_int64()
+
   while true {
     let taken = Some(acquire(path, "harnexus-crew adapter")) catch {
       failed => {
         if @async.now() >= until {
           @failure.fail("\{path} stayed locked: \{failed.message()}")
         }
+
         None
       }
     }
@@ -29,6 +31,7 @@ pub async fn[T] with_lock(
     defer release(path, token)
     return work()
   }
+
   abort("unreachable")
 }
 
@@ -40,6 +43,7 @@ pub fn acquire(
   holder : String,
 ) -> String raise @failure.TaskFailed {
   let token = new_uuid()
+
   // The first attempt may find a dead holder's lock, which is removed and then created by the second attempt.
   for _ in 0..<2 {
     let content : Map[String, Json] = Map::from_array([
@@ -47,12 +51,15 @@ pub fn acquire(
       ("token", Json::string(token)),
       ("startedAt", Json::string(now_iso())),
     ])
+
     let created = lift_file_failure(() => {
       write_exclusive(lock, Json::object(content).stringify())
     })
+
     if created {
       return token
     }
+
     let held = read_holder(lock)
     guard held is Some(current) && is_dead_holder(current) else {
       let pid = match held {
@@ -60,12 +67,15 @@ pub fn acquire(
           " (pid \{Json::number(pid).stringify()})"
         _ => ""
       }
+
       @failure.fail("another \{holder}\{pid} is using this session")
     }
+
     if !reap(lock, current.get("token")) {
       @failure.fail("another \{holder} is taking over this session")
     }
   }
+
   @failure.fail("cannot take \{lock}")
 }
 
@@ -95,21 +105,27 @@ fn reap(lock : String, observed : Json?) -> Bool raise @failure.TaskFailed {
     if read_holder(takeover) is Some(owner) && is_dead_holder(owner) {
       @failure.fail(abandoned_takeover(lock, takeover))
     }
+
     return false
   }
+
   let reclaimable = match read_holder(lock) {
     Some(now) => now.get("token") == observed && is_dead_holder(now)
     None => false
   }
+
   let lock_failure = if reclaimable { try_remove_file(lock) } else { None }
   // A failed removal of the lock must not leave the marker behind, because the marker would block every later takeover, so both removals run before either failure is raised.
   let takeover_failure = try_remove_file(takeover)
+
   if lock_failure is Some(failed) {
     raise failed
   }
+
   if takeover_failure is Some(failed) {
     raise failed
   }
+
   reclaimable
 }
 

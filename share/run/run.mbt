@@ -15,6 +15,7 @@ pub fn finish(run : CommandRun) -> Unit {
   } catch {
     @sys.WriteFailed(..) => false
   }
+
   // A result that cannot be written must not be reported as a success, so a successful code becomes 1.
   @env.exit(if wrote || run.code != 0 { run.code } else { 1 })
 }

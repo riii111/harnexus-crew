@@ -78,6 +78,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             ],
         )
         steps = native["result"]
+
         self.assertEqual([1, 0, 0], codes(steps))
         self.assertEqual({"released": "create_thread", "status": "unknown"}, steps[1]["stdout"])
         self.assertMatches(steps[2]["stdout"], {"threadId": "w2"})
@@ -106,6 +107,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([0, 1, 0, 0], codes(steps))
         self.assertIn("was already sent to reviewer r1; wait for its result", steps[1]["stderr"])
         self.assertMatches(steps[2]["stdout"], {"tool": "send_message_to_thread", "threadId": "r1"})
@@ -136,6 +138,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertIn("baseBranch changed; use --update-base after integrating upstream", steps[0]["stderr"])
         self.assertEqual(0, steps[1]["code"])
 
@@ -163,6 +166,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([1, 1, 0, 0], codes(steps))
         self.assertIn("previous create_thread ended as unknown; never resend", steps[1]["stderr"])
         self.assertMatches(steps[3]["stdout"], {"tool": "send_message_to_thread", "threadId": "r1"})
@@ -201,6 +205,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([1, 1, 1, 0, 0, 0], codes(steps))
         self.assertIn("a refused first turn never ran; use --not-sent", steps[2]["stderr"])
         self.assertMatches(steps[4]["stdout"], {"refusedThreadIds": ["r1"]})
@@ -255,6 +260,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                 ]
             ),
         }
+
         for _ in range(5):
             done = with_rig(fields, lambda rig: [started.wait_for_end() for started in [rig.start(LAUNCH) for _ in range(4)]])
             created = [line for line in done.requests if '"create_thread"' in line]

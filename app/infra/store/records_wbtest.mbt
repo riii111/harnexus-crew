@@ -54,6 +54,7 @@ async test "save_json refuses to replace an existing record when it is exclusive
   in_scratch(directory => {
     let path = "\{directory}/state.json"
     save_json(path, json("{\"v\":1}"), exclusive=false)
+
     assert_eq(read_json_or_null(path).stringify(), "{\"v\":1}")
 
     assert_eq(
@@ -105,6 +106,7 @@ async test "read_records separates what was confirmed from a pending send" {
       exclusive=false,
     )
     let records = read_records(directory)
+
     assert_eq(records.state_path, "\{directory}/state.json")
     assert_eq(records.pending_path, "\{directory}/pending.json")
     assert_eq(

@@ -113,6 +113,7 @@ async test "P1 a run feeds stdin to the command and returns its stdout, stderr a
 async test "a character split across chunks is whole on stdout and on stderr" {
   @testkit.serial(() => {
     let script = "printf '{\"text\":\"\\343'; sleep 0.2; printf '\\201\\202\"}'; printf '\\343' >&2; sleep 0.2; printf '\\201\\202' >&2"
+
     assert_eq(
       describe_run(
         "/bin/sh",
@@ -221,6 +222,7 @@ async test "P5 output past 16 MiB keeps at most 16 MiB" {
 async test "a command that exits without reading its input is not an error" {
   @testkit.serial(() => {
     let input = String::make(2 * 1024 * 1024, 'x')
+
     assert_eq(
       describe_run("/usr/bin/true", [], input~),
       "started ended=exit status=0",
@@ -279,6 +281,7 @@ async test "a megabyte of output is read whole" {
       timeout_ms=10000,
       kill_grace_ms=500,
     )
+
     assert_eq(run.stdout.length(), 1048576)
   })
 }
@@ -287,6 +290,7 @@ async test "a megabyte of output is read whole" {
 async test "several commands started at once keep their own results" {
   @testkit.serial(() => {
     let results : Array[String] = Array::make(12, "")
+
     @async.with_task_group(group => {
       for i in 0..<12 {
         group.spawn_bg(() => {
@@ -298,6 +302,7 @@ async test "several commands started at once keep their own results" {
         })
       }
     })
+
     for i in 0..<12 {
       if i % 2 == 0 {
         assert_eq(
@@ -320,23 +325,28 @@ async test "a command started while another's stdin is still open does not inher
     // `cat` sees EOF only when every copy of its stdin's write end is closed, so a sleeper that inherited the parent's end would hold it for as long as it lives.
     let cat_ended = Ref(-1)
     let sleeper_ms = Ref(-1)
+
     @async.with_task_group(group => {
       group.spawn_bg(() => {
         let (result, ms) = @testkit.timed(() => {
           describe_run("/bin/cat", [], input="hello", output=true)
         })
+
         assert_eq(
           result, "started ended=exit status=0 stdout=\"hello\" stderr=\"\"",
         )
         cat_ended.val = ms
       })
+
       group.spawn_bg(() => {
         let (_, ms) = @testkit.timed(() => {
           describe_run("/bin/sleep", ["1.5"], timeout_ms=5000)
         })
+
         sleeper_ms.val = ms
       })
     })
+
     @testkit.assert_between(cat_ended.val, 0, 699)
     @testkit.assert_between(sleeper_ms.val, 1400, 5000)
   })
@@ -347,13 +357,16 @@ async test "a command sees only the descriptors it was given, whatever else is s
   @testkit.serial(() => {
     let alone = describe_run("/bin/ls", ["/dev/fd"], output=true)
     let crowded = Ref("")
+
     @async.with_task_group(group => {
       group.spawn_bg(() => ignore(describe_run("/bin/cat", [], input="x")))
       group.spawn_bg(() => ignore(describe_run("/bin/sleep", ["0.5"])))
+
       group.spawn_bg(() => {
         crowded.val = describe_run("/bin/ls", ["/dev/fd"], output=true)
       })
     })
+
     assert_eq(crowded.val, alone)
   })
 }
@@ -410,6 +423,7 @@ async test "every finished run leaves no descriptor behind" {
     ignore(describe_run("/bin/sh", ["-c", "exit 2"]))
     ignore(describe_run("/nonexistent/cmd", []))
     ignore(describe_run("/bin/sleep", ["5"], timeout_ms=200, kill_grace_ms=200))
+
     assert_eq(@testkit.open_fds(), before)
   })
 }
@@ -418,6 +432,7 @@ async test "every finished run leaves no descriptor behind" {
 async test "run_command returns the status and output of a failing command" {
   @testkit.serial(() => {
     let ran = run_command("/bin/sh", ["-c", "echo no >&2; exit 3"], plain_env())
+
     assert_eq(ran.status, 3)
     assert_eq(ran.stdout, "")
     assert_eq(ran.stderr, "no\n")
@@ -458,6 +473,7 @@ async test "run_command reports a command that dies from a signal without a code
 async test "run_command ends a command that reads stdin to its end instead of waiting for the timeout" {
   @testkit.serial(() => {
     let ran = run_command("/bin/cat", [], plain_env(), timeout_ms=5000)
+
     assert_eq(ran.status, 0)
     assert_eq(ran.stdout, "")
   })
@@ -608,9 +624,11 @@ async test "a command that cannot be stopped makes the run fail as started" {
   @testkit.serial(() => {
     // The grandchild leaves the process group, so only the deadline can end the run, and it keeps the output pipes open.
     let script = "perl -MPOSIX -e 'POSIX::setsid(); exec q(sleep), q(3)' & exit 0"
+
     let (result, elapsed) = @testkit.timed(() => {
       describe_run("/bin/sh", ["-c", script], timeout_ms=300, kill_grace_ms=200)
     })
+
     assert_eq(
       mask_pid(result),
       "failed started=true: /bin/sh did not finish: pid <pid> did not exit after SIGKILL",
@@ -689,6 +707,7 @@ async test "B2 run_command counts both streams against one 16 MiB limit" {
       "head -c 10000000 /dev/zero; head -c 10000000 /dev/zero >&2",
       timeout_ms=20000,
     )
+
     assert_eq(
       result, "command=/bin/sh message=cannot run /bin/sh code=ERR_CHILD_PROCESS_STDIO_MAXBUFFER",
     )
@@ -797,6 +816,7 @@ async fn describe_run(
       kill_grace_ms~,
     )
     let head = "started ended=\{run.ended.name()} status=\{run.status}"
+
     if output {
       "\{head} stdout=\{Json::string(run.stdout).stringify()} stderr=\{Json::string(run.stderr).stringify()}"
     } else {
@@ -821,8 +841,10 @@ async fn wait_until_gone(pid : Int32) -> Bool {
     if !@testkit.alive(pid) {
       return true
     }
+
     @async.sleep(10)
   }
+
   false
 }
 
@@ -837,6 +859,7 @@ async fn read_pid(file : String) -> Int32 {
 fn spawn_missing_with_stdio_closed() -> (Int32, Int32, Int32) raise {
   let saved = @testkit.close_stdio()
   let before = @testkit.open_fds()
+
   // A print or a wait while descriptors 0 to 2 are closed would hit the test runner's own output, so the synchronous `spawn` is called directly.
   let errno = try {
     let child = spawn(
@@ -854,6 +877,7 @@ fn spawn_missing_with_stdio_closed() -> (Int32, Int32, Int32) raise {
     SpawnFailed(errno~) => errno
     InvalidArgument => -1
   }
+
   let after = @testkit.open_fds()
   @testkit.restore_stdio(saved)
   (errno, before, after)
@@ -927,9 +951,11 @@ fn mask_pid(message : String) -> String {
         message.code_unit_at(digits_end).to_int() is (0x30..<=0x39) {
     digits_end += 1
   }
+
   if digits_end == digits_start {
     return message
   }
+
   "\{message[:digits_start]}<pid>\{message[digits_end:]}"
 }
 

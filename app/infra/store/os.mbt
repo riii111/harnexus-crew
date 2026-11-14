@@ -71,16 +71,20 @@ fn write_all_text(fd : Int32, text : String) -> Int32 {
 fn read_to_end(fd : Int32) -> Result[Bytes, Int32] {
   let collected = @buffer.Buffer()
   let chunk : FixedArray[Byte] = FixedArray::make(65536, b'\x00')
+
   while true {
     let read = read_raw(fd, chunk, 65536)
     if read < 0 {
       return Err(-read)
     }
+
     if read == 0 {
       break
     }
+
     collected.write_bytes(Bytes::from_array(chunk[:read]))
   }
+
   Ok(collected.to_bytes())
 }
 

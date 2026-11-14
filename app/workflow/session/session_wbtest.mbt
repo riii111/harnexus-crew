@@ -17,6 +17,7 @@ async test "a run that finds a pending record by another run leaves that record 
   with_rig("s-5k", [done("w1")], rig => {
     let path = rig.write_launch_file()
     rig.another_run_writes_pending()
+
     assert_eq(
       rig.launch_failure(path),
       "another harnexus-crew run is sending; inspect \{rig.launch_dir()}/pending.json",
@@ -45,6 +46,7 @@ async test "a run whose state was written by another run in between releases its
   with_rig("s-6r", [done("w1")], rig => {
     let path = rig.write_launch_file()
     rig.another_run_writes_state()
+
     assert_eq(rig.launch_failure(path), STATE_CHANGED)
 
     assert_false(exists("\{rig.launch_dir()}/pending.json"))
@@ -98,6 +100,7 @@ async test "a kept record blocks the next run, and the app is not asked again" {
   for outcome in ["unknown", "chat_not_opened", "queued"] {
     with_rig("s-9", [unknown_answer(outcome)], rig => {
       let path = rig.write_launch_file()
+
       assert_eq(rig.launch_failure(path), unknown_message(outcome), msg=outcome)
 
       assert_eq(
@@ -114,6 +117,7 @@ async test "a kept record blocks the next run, and the app is not asked again" {
 async test "a confirmed answer that cannot be recorded keeps the record with the thread, for resolve" {
   with_rig("s-11", [done("w1")], rig => {
     let path = rig.write_launch_file()
+
     rig.before_save = (record, exclusive) => {
       if !exclusive && record.has_suffix("/state.json") {
         @failure.fail("cannot write \{record} (EROFS)")
@@ -193,6 +197,7 @@ async test "a review in T3 Code creates the reviewer thread in a review project 
     rig.t3_review()
 
     let (caller, tool, args) = rig.calls[0]
+
     assert_eq((caller, tool), ("t3-w", "create_thread"))
     assert_eq(
       show(@jsonio.field(Json::object(args), "target")),
@@ -207,6 +212,7 @@ async test "a review in T3 Code names a model but no thinking level" {
     rig.t3_review()
 
     let (_, _, args) = rig.calls[0]
+
     assert_true(args.contains("model"))
     assert_false(args.contains("thinking"))
   })
@@ -366,6 +372,7 @@ fn Rig::another_run_writes_pending(self : Rig) -> Unit {
 ///|
 fn Rig::another_run_writes_state(self : Rig) -> Unit {
   let state = "\{self.launch_dir()}/state.json"
+
   self.before_save = (record, exclusive) => {
     if exclusive {
       @store.write_atomic(record, "{}") catch {

@@ -72,9 +72,11 @@ async fn Link::say_records(
     ("shownBefore", text_or_null(shown_before)),
     ("records", Json::array(records)),
   ]
+
   if phase == "linked" {
     line.push(("linkedAt", text_or_null(linked_at)))
   }
+
   self.say(line)
 }
 
@@ -112,8 +114,10 @@ fn connect(
     send: text => {
       let line = json_of(text)
       sent.push(line)
+
       if text_member(line, "type") == Some("request") && !silent {
         let reply = answer(line)
+
         group.spawn_bg(no_wait=true, () => {
           @async.sleep(1)
           let members = [
@@ -122,11 +126,13 @@ fn connect(
             ("id", field(line, "id").unwrap()),
             ("bridgeId", str("b1")),
           ]
+
           if reply is Object(fields) {
             for name, value in fields {
               members.push((name, value))
             }
           }
+
           cell.val.unwrap().receive(text_of(object(members)))
         })
       }

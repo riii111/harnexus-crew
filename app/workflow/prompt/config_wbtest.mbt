@@ -62,6 +62,7 @@ test "unknown keys are refused at both levels" {
 ///|
 test "the config sits in harnexus's config directory" {
   let env = @environment.Env::new({ "XDG_CONFIG_HOME": "/xc/../y" })
+
   inspect(template_config_path(env), content="/y/harnexus/task.json")
 }
 

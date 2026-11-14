@@ -60,6 +60,7 @@ test "a content item that is not text is passed over" {
 test "a result without a projects list holds no projects" {
   assert_eq(projects_of("{\"projects\":[1]}"), "[1]")
   assert_eq(projects_in(None), [])
+
   for text in ["null", "[]", "\"x\"", "{}", "{\"content\":3}"] {
     assert_eq(projects_of(text), "[]", msg=text)
   }

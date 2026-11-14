@@ -11,18 +11,23 @@ pub fn new_uuid() -> String {
     Some(bytes) => bytes
     None => abort("no source of random bytes")
   }
+
   let hex = StringBuilder()
+
   for index in 0..<16 {
     if index == 4 || index == 6 || index == 8 || index == 10 {
       hex.write_char('-')
     }
+
     let byte = match index {
       6 => (bytes[index].to_int() & 0x0F) | 0x40
       8 => (bytes[index].to_int() & 0x3F) | 0x80
       _ => bytes[index].to_int()
     }
+
     hex.write_string(hex_byte(byte))
   }
+
   hex.to_string()
 }
 
@@ -44,9 +49,11 @@ pub fn sha256_hex(text : String) -> String {
   let digest : FixedArray[Byte] = FixedArray::make(32, b'\x00')
   sha256_raw(bytes, bytes.length(), digest)
   let hex = StringBuilder()
+
   for byte in digest {
     hex.write_string(hex_byte(byte.to_int()))
   }
+
   hex.to_string()
 }
 
@@ -56,6 +63,7 @@ fn is_process_alive(pid : Double) -> Bool {
   if pid != pid.floor() || pid < -2147483648.0 || pid > 2147483647.0 {
     return false
   }
+
   // Node's process.kill reports a process owned by another user, or a process group ID of 0 or -1, as alive, so they count as alive.
   process_alive_raw(pid.to_int()) == 1
 }
@@ -76,11 +84,13 @@ fn iso_time(millis : Int64) -> String {
     (365 * year_of_era + year_of_era / 4 - year_of_era / 100)
   let month_from_march = (5 * day_of_year + 2) / 153
   let day = day_of_year - (153 * month_from_march + 2) / 5 + 1
+
   let month = if month_from_march < 10 {
     month_from_march + 3
   } else {
     month_from_march - 9
   }
+
   let year = era.to_int() * 400 + year_of_era + (if month <= 2 { 1 } else { 0 })
   let hour = of_day / 3600000
   let minute = of_day / 60000 % 60

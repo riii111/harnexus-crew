@@ -56,6 +56,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             ],
             lambda rig: [rig.run(REVIEW) for _ in range(4)],
         )
+
         self.assertEqual([0, 0, 0, 1], codes(native["result"]))
         self.assertEqual("3\n", native["files"]["fake/count"])
 
@@ -103,6 +104,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([0, 1, 0], codes(steps))
         self.assertIn(
             f"reviewer {REVIEWER} is gone from this machine; run review again to start a new reviewer",
@@ -125,6 +127,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             env=TIMED,
         )
         steps = native["result"]
+
         self.assertEqual([1, 1, 0, 1], codes(steps))
         self.assertIn("codex was stopped (timeout)", steps[0]["stderr"])
         self.assertIn(f"the review of head {HEAD_1} did not report back", steps[1]["stderr"])
@@ -144,6 +147,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             files={"loud.sh": "#!/bin/sh\ncat > /dev/null\nhead -c 17000000 /dev/zero | tr '\\0' 'x'\nsleep 5\n"},
         )
         steps = native["result"]
+
         self.assertEqual([1, 1], codes(steps))
         self.assertIn("codex was stopped (output over the limit)", steps[0]["stderr"])
         self.assertIn(f"the review of head {HEAD_1} did not report back", steps[1]["stderr"])
@@ -166,6 +170,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([1, 0, 0], codes(steps))
         self.assertIn("this task has no reviewer yet; run review first", steps[0]["stderr"])
         self.assertMatches(
@@ -203,6 +208,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             files={"work/blank.md": " \n　\n"},
         )
         steps = native["result"]
+
         self.assertEqual([1, 1, 1, 1], codes(steps))
         self.assertIn("the --ask file is empty", steps[0]["stderr"])
         self.assertIn("cannot read absent.md", steps[1]["stderr"])
@@ -229,6 +235,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             body,
         )
         steps = native["result"]
+
         self.assertEqual([1, 1, 0, 0], codes(steps[:4]))
         self.assertIn("another review (pid <PID>) is using this session", steps[0]["stderr"])
         self.assertEqual({"lock": False}, steps[4])
@@ -246,6 +253,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
             "cloud-review-takeover-died", [{"out": events(REVIEWER, "判定: LGTM")}], body
         )
         steps = native["result"]
+
         self.assertEqual([0, 1], codes(steps))
         self.assertIn("a run that was taking over this session died before it finished", steps[1]["stderr"])
 
@@ -298,25 +306,33 @@ def scenario_fields(runs, env=None, files=None, request=None):
 def planned(runs):
     """The stand-in for codex replays run n from these files, and records what it was given in the same directory."""
     files = {}
+
     for index, run in enumerate(runs):
         n = index + 1
         files[f"fake/out.{n}"] = run.get("out", "")
         files[f"fake/exit.{n}"] = str(run.get("exit", 0))
+
         if "stderr" in run:
             files[f"fake/stderr.{n}"] = run["stderr"]
+
         if "sleep" in run:
             files[f"fake/sleep.{n}"] = run["sleep"]
+
     return files
 
 
 def without_pid(node, pid):
     """The ID of a process that has ended differs on every run, so it is named <DEAD_PID>."""
+
     if isinstance(node, dict):
         return {key: "<DEAD_PID>" if key == "pid" and value == pid else without_pid(value, pid) for key, value in node.items()}
+
     if isinstance(node, list):
         return [without_pid(item, pid) for item in node]
+
     if isinstance(node, str):
         return node.replace(f'"pid":{pid}', '"pid":"<DEAD_PID>"')
+
     return node
 
 
@@ -327,11 +343,14 @@ def read_state(stdout):
 
 def wait_for_lock(rig):
     """Waits until a run holds the session's lock."""
+
     for _ in range(400):
         for directory in list_state_directories(rig):
             if (directory / "lock.json").exists():
                 return directory
+
         time.sleep(0.025)
+
     raise AssertionError("no run took the lock")
 
 

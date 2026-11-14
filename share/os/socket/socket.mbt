@@ -34,13 +34,16 @@ async fn exchange_with(
       message="cannot reach \{path}",
     )
   }
+
   if path.contains("\u{0}") {
     raise failed(Some("ERR_INVALID_ARG_VALUE"), false)
   }
+
   let fd = open_raw()
   if fd < 0 {
     raise failed(Some(@unix.errno_name(-fd)), false)
   }
+
   let connected = Ref(false)
   // The descriptor is ours until a stream takes it, so an early timeout or failure closes it here.
   let taken = Ref(false)
@@ -76,9 +79,11 @@ async fn connect_until_done(
     if errno == 0 {
       break
     }
+
     if connect_pending_raw(errno) == 0 {
       raise ConnectFailed(errno)
     }
+
     // A Unix socket with a full listen queue gives no readiness notification, so retry after a short sleep.
     @async.sleep(10)
   }

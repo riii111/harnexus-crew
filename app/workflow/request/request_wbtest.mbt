@@ -316,6 +316,7 @@ async test "a recorded base is kept until it is updated explicitly" {
     "base": Json::string("old"),
   }
   let script = candidate_script({ "merge-base old h1": "old" })
+
   inspect(
     run_candidate(script, Some(recorded), false),
     content="ok base=old head=h1",
@@ -621,6 +622,7 @@ fn launch_text(
     Some(literal) => ",\"startingBranch\":\{literal}"
     None => ""
   }
+
   "{\"taskId\":\"\{task_id}\",\"documentRefs\":[\{refs}],\"completionTarget\":\"merge\",\"projectId\":\"\{project}\"\{starting}}"
 }
 
@@ -692,9 +694,11 @@ fn candidate_script(extra : Map[String, String]) -> Script {
     "rev-parse --verify refs/heads/main^{commit}": "b1",
     "merge-base b1 h1": "b1",
   }
+
   for key, value in extra {
     answers[key] = value
   }
+
   Script::new(answers)
 }
 
@@ -723,18 +727,22 @@ async fn resolved_candidate() -> ReviewCandidate {
 ///|
 fn field_names(fields : Map[String, String]) -> Array[String] {
   let names = []
+
   for name, _ in fields {
     names.push(name)
   }
+
   names
 }
 
 ///|
 fn fields_text(fields : Map[String, String]) -> String {
   let entries = []
+
   for name, value in fields {
     entries.push("\{name}=\{value}")
   }
+
   entries.join("|")
 }
 

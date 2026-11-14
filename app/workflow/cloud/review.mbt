@@ -41,6 +41,7 @@ async fn review_in(
       )
     Some(_) => request
   }
+
   // One reviewer per task and checkout, as in the app.
   let directory = @store.state_directory(
     ctx.env.state_root(),
@@ -91,16 +92,20 @@ async fn run_review(
       )
     (Some(_), true) => @store.remove_record(records.pending_path)
   }
+
   let state = records.state
   let previous = match field_of(state, "candidate") {
     Object(members) => Some(members)
     _ => None
   }
+
   let candidate = request.resolve_candidate(previous, args.update_base, ctx.git)
   let data = candidate.to_json()
+
   if previous is Some(previous) {
     check_continuation(state, previous, data)
   }
+
   let fields = candidate.build_reviewer_fields("Cloud", ctx.probe)
   let prompt = (ctx.prompt)(fields)
   let launch = Launch::of_env(ctx.env)
@@ -129,6 +134,7 @@ async fn run_review(
     failed => Err(failed)
   }
   let drop_pending = () => @store.remove_record(records.pending_path)
+
   let (thread, answer) = take_review_reply(ran, reviewer, drop_pending, () => {
     let forgotten = match state {
       Some(Object(members)) => {
@@ -143,12 +149,15 @@ async fn run_review(
           "updatedAt": Json::string(@store.now_iso()),
         }
     }
+
     (ctx.save)(records.state_path, Json::object(forgotten))
   })
+
   let heads = match field_of(state, "heads") {
     Array(items) => items.copy()
     _ => []
   }
+
   heads.push(Json::string(candidate.head))
   let verdict = verdict_of(answer).map_or(Json::null(), Json::string)
   let saved = Ok(
@@ -165,12 +174,14 @@ async fn run_review(
   ) catch {
     failed => Err(failed)
   }
+
   // A review whose result was not recorded must not count as done, so the pending record stays and the answer is still shown.
   if saved is Err(failed) {
     @failure.fail(
       "\{failed.message()}; reviewer \{thread} answered, but it was not recorded, \{recovery_hint}. Its answer:\n\{answer}",
     )
   }
+
   drop_pending()
   Json::object({
     "status": Json::string("completed"),
@@ -196,9 +207,11 @@ async fn run_ask(
   let message = @store.read_regular_text(ask) catch {
     failed => @failure.fail(failed.user_message())
   }
+
   if @text.js_trim(message) == "" {
     @failure.fail("the --ask file is empty")
   }
+
   let state = @store.read_records(directory).state
   guard reviewer_of(state) is Some(reviewer) else {
     @failure.fail("this task has no reviewer yet; run review first")
@@ -215,11 +228,13 @@ async fn run_ask(
   ) catch {
     @boundary.ProcessRunFailed(message~, ..) => @failure.fail(message)
   }
+
   if !(run.ended is Exit) {
     @failure.fail(
       "codex was stopped (\{stop_reason(run.ended)}) in reviewer \{reviewer}; it may have answered, so check before asking again",
     )
   }
+
   let reply = reply_of(run.stdout)
   guard run.status == 0 && reply.failure is None && reply.answer is Some(answer) else {
     let cause = reply.failure.unwrap_or(run.stderr)
@@ -250,16 +265,19 @@ fn check_continuation(
   @session.check_kept(Json::object(previous), data, [
     "taskId", "workerAI", "checkout",
   ])
+
   // A head the reviewer could not judge is sent again once what it lacked is given, so only a judged head counts as reviewed.
   let judged = match field_of(state, "verdict") {
     String(verdict) => verdict != "判定保留"
     _ => false
   }
+
   let head = @jsonio.field(data, "head")
   let same_head = match (previous.get("head"), head) {
     (Some(String(before)), String(now)) => before == now
     _ => false
   }
+
   if judged && same_head {
     @failure.fail(
       "head \{@jsonio.as_text(head)} was already reviewed by \{@jsonio.as_text(field_of(state, "reviewer"))}; commit a fix before asking again",
@@ -293,6 +311,7 @@ fn take_review_reply(
       if !started {
         drop_pending()
       }
+
       @failure.fail(
         if started {
           "\{message}; \{recovery_hint}"
@@ -302,21 +321,26 @@ fn take_review_reply(
       )
     }
   }
+
   let reply = reply_of(run.stdout)
+
   // A stopped run may have started its reviewer, which is named so it can be checked.
   if !(run.ended is Exit) {
     let started = match reply.thread_id {
       Some(id) => Some(id)
       None => reviewer
     }
+
     let in_reviewer = started.map_or("", id => " in reviewer \{id}")
     @failure.fail(
       "codex was stopped (\{stop_reason(run.ended)})\{in_reviewer}; \{recovery_hint}",
     )
   }
+
   // A run that failed or never named its thread reviewed nothing, so the candidate can be sent again.
   guard run.status == 0 && reply.failure is None && reply.answer is Some(answer) else {
     drop_pending()
+
     // The reviewer's record lives in this machine's Codex home, which a rebuilt Cloud machine no longer has.
     if reviewer is Some(id) && run.stderr.contains(NO_ROLLOUT) {
       forget_reviewer()
@@ -324,11 +348,13 @@ fn take_review_reply(
         "reviewer \{id} is gone from this machine; run review again to start a new reviewer",
       )
     }
+
     let cause = reply.failure.unwrap_or(run.stderr)
     @failure.fail(
       "codex did not review (exit \{run.status}): \{@text.excerpt(cause)}",
     )
   }
+
   let thread = match (reply.thread_id, reviewer) {
     (Some(id), _) | (None, Some(id)) => id
     (None, None) => {
@@ -336,6 +362,7 @@ fn take_review_reply(
       @failure.fail("codex answered without naming its thread")
     }
   }
+
   (thread, answer)
 }
 

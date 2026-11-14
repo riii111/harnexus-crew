@@ -62,9 +62,11 @@ fn Rig::plan(
 ) -> Unit {
   write_text("\{self.fake}/out.\{run}", out)
   write_text("\{self.fake}/exit.\{run}", exit.to_string())
+
   if stderr is Some(text) {
     write_text("\{self.fake}/stderr.\{run}", text)
   }
+
   if sleep is Some(seconds) {
     write_text("\{self.fake}/sleep.\{run}", seconds)
   }
@@ -73,9 +75,11 @@ fn Rig::plan(
 ///|
 fn Rig::count_runs(self : Rig) -> Int32 {
   let mut count = 0
+
   while @store.path_exists("\{self.fake}/args.\{count + 1}") {
     count += 1
   }
+
   count
 }
 
@@ -128,6 +132,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
             .find("-C \{checkout} ")
             .map(at => at + checkout.length() + 4)
             .unwrap_or(0)
+
           let out = match words[after:].to_owned() {
             "rev-parse --show-toplevel" => checkout
             "rev-parse HEAD" => head.val
@@ -138,6 +143,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
               other.split(" ").collect()[1].to_owned()
             other => abort("git was asked for \{other}")
           }
+
           { status: 0, stdout: "\{out}\n", stderr: "", }
         },
       },
@@ -150,6 +156,7 @@ fn Rig::context(self : Rig, extra : Array[(String, String)]) -> Context {
       if self.unwritable.val is Some(suffix) && path.has_suffix(suffix) {
         @failure.fail("cannot write \{path}")
       }
+
       @store.save_json(path, data, exclusive=false)
     },
   }
@@ -165,10 +172,12 @@ fn Rig::env(self : Rig, extra : Array[(String, String)]) -> @environment.Env {
   vars["CLAUDE_CODE_SESSION_ID"] = "worker-session"
   vars["HARNEXUS_CODEX_BIN"] = "\{@env.current_dir().unwrap()}/test/native/mocks/fake-cli.sh"
   vars["FAKE_DIR"] = self.fake
+
   for pair in extra {
     let (name, value) = pair
     vars[name] = value
   }
+
   @environment.Env::new(vars)
 }
 

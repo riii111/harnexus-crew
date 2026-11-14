@@ -35,12 +35,15 @@ pub fn resolve(cwd~ : String, parts : Array[String]) -> String {
   while index >= -1 && !absolute {
     let part = if index >= 0 { parts[index] } else { cwd }
     index -= 1
+
     if part == "" {
       continue
     }
+
     resolved = part + "/" + resolved
     absolute = is_absolute(part)
   }
+
   let body = normalize(resolved)
   if body.length() > 1 && body.has_suffix("/") {
     body[:body.length() - 1].to_owned()

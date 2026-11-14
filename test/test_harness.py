@@ -29,11 +29,13 @@ class Harness(unittest.TestCase):
 
     def test_json_compares_by_meaning_not_by_member_order(self):
         reordered = {**BASE, "stdout": '{"b":[1,2],"a":1}\n'}
+
         self.assertEqual([], self.observe_differences(stub_case(), BASE, BASE))
         self.assertEqual([], self.observe_differences(stub_case(), BASE, reordered))
 
     def test_a_boolean_is_not_a_number(self):
         found = self.observe_differences(stub_case(), {**BASE, "stdout": '{"a":1}\n'}, {**BASE, "stdout": '{"a":true}\n'})
+
         self.assertEqual(["stdout"], self.fields(found))
 
     def test_detects_a_different_result(self):
@@ -53,11 +55,13 @@ class Harness(unittest.TestCase):
     def test_detects_a_request_sent_twice(self):
         twice = {**BASE, "requests": [*BASE["requests"], *BASE["requests"]]}
         found = self.observe_differences(stub_case(), BASE, twice)
+
         self.assertIn({"field": "requests.count", "expected": 1, "actual": 2}, found)
 
     def test_lines_keep_their_boundaries_in_a_session(self):
         session = stub_case(kind="session", bridge=None, commands={}, env={})
         found = self.observe_differences(session, {"stdout": '{"id":1}\n{"id":2}\n'}, {"stdout": '{"id":1}{"id":2}\n'})
+
         self.assertIn("stdout.lines", self.fields(found))
 
     def test_a_session_passes_each_stdin_line_to_stdout_in_order(self):
@@ -69,6 +73,7 @@ class Harness(unittest.TestCase):
             steps=[{"send": '{"id":1}'}, {"wait": 1}, {"send": '{"id":2}'}],
         )
         observation, _ = observe(["/bin/cat"], session)
+
         self.assertEqual('{"id":1}\n{"id":2}\n', observation["stdout"])
         self.assertEqual(0, observation["exitCode"])
 
@@ -110,6 +115,7 @@ class BridgeSynchronization(unittest.TestCase):
             with patch.object(Bridge, "_accept_loop", delayed_accept), patch.object(Bridge, "_serve", delayed_serve):
                 bridge = Bridge(os.path.join(directory, "bridge.sock"), [])
                 result = []
+
                 try:
                     for payload in (b"", b"partial"):
                         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
@@ -141,6 +147,7 @@ class BridgeSynchronization(unittest.TestCase):
     def test_finished_requests_does_not_record_its_own_barrier(self):
         with tempfile.TemporaryDirectory(prefix="hxc-bridge-") as directory:
             bridge = Bridge(os.path.join(directory, "bridge.sock"), [])
+
             try:
                 with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
                     client.connect(bridge.path)
@@ -155,6 +162,7 @@ class CasesAndRecordings(unittest.TestCase):
     def test_every_case_has_a_recording_and_every_recording_has_a_case(self):
         names = {case.name for case in load_cases()}
         recorded = {path.stem for path in (expected.EXPECTED / "cases").glob("*.json")}
+
         self.assertEqual(names, recorded)
 
 

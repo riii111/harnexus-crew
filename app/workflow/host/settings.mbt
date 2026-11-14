@@ -25,6 +25,7 @@ pub fn refusal_of(expected : TurnSettings, actual : TurnSettings) -> String {
 fn difference(key : String, expected : String?, actual : String?) -> String? {
   // A value the app leaves out cannot confirm what was asked, so it refuses the turn like a different one; a setting nobody asked for is not checked.
   guard expected is Some(wanted) && expected != actual else { return None }
+
   match actual {
     Some(ran) => Some("asked for \{key} \{ran} instead of \{wanted}")
     None => Some("did not say which \{key} (expected \{wanted})")

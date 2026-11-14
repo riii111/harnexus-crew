@@ -20,9 +20,11 @@ async fn dispatch(
     [first, ..] => first
     [] => ""
   }
+
   if !@args.command_names().contains(command) && command != "adapter" {
     let help = command == "-h" || command == "--help"
     let usage = usage_of(@args.command_names(), @environment.NAME)
+
     return if help {
       help_run(usage)
     } else {
@@ -33,10 +35,13 @@ async fn dispatch(
       )
     }
   }
+
   if command == "adapter" {
     return adapter_run(argv[1:], read_env)
   }
+
   let usage = usage_of([command], @environment.NAME)
+
   match parse(command, argv[1:]) {
     Err(message) => usage_error_run(usage, @environment.NAME, message)
     Ok(Help) => help_run(usage)
@@ -50,10 +55,12 @@ async fn execute(
   read_env : () -> @environment.Env raise,
 ) -> @run.CommandRun {
   let env = read_env()
+
   try {
     if !(command is Environment) {
       @workflow.require_home(env)
     }
+
     let result = run_command(command, env)
     { code: 0, stdout: result.stringify() + "\n", stderr: "", }
   } catch {

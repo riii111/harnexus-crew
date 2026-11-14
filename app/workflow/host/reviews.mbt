@@ -19,15 +19,19 @@ pub fn reviews_in(
 ) -> Array[CloudReview] {
   let end = to.unwrap_or(records.length())
   let reviews : Map[String, CloudReview] = Map([])
+
   for index, record in records {
     if index < from || index >= end {
       continue
     }
+
     for block in content_of(record) {
       guard block.get("type") is Some(String("tool_result")) else { continue }
+
       if block.get("is_error") is Some(True) {
         continue
       }
+
       for text in texts_of(block.get("content")) {
         if review_of(text) is Some(review) && !reviews.contains(review.key) {
           reviews[review.key] = review
@@ -35,6 +39,7 @@ pub fn reviews_in(
       }
     }
   }
+
   reviews.values().collect()
 }
 
@@ -45,6 +50,7 @@ pub fn review_text(review : CloudReview) -> String {
     Some(head) => " on `\{head}`"
     None => ""
   }
+
   "\{@text.js_trim(review.answer)}\n\n_Codex reviewer `\{review.reviewer}`\{head}, run in a Cloud session. Ask for changes in the worker's chat._"
 }
 
@@ -57,6 +63,7 @@ pub fn reviewer_ask(reviewer : String, text : String) -> String {
 ///|
 pub fn uuid_of(record : Json?) -> String? {
   guard record is Some(Object(members)) else { return None }
+
   match members.get("uuid") {
     Some(String(uuid)) => Some(uuid)
     _ => None
@@ -82,11 +89,13 @@ fn content_of(record : Json) -> Array[Map[String, Json]] {
   guard members.get("message") is Some(Object(message)) else { return [] }
   guard message.get("content") is Some(Array(content)) else { return [] }
   let blocks = []
+
   for item in content {
     if item is Object(block) {
       blocks.push(block)
     }
   }
+
   blocks
 }
 
@@ -96,11 +105,13 @@ fn texts_of(content : Json?) -> Array[String] {
     Some(String(text)) => [text]
     Some(Array(items)) => {
       let texts = []
+
       for item in items {
         if item is Object(members) && members.get("text") is Some(String(text)) {
           texts.push(text)
         }
       }
+
       texts
     }
     _ => []
@@ -147,6 +158,7 @@ fn strip_line_numbers(text : String) -> String {
   let mut copied_from = 0
   let mut at = 0
   let mut line_start = true
+
   while at < units.length() {
     if line_start {
       let width = line_number_width(units, at)
@@ -158,6 +170,7 @@ fn strip_line_numbers(text : String) -> String {
         continue
       }
     }
+
     // The line terminators of JS's multiline `^`.
     let unit = units[at]
     line_start = unit == '\n' ||
@@ -166,6 +179,7 @@ fn strip_line_numbers(text : String) -> String {
       unit == '\u{2029}'
     at += 1
   }
+
   out.write_string(text[copied_from:].to_owned())
   out.to_string()
 }
@@ -176,10 +190,13 @@ fn line_number_width(units : ArrayView[UInt16], at : Int32) -> Int32 {
   while end < units.length() && units[end] == ' ' {
     end += 1
   }
+
   let digits_from = end
+
   while end < units.length() && units[end] >= '0' && units[end] <= '9' {
     end += 1
   }
+
   if end == digits_from || end >= units.length() || units[end] != '\t' {
     0
   } else {

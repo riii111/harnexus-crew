@@ -72,6 +72,7 @@ async test "the base of a session first seen continuing is what the app was last
       )
 
       let baseline = field(read_position_file(at), "baseline").unwrap()
+
       assert_eq(text_member(baseline, "uuid"), Some("u-t-aaa1111-R1"))
       assert_eq(field(baseline, "estimated"), Some(Json::boolean(true)))
     })
@@ -149,6 +150,7 @@ async test "a cursor whose record is gone reads the records again, taking only t
         ),
       )
       link.say_records("continued", [..reread, ..judged("bbb2222")])
+
       assert_eq(read_pending_keys(link), [
         review_of_head("aaa1111").key,
         review_of_head("bbb2222").key,
@@ -173,6 +175,7 @@ async test "the position moves only once a review is queued, so a review that co
       let confirmed_while_failing = link.lines_of_type("observed").length()
       @testkit.remove_tree("\{at.observe}/pending.json")
       link.say_records("continued", judged("aaa1111"))
+
       assert_eq(confirmed_while_failing, 1)
       assert_eq(
         link.lines_of_type("observed").map(line => text_member(line, "eventId")),
@@ -198,6 +201,7 @@ async test "a session id that is not an id is refused: it is logged, and nothing
       let link = connect(at, group)
       link.start("write")
       link.say_records("linked", [], session_id="../escape")
+
       assert_eq(link.lines_of_type("observed").length(), 0)
       assert_eq(link.logs.map(entry => text_member(entry, "step")), [
         Some("position_unreadable"),

@@ -46,11 +46,13 @@ pub async fn Git::run(
         },
       )
   }
+
   if output.status != 0 {
     @failure.fail(
       "\{@text.js_trim(output.stderr)}; \{@environment.NAME} never fetches, so fetch any missing commit in the worktree",
     )
   }
+
   @text.js_trim(output.stdout)
 }
 

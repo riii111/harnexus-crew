@@ -33,10 +33,12 @@ async fn resolve_in(
   args : @workflow.ResolveInput,
 ) -> Json raise @failure.TaskFailed {
   @workflow.refuse_in_cloud(ctx.env, "resolve")
+
   let thread = match @text.nonempty(args.thread_id) {
     Some(id) => Some(@request.check_chat_id(id, "--thread-id"))
     None => None
   }
+
   open_requested_session(ctx, args.request).resolve(args.sent, thread)
 }
 
@@ -51,6 +53,7 @@ async fn open_requested_session(
     let request = @request.LaunchRequest::from_json(raw, ctx.probe)
     return open_launch_session(ctx.env, ctx.ports, request)
   }
+
   let request = @request.ReviewRequest::from_json(
     raw,
     Worktrees(ctx.host.worktrees),

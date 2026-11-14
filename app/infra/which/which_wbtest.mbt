@@ -21,6 +21,7 @@ test "a file that cannot run is passed over" {
 ///|
 test "nothing is found when no PATH entry holds a runnable file" {
   let runnable = only(["/b/tool"])
+
   assert_eq(
     find("tool", Some("/a:/b"), Some("/work"), runnable),
     Some("/b/tool"),
@@ -39,6 +40,7 @@ test "an empty PATH entry is skipped" {
 ///|
 test "a missing PATH finds nothing" {
   let runnable = only(["/work/tool", "/b/tool"])
+
   assert_eq(find("tool", Some("/b"), Some("/work"), runnable), Some("/b/tool"))
 
   assert_eq(find("tool", None, Some("/work"), runnable), None)
@@ -47,6 +49,7 @@ test "a missing PATH finds nothing" {
 ///|
 test "an empty name finds nothing" {
   let runnable = only(["/b/", "/b/tool"])
+
   assert_eq(find("tool", Some("/b"), Some("/work"), runnable), Some("/b/tool"))
 
   assert_eq(find("", Some("/b"), Some("/work"), runnable), None)
@@ -60,6 +63,7 @@ test "a relative entry is taken from the working directory and kept as written" 
     ("rel/", "/work/rel/tool"),
     ("../b", "/work/../b/tool"),
   ]
+
   for entry in entries {
     assert_eq(
       find("tool", Some(entry.0), Some("/work"), runnable),
@@ -72,6 +76,7 @@ test "a relative entry is taken from the working directory and kept as written" 
 ///|
 test "a relative entry finds nothing without a working directory" {
   let runnable = only(["/work/rel/tool"])
+
   assert_eq(
     find("tool", Some("rel"), Some("/work"), runnable),
     Some("/work/rel/tool"),
@@ -83,6 +88,7 @@ test "a relative entry finds nothing without a working directory" {
 ///|
 test "a name with a slash is taken from the working directory instead of PATH" {
   let runnable = only(["/work/bin/tool", "/b/bin/tool"])
+
   for name in ["bin/tool", "./bin/tool"] {
     assert_eq(
       find(name, Some("/b"), Some("/work"), runnable),
@@ -105,6 +111,7 @@ test "an absolute name is used as it is instead of searching PATH" {
 ///|
 test "a name with a slash finds nothing without a working directory" {
   let runnable = only(["/work/bin/tool"])
+
   assert_eq(
     find("bin/tool", Some("/b"), Some("/work"), runnable),
     Some("/work/bin/tool"),
@@ -122,6 +129,7 @@ test "a directory that ends in a slash or is the root joins without doubling" {
 ///|
 test "a file is runnable only when it is an executable regular file" {
   assert_true(is_runnable_file("/bin/sh"))
+
   for path in ["/bin", "/nonexistent/tool", "/etc/hosts"] {
     assert_false(is_runnable_file(path), msg=path)
   }

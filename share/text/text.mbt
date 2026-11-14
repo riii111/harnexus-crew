@@ -40,12 +40,15 @@ pub fn js_trim(text : String) -> String {
   while start < end && is_space(units[start].to_int()) {
     start += 1
   }
+
   while end > start && is_space(units[end - 1].to_int()) {
     end -= 1
   }
+
   if start == 0 && end == units.length() {
     return text
   }
+
   text[start:end].to_owned()
 }
 
@@ -56,6 +59,7 @@ pub fn js_trim_end(text : String) -> String {
   while end > 0 && is_space(units[end - 1].to_int()) {
     end -= 1
   }
+
   text[:end].to_owned()
 }
 
@@ -69,6 +73,7 @@ pub fn excerpt(text : String) -> String {
   if trimmed.length() <= EXCERPT_UNITS {
     return trimmed
   }
+
   // A cut through a surrogate pair would leave half of it, so that half becomes U+FFFD.
   if trimmed.code_unit_at(EXCERPT_UNITS - 1).to_int() is (0xD800..<=0xDBFF) {
     "\{trimmed[:EXCERPT_UNITS - 1]}\u{FFFD}"
