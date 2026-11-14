@@ -92,7 +92,7 @@ class Bridge:
                 connection.close()
             finished.set()
 
-    def finished_requests(self, timeout=30):
+    def collect_finished_requests(self, timeout=30):
         """Collect all connections queued by finished clients before reading their requests."""
         with self._flush_lock:
             deadline = time.monotonic() + timeout

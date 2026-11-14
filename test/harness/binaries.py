@@ -14,7 +14,7 @@ _DEFAULTS = {
 }
 
 
-def binary(variable):
+def require_binary(variable):
     """The executable, or a failure that names how to build it: a missing build never skips a test."""
     path = os.environ.get(variable) or str(_DEFAULTS[variable])
     if not os.access(path, os.X_OK):

@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 from harness import jsonvalue
-from harness.binaries import binary
+from harness.binaries import require_binary
 
 LINE_TIMEOUT_SECONDS = 20
 
@@ -25,7 +25,7 @@ HELLO = frame({"type": "hello", "mode": "write", "versions": [1]})
 READY = frame({"type": "ready", "bindings": [], "conflicts": []})
 
 
-def review(head):
+def review_records(head):
     return [
         {
             "type": "assistant",
@@ -51,7 +51,7 @@ def review(head):
     ]
 
 
-def records(event_id, phase, items):
+def records_frame(event_id, phase, items):
     return frame(
         {
             "type": "event",
@@ -71,7 +71,7 @@ class Adapter:
 
     def __init__(self, root):
         self.process = subprocess.Popen(
-            [binary("HARNEXUS_CREW_NATIVE"), "adapter", "serve", "--id", "test"],
+            [require_binary("HARNEXUS_CREW_NATIVE"), "adapter", "serve", "--id", "test"],
             env={
                 "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
                 "HOME": str(Path(root) / "home"),
@@ -83,7 +83,7 @@ class Adapter:
         )
         self.lines = []
         self.rest = b""
-        self.bad = None
+        self.unreadable_line = None
         self._errors = []
         self._lock = threading.Lock()
         self._readers = [
@@ -108,7 +108,7 @@ class Adapter:
                     self.rest = self.rest[end + 1 :]
                     parsed = jsonvalue.try_loads(text.decode("utf-8", errors="replace"))
                     if parsed is None:
-                        self.bad = text
+                        self.unreadable_line = text
                     else:
                         self.lines.append(parsed[0])
 
@@ -137,7 +137,7 @@ class Adapter:
                 raise TimeoutError(f"only {self.count()} of {count} lines arrived")
             time.sleep(0.002)
 
-    def exit_code(self, timeout=None):
+    def wait_exit_code(self, timeout=None):
         try:
             return self.process.wait(timeout)
         except subprocess.TimeoutExpired:
@@ -150,7 +150,7 @@ class Adapter:
             reader.join()
         self.process.stdout.close()
         self.process.stderr.close()
-        return code, b"".join(self._errors).decode("utf-8", errors="replace"), self.rest, self.bad
+        return code, b"".join(self._errors).decode("utf-8", errors="replace"), self.rest, self.unreadable_line
 
     def dispose(self):
         """Stops an adapter a test left running, and closes its pipes."""
@@ -170,7 +170,7 @@ class Adapter:
         self.process.kill()
 
 
-def open_fds(pid):
+def count_open_fds(pid):
     # The adapter finishes writing its records after the last line it prints, so a count taken at once can catch a file still open.
     time.sleep(0.3)
     proc = Path(f"/proc/{pid}/fd")
@@ -198,20 +198,20 @@ class NativeAdapterProcess(unittest.TestCase):
         requests = [frame({"type": "request", "id": f"h{index}", "op": "history", "threadId": "x"}) for index in range(400)]
         adapter.send(HELLO + "".join(requests))
         adapter.close_input()
-        code, errors, rest, bad = adapter.finish()
+        code, errors, rest, unreadable_line = adapter.finish()
 
-        self.assertEqual((0, "", b"", None), (code, errors, rest, bad))
+        self.assertEqual((0, "", b"", None), (code, errors, rest, unreadable_line))
         answered = [line["id"] for line in adapter.snapshot() if line.get("type") == "response"]
         self.assertEqual(sorted(f"h{index}" for index in range(400)), sorted(answered))
         self.assertEqual({"v": 1, "type": "hello", "adapterId": "test", "bindings": []}, adapter.snapshot()[0])
 
     def test_ends_with_exit_code_0_when_the_bridge_closes_its_end_with_a_request_unanswered_and_keeps_the_review_for_the_next_connection(self):
         adapter = self.spawn()
-        adapter.send(HELLO + READY + records("e1", "linked", []) + records("e2", "continued", review("aaa1111")))
+        adapter.send(HELLO + READY + records_frame("e1", "linked", []) + records_frame("e2", "continued", review_records("aaa1111")))
         adapter.wait_for(4)
         self.assertEqual("list_projects", adapter.snapshot()[-1].get("op"))
         adapter.close_input()
-        code = adapter.exit_code(15)
+        code = adapter.wait_exit_code(15)
         if code is None:
             adapter.kill()
         self.assertEqual(0, code)
@@ -227,14 +227,14 @@ class NativeAdapterProcess(unittest.TestCase):
         reviews.mkdir(parents=True)
         (reviews / "chats.json").write_text('{"R1":"chat-r1"}', encoding="utf-8")
         adapter = self.spawn()
-        adapter.send(HELLO + READY + records("e0", "linked", []))
+        adapter.send(HELLO + READY + records_frame("e0", "linked", []))
         adapter.wait_for(2)
         handled = [2]
 
         def round_trip(index):
             # The last record of the previous event leads, so the adapter finds its cursor again.
-            lead = [review(f"h{index - 1}")[1]] if index > 1 else []
-            adapter.send(records(f"e{index}", "continued", [*lead, *review(f"h{index}")]))
+            lead = [review_records(f"h{index - 1}")[1]] if index > 1 else []
+            adapter.send(records_frame(f"e{index}", "continued", [*lead, *review_records(f"h{index}")]))
             adapter.wait_for(handled[0] + 2)
             handled[0] += 2
             request = adapter.snapshot()[-1]
@@ -243,10 +243,10 @@ class NativeAdapterProcess(unittest.TestCase):
 
         for index in range(1, 11):
             round_trip(index)
-        before = open_fds(adapter.process.pid)
+        before = count_open_fds(adapter.process.pid)
         for index in range(11, 161):
             round_trip(index)
-        after = open_fds(adapter.process.pid)
+        after = count_open_fds(adapter.process.pid)
         adapter.close_input()
         code, _, _, _ = adapter.finish()
 

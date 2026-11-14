@@ -5,7 +5,7 @@ import unittest
 
 from harness import jsonvalue
 from harness.asserts import ScenarioAsserts
-from harness.rig import observed, recorded, wait_for, with_rig
+from harness.rig import observed, read_recorded, wait_for, with_rig
 
 SKILLS = {"skills": "test/fixtures/task-skills"}
 CONFIG = {
@@ -76,7 +76,7 @@ def review_fields(bridge):
     }
 
 
-def candidate(rig, message, repository=REPO_PATH):
+def commit_candidate(rig, message, repository=REPO_PATH):
     rig.commit(message, repository)
 
 
@@ -85,15 +85,15 @@ def codes(steps):
 
 
 class SessionCommands(ScenarioAsserts, unittest.TestCase):
-    def scenario(self, name, fields, body, strip=lambda seen: seen):
+    def run_scenario(self, name, fields, body, strip=lambda seen: seen):
         """Runs the scenario on the Native build and checks it against what the TypeScript build did."""
         done = with_rig({"name": name, **fields}, body)
         native = observed(done)
-        self.assertSameJson(strip(recorded(name, done)), strip(native))
+        self.assertSameJson(strip(read_recorded(name, done)), strip(native))
         return native
 
     def test_keep_one_worker_per_task_and_show_rename_and_link_it(self):
-        native = self.scenario(
+        native = self.run_scenario(
             "session-launch-flow",
             {
                 **launch_fields(
@@ -124,7 +124,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         self.assertEqual(1, len(created))
 
     def test_hold_a_launch_whose_answer_was_lost_until_the_user_settles_it(self):
-        native = self.scenario(
+        native = self.run_scenario(
             "session-launch-lost",
             launch_fields([answer("create_thread", {"outcome": "unknown", "error": "timed out"})]),
             lambda rig: [
@@ -142,7 +142,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         self.assertFalse(any(path.endswith("pending.json") for path in native["files"]))
 
     def test_start_no_second_worker_after_a_run_that_was_sent_and_then_released(self):
-        native = self.scenario(
+        native = self.run_scenario(
             "session-launch-not-sent",
             launch_fields(
                 [
@@ -168,12 +168,12 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         def body(rig):
             first = rig.run(REVIEW)
             again = rig.run(REVIEW)
-            candidate(rig, "test: candidate 2")
+            commit_candidate(rig, "test: candidate 2")
             second = rig.run(REVIEW)
             shown = rig.run(["state", "--request", "review.json"])
             return [first, again, second, shown]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "session-review-flow",
             review_fields(
                 [
@@ -199,14 +199,14 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
     def test_refuse_a_changed_base_branch_until_the_base_is_updated(self):
         def body(rig):
             rig.run(REVIEW)
-            rig.git("-C", rig.sandbox.expand(REPO_PATH), "branch", "other")
-            candidate(rig, "test: candidate 2")
+            rig.run_git("-C", rig.sandbox.expand(REPO_PATH), "branch", "other")
+            commit_candidate(rig, "test: candidate 2")
             rig.write_work("review.json", jsonvalue.dumps({**REVIEW_REQUEST, "baseBranch": "other"}))
             refused = rig.run(REVIEW)
             updated = rig.run([*REVIEW, "--update-base"])
             return [refused, updated]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "session-review-base",
             review_fields(
                 [
@@ -224,14 +224,14 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
     def test_hold_a_review_whose_answer_was_lost_and_send_the_head_again_once_it_is_settled(self):
         def body(rig):
             lost = rig.run(REVIEW)
-            candidate(rig, "test: candidate 2")
+            commit_candidate(rig, "test: candidate 2")
             blocked = rig.run(REVIEW)
             resolved = rig.run(["resolve", "--request", "review.json", "--sent"])
-            candidate(rig, "test: candidate 3")
+            commit_candidate(rig, "test: candidate 3")
             resent = rig.run(REVIEW)
             return [lost, blocked, resolved, resent]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "session-review-lost",
             review_fields(
                 [
@@ -259,7 +259,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             again = rig.run(REVIEW)
             return [refused, blocked, sent, released, shown, again]
 
-        native = self.scenario(
+        native = self.run_scenario(
             "session-review-refused",
             review_fields(
                 [
@@ -299,7 +299,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             second_took = int((time.monotonic() - before_second) * 1000)
             # The run dies without an answer, so nothing releases its record.
             first.kill()
-            first.ended()
+            first.wait_for_end()
             third = rig.run(LAUNCH)
             released = rig.run(["resolve", "--request", "launch.json", "--not-sent"])
             fourth = rig.run(LAUNCH)
@@ -317,7 +317,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         )
         done = with_rig({"name": "session-launch-sending", **fields}, body)
         native = observed(done)
-        self.assertSameJson(steps_only(recorded("session-launch-sending", done)), steps_only(native))
+        self.assertSameJson(steps_only(read_recorded("session-launch-sending", done)), steps_only(native))
         steps = native["result"]["steps"]
         self.assertEqual([1, 1, 0, 0], codes(steps))
         self.assertIn("previous create_thread ended as sending; never resend", steps[0]["stderr"])
@@ -338,7 +338,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
             ),
         }
         for _ in range(5):
-            done = with_rig(fields, lambda rig: [started.ended() for started in [rig.start(LAUNCH) for _ in range(4)]])
+            done = with_rig(fields, lambda rig: [started.wait_for_end() for started in [rig.start(LAUNCH) for _ in range(4)]])
             created = [line for line in done.requests if '"create_thread"' in line]
             self.assertEqual(1, len(created), f"runs: {done.result!r}; requests: {done.requests!r}; files: {done.files!r}")
             for ran in done.result:

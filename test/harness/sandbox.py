@@ -67,7 +67,7 @@ class Sandbox:
         shutil.rmtree(self.root, ignore_errors=True)
 
 
-def _empty_root(case):
+def _make_empty_root(case):
     # The root is named by the case and this process, so a state key made from a path in the root is the same on every run of it.
     name = hashlib.sha1(case.name.encode("utf-8")).hexdigest()[:8]
     root = os.path.join(os.path.realpath(tempfile.gettempdir()), f"hxc-{name}-{os.getpid()}")
@@ -77,7 +77,7 @@ def _empty_root(case):
 
 
 def create_sandbox(case):
-    root = _empty_root(case)
+    root = _make_empty_root(case)
     dirs = {name: os.path.join(root, name) for name in ("home", "config", "state", "tmp", "work", "bin")}
     for path in dirs.values():
         os.makedirs(path, exist_ok=True)
