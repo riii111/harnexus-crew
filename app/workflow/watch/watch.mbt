@@ -8,20 +8,20 @@ pub async fn watch(
 ) -> Json raise @failure.TaskFailed {
   @workflow.refuse_in_cloud(env, "watch")
   if args.release is Some(release) {
-    return Json::object(@prwake.call(env, ["release", release]))
+    return call_prwake(env, ["release", release])
   }
   if args.status {
-    return Json::object(@prwake.call(env, ["status", "--json"]))
+    return call_prwake(env, ["status", "--json"])
   }
   if args.sender {
-    return Json::object(@prwake.call(env, ["sender"]))
+    return call_prwake(env, ["sender"])
   }
   if args.link is Some(link) {
     if !is_github_pr(link) {
       @failure.fail("\{link} is not watched: \{NOT_LINKABLE}")
     }
     // Without --take-over pr-wake refuses a PR another chat is watched for.
-    return Json::object(@prwake.call(env, ["link", link]))
+    return call_prwake(env, ["link", link])
   }
   if args.dry_run {
     let argv = ["dry-run"]
@@ -29,7 +29,15 @@ pub async fn watch(
       argv.push("--pr")
       argv.push(pr)
     }
-    return Json::object(@prwake.call(env, argv))
+    return call_prwake(env, argv)
   }
   @prwake.hand_over(env, which~)
+}
+
+///|
+async fn call_prwake(
+  env : @environment.Env,
+  args : Array[String],
+) -> Json raise @failure.TaskFailed {
+  Json::object(@prwake.call(env, args))
 }
