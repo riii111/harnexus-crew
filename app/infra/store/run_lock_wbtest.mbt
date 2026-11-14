@@ -125,6 +125,7 @@ async test "release removes the lock its token took" {
   in_scratch(directory => {
     let lock = lock_in(directory)
     let mine = acquire(lock, "review")
+
     assert_true(is_file(lock))
 
     release(lock, mine)

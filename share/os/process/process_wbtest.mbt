@@ -267,6 +267,7 @@ async test "a bare command name is looked up in the PATH of the given environmen
     let missing = describe_run("sh", ["-c", "exit 4"], env={
       "PATH": "/nonexistent",
     })
+
     assert_eq(missing, "failed started=false: cannot run sh (ENOENT)")
   })
 }

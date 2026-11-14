@@ -135,6 +135,7 @@ async test "the session that ran a review shown in a chat kept from before is re
       )
 
       let asked = link.requests(op="cloud_send")
+
       assert_eq(asked.length(), 1)
       assert_eq(text_member(asked[0], "sessionId"), Some(session))
     })
@@ -345,6 +346,7 @@ async test "a chat's first review stays for the next connection when the bridge 
       assert_eq(link.requests(op="post").length(), 1)
 
       let kept = read_json_file(opening_path(at, "R1"))
+
       assert_eq(field(kept, "showing"), Some(Json::boolean(false)))
     })
   })

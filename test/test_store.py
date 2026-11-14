@@ -36,6 +36,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         replies = run_together(16, lambda _: ("acquire", str(lock), "review", "600", at))
 
         taken = [answer for answer in replies if answer["ok"] is True]
+
         self.assertEqual(1, len(taken))
 
         for answer in [item for item in replies if item["ok"] is False]:
@@ -66,6 +67,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
     def test_a_killed_holders_lock_is_taken_over_with_a_new_token(self):
         lock = self.make_case_directory() / "lock.json"
         holder, held = hold(lock, "review")
+
         self.assertIs(True, held["ok"])
 
         stop(holder)
@@ -78,6 +80,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         lock = self.make_case_directory() / "lock.json"
         marker = Path(f"{lock}.reap")
         leave_lock(lock, make_dead_pid())
+
         self.assertIs(True, run("marker-die", str(lock))["ok"])
         at = shared_start_time()
 
@@ -90,6 +93,7 @@ class LockBetweenProcesses(StoreBetweenProcesses):
         self.assertEqual("dead", read_token(lock))
 
         marker.unlink()
+
         self.assertIs(True, run("acquire", str(lock), "review", "0", "0")["ok"])
 
     def test_work_under_the_lock_loses_no_update_across_processes(self):
@@ -195,6 +199,7 @@ class FilesWrittenByProcesses(StoreBetweenProcesses):
         self.assertGreater(reads, 20)
 
         last = target.read_text(encoding="utf-8")
+
         self.assertEqual(size, len(last))
         self.assertEqual(1, len(set(last)))
         self.assertEqual(["state.json"], [path.name for path in directory.iterdir() if not path.name.endswith(".tmp")])

@@ -86,6 +86,7 @@ async test "an outcome after which the app may have acted keeps the record as un
       assert_eq(rig.launch_failure(path), unknown_message(outcome), msg=outcome)
 
       let pending = read_state("\{rig.launch_dir()}/pending.json")
+
       assert_eq(
         show(@jsonio.field(pending, "status")),
         "\"unknown\"",
@@ -126,9 +127,11 @@ async test "a confirmed answer that cannot be recorded keeps the record with the
     }
 
     let message = rig.launch_failure(path)
+
     assert_eq(message, "cannot write \{rig.launch_dir()}/state.json (EROFS)")
 
     let pending = read_state("\{rig.launch_dir()}/pending.json")
+
     assert_eq(show(@jsonio.field(pending, "status")), "\"unknown\"")
     assert_eq(show(@jsonio.field(pending, "threadId")), "\"w1\"")
     assert_eq(
@@ -166,6 +169,7 @@ async test "a review takes a changed base branch once the base is updated" {
     )
 
     let kept = read_state("\{rig.review_dir()}/state.json")
+
     assert_eq(
       show(@jsonio.field(@jsonio.field(kept, "candidate"), "base")),
       "\"\{HEAD_1}\"",
@@ -181,6 +185,7 @@ async test "a review takes a changed base branch once the base is updated" {
 async test "once the base is updated the previous base branch counts as a change in its turn" {
   with_rig("s-16p", [done("r1"), done("r1")], rig => {
     let (path, other) = rig.moved_review()
+
     assert_eq(rig.review_failure(other), BASE_CHANGED)
 
     ignore(
@@ -328,6 +333,7 @@ async test "a review answered by another thread than the recorded reviewer is ke
     )
 
     let pending = read_state("\{rig.review_dir()}/pending.json")
+
     assert_eq(show(@jsonio.field(pending, "status")), "\"unknown\"")
     assert_eq(show(@jsonio.field(pending, "threadId")), "\"r2\"")
   })

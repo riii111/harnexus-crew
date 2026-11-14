@@ -45,6 +45,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertMatches(steps[2]["stdout"], {"verdict": "LGTM", "base": BASE, "reviewer": REVIEWER})
 
         files = native["files"]
+
         self.assertIn("--sandbox\nread-only", files["fake/args.1"])
         self.assertIn(f"resume\n{REVIEWER}", files["fake/args.2"])
         self.assertEqual("2\n", files["fake/count"])
@@ -90,6 +91,7 @@ class CloudReviews(ScenarioAsserts, unittest.TestCase):
         self.assertIn(f"resume\n{REVIEWER}", native["files"]["fake/args.3"])
 
         recorded_state = sorted(path.rsplit("/", 1)[-1] for path in native["files"] if path.startswith("state/"))
+
         self.assertEqual(["state.json"], recorded_state)
 
     def test_review_starts_a_new_reviewer_once_the_old_one_is_gone_from_the_machine(self):

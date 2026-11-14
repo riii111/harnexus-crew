@@ -26,6 +26,7 @@ class NativeAdapterProcess(unittest.TestCase):
         self.assertEqual((b"", None), (rest, unreadable_line))
 
         answered = [line["id"] for line in adapter.snapshot() if line.get("type") == "response"]
+
         self.assertEqual(sorted(f"h{index}" for index in range(MANY_REQUESTS)), sorted(answered))
 
     def test_ends_with_exit_code_0_and_no_error_output_when_the_bridge_closes_its_end_after_many_requests(self):

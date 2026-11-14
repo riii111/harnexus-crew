@@ -126,6 +126,7 @@ async test "write_exclusive fails when the directory is missing" {
 async test "remove_file removes an existing file" {
   in_scratch(directory => {
     write_atomic("\{directory}/gone", "x")
+
     assert_eq(list_names(directory), ["gone"])
 
     remove_file("\{directory}/gone")

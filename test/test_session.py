@@ -33,12 +33,14 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         )
 
         steps = native["result"]
+
         self.assertEqual([0, 0, 0, 0], codes(steps))
         self.assertMatches(steps[1]["stdout"], {"existing": "w1"})
         self.assertMatches(
             steps[3]["stdout"], {"title": "Impl TR1 PR#3", "watched": "https://github.com/o/r/pull/3"}
         )
         created = [r for r in native["requests"] if isinstance(r, dict) and r.get("tool") == "create_thread"]
+
         self.assertEqual(1, len(created))
 
     def test_launch_is_held_after_a_lost_answer_until_the_user_settles_it(self):
@@ -54,11 +56,13 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
         )
 
         steps = native["result"]
+
         self.assertEqual([1, 1, 0, 0], codes(steps))
         self.assertIn("previous create_thread ended as unknown; never resend", steps[1]["stderr"])
         self.assertMatches(steps[3]["stdout"], {"existing": "w9"})
         self.assertEqual(1, len(native["requests"]))
         recorded_state = sorted(path.rsplit("/", 1)[-1] for path in native["files"] if path.startswith("state/"))
+
         self.assertEqual(["state.json"], recorded_state)
 
     def test_launch_creates_a_new_worker_once_a_lost_launch_is_resolved_as_not_sent(self):
@@ -253,6 +257,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
 
         self.assertSameJson(steps_only(read_recorded("session-launch-sending", done)), steps_only(native))
         steps = native["result"]["steps"]
+
         self.assertEqual([1, 1, 0, 0], codes(steps))
         self.assertIn("previous create_thread ended as sending; never resend", steps[0]["stderr"])
         # Busy is answered at once, not after a wait on the first run.

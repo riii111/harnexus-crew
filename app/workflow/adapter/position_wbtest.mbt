@@ -130,6 +130,7 @@ async test "a review made while the adapter was stopped is taken once after it r
       ])
 
       let position = read_position_file(at)
+
       assert_eq(field(position, "cursor"), Some(str("u-t-ccc3333-R1")))
     })
   })
