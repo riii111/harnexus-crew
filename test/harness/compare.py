@@ -8,8 +8,24 @@ DEFAULT_MODES = {
 }
 
 
-def _difference(field, expected, actual):
-    return {"field": field, "expected": expected, "actual": actual}
+def compare(case, expected, actual):
+    """Empty when the two observations agree."""
+    defaults = DEFAULT_MODES[case.kind]
+    differences = []
+    if expected["exitCode"] != actual["exitCode"]:
+        differences.append(_difference("exitCode", expected["exitCode"], actual["exitCode"]))
+    if expected["signal"] != actual["signal"]:
+        differences.append(_difference("signal", expected["signal"], actual["signal"]))
+    differences += _text_differences(
+        "stdout", case.compare.get("stdout", defaults["stdout"]), expected["stdout"], actual["stdout"]
+    )
+    differences += _text_differences(
+        "stderr", case.compare.get("stderr", defaults["stderr"]), expected["stderr"], actual["stderr"]
+    )
+    differences += _list_differences("requests", expected["requests"], actual["requests"], jsonvalue.same_text)
+    differences += _list_differences("commands", expected["commands"], actual["commands"], jsonvalue.same)
+    differences += _file_differences(expected["files"], actual["files"])
+    return differences
 
 
 def _text_differences(field, mode, expected, actual):
@@ -55,21 +71,5 @@ def _file_differences(expected, actual):
     return differences
 
 
-def compare(case, expected, actual):
-    """Empty when the two observations agree."""
-    defaults = DEFAULT_MODES[case.kind]
-    differences = []
-    if expected["exitCode"] != actual["exitCode"]:
-        differences.append(_difference("exitCode", expected["exitCode"], actual["exitCode"]))
-    if expected["signal"] != actual["signal"]:
-        differences.append(_difference("signal", expected["signal"], actual["signal"]))
-    differences += _text_differences(
-        "stdout", case.compare.get("stdout", defaults["stdout"]), expected["stdout"], actual["stdout"]
-    )
-    differences += _text_differences(
-        "stderr", case.compare.get("stderr", defaults["stderr"]), expected["stderr"], actual["stderr"]
-    )
-    differences += _list_differences("requests", expected["requests"], actual["requests"], jsonvalue.same_text)
-    differences += _list_differences("commands", expected["commands"], actual["commands"], jsonvalue.same)
-    differences += _file_differences(expected["files"], actual["files"])
-    return differences
+def _difference(field, expected, actual):
+    return {"field": field, "expected": expected, "actual": actual}

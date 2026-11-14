@@ -13,33 +13,6 @@ from pathlib import Path
 from . import jsonvalue
 from .cases import REPO
 
-SHIM = Path(__file__).with_name("shim.py")
-
-# A repository made twice must have the same commits, so the author, committer and dates are fixed.
-GIT_FIXED = {
-    "GIT_AUTHOR_NAME": "Test",
-    "GIT_AUTHOR_EMAIL": "test@example.com",
-    "GIT_COMMITTER_NAME": "Test",
-    "GIT_COMMITTER_EMAIL": "test@example.com",
-    "GIT_AUTHOR_DATE": "2026-11-01T00:00:00Z",
-    "GIT_COMMITTER_DATE": "2026-11-01T00:00:00Z",
-    "GIT_CONFIG_GLOBAL": "/dev/null",
-    "GIT_CONFIG_NOSYSTEM": "1",
-}
-
-
-def run_git(root, argv):
-    """Runs git for the sandbox's own setup, outside the CLI under test."""
-    ran = subprocess.run(
-        ["git", "-c", "commit.gpgsign=false", "-c", "init.defaultBranch=main", *argv],
-        cwd=root,
-        env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), **GIT_FIXED},
-        capture_output=True,
-    )
-    if ran.returncode != 0:
-        raise RuntimeError(f"git {' '.join(argv)}: {ran.stderr.decode('utf-8', errors='replace')}")
-    return ran.stdout.decode("utf-8", errors="replace").strip()
-
 
 @dataclass
 class Sandbox:
@@ -65,15 +38,6 @@ class Sandbox:
 
     def cleanup(self):
         shutil.rmtree(self.root, ignore_errors=True)
-
-
-def _make_empty_root(case):
-    # The root is named by the case and this process, so a state key made from a path in the root is the same on every run of it.
-    name = hashlib.sha1(case.name.encode("utf-8")).hexdigest()[:8]
-    root = os.path.join(os.path.realpath(tempfile.gettempdir()), f"hxc-{name}-{os.getpid()}")
-    shutil.rmtree(root, ignore_errors=True)
-    os.makedirs(root)
-    return root
 
 
 def create_sandbox(case):
@@ -111,16 +75,6 @@ def create_sandbox(case):
     return sandbox
 
 
-def _write_shims(bin_dir, case):
-    with open(os.path.join(bin_dir, "plan.json"), "w", encoding="utf-8") as plan:
-        json.dump(case.commands, plan)
-    for name in case.commands:
-        path = os.path.join(bin_dir, name)
-        with open(path, "w", encoding="utf-8") as script:
-            script.write(f"#!/bin/sh\nexec '{sys.executable}' -I '{SHIM}' '{bin_dir}' '{name}' \"$@\"\n")
-        os.chmod(path, 0o755)
-
-
 def read_commands(root):
     try:
         with open(os.path.join(root, "records.jsonl"), encoding="utf-8") as records:
@@ -153,3 +107,51 @@ def snapshot_files(root, dirs):
     for directory in dirs:
         walk(directory)
     return files
+
+
+# A repository made twice must have the same commits, so the author, committer and dates are fixed.
+GIT_FIXED = {
+    "GIT_AUTHOR_NAME": "Test",
+    "GIT_AUTHOR_EMAIL": "test@example.com",
+    "GIT_COMMITTER_NAME": "Test",
+    "GIT_COMMITTER_EMAIL": "test@example.com",
+    "GIT_AUTHOR_DATE": "2026-11-01T00:00:00Z",
+    "GIT_COMMITTER_DATE": "2026-11-01T00:00:00Z",
+    "GIT_CONFIG_GLOBAL": "/dev/null",
+    "GIT_CONFIG_NOSYSTEM": "1",
+}
+
+
+def run_git(root, argv):
+    """Runs git for the sandbox's own setup, outside the CLI under test."""
+    ran = subprocess.run(
+        ["git", "-c", "commit.gpgsign=false", "-c", "init.defaultBranch=main", *argv],
+        cwd=root,
+        env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), **GIT_FIXED},
+        capture_output=True,
+    )
+    if ran.returncode != 0:
+        raise RuntimeError(f"git {' '.join(argv)}: {ran.stderr.decode('utf-8', errors='replace')}")
+    return ran.stdout.decode("utf-8", errors="replace").strip()
+
+
+def _make_empty_root(case):
+    # The root is named by the case and this process, so a state key made from a path in the root is the same on every run of it.
+    name = hashlib.sha1(case.name.encode("utf-8")).hexdigest()[:8]
+    root = os.path.join(os.path.realpath(tempfile.gettempdir()), f"hxc-{name}-{os.getpid()}")
+    shutil.rmtree(root, ignore_errors=True)
+    os.makedirs(root)
+    return root
+
+
+SHIM = Path(__file__).with_name("shim.py")
+
+
+def _write_shims(bin_dir, case):
+    with open(os.path.join(bin_dir, "plan.json"), "w", encoding="utf-8") as plan:
+        json.dump(case.commands, plan)
+    for name in case.commands:
+        path = os.path.join(bin_dir, name)
+        with open(path, "w", encoding="utf-8") as script:
+            script.write(f"#!/bin/sh\nexec '{sys.executable}' -I '{SHIM}' '{bin_dir}' '{name}' \"$@\"\n")
+        os.chmod(path, 0o755)

@@ -9,12 +9,6 @@ import time
 from . import jsonvalue
 
 
-def _contains(request, match):
-    return isinstance(request, dict) and all(
-        key in request and jsonvalue.same(request[key], value) for key, value in match.items()
-    )
-
-
 class Bridge:
     def __init__(self, path, steps):
         self.path = path
@@ -34,6 +28,35 @@ class Bridge:
         self._server.setblocking(False)
         self._thread = threading.Thread(target=self._accept_loop, daemon=True)
         self._thread.start()
+
+    def collect_finished_requests(self, timeout=30):
+        """Collects all connections queued by finished clients before reading their requests."""
+        with self._flush_lock:
+            deadline = time.monotonic() + timeout
+            self._flushed.clear()
+            self._control_write.sendall(b"f")
+            if not self._flushed.wait(max(0, deadline - time.monotonic())):
+                raise TimeoutError("timed out waiting for the bridge to accept connections")
+            for finished in self._flush_handlers:
+                if not finished.wait(max(0, deadline - time.monotonic())):
+                    raise TimeoutError("timed out waiting for the bridge to record a connection")
+            with self._lock:
+                return list(self.requests)
+
+    def stop(self):
+        self._control_write.sendall(b"s")
+        self._thread.join()
+        self._server.close()
+        self._control_read.close()
+        self._control_write.close()
+        with self._lock:
+            held, self._held = self._held, []
+        for connection in held:
+            try:
+                connection.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            connection.close()
 
     def _accept_loop(self):
         while True:
@@ -91,20 +114,6 @@ class Bridge:
                 connection.close()
             finished.set()
 
-    def collect_finished_requests(self, timeout=30):
-        """Collects all connections queued by finished clients before reading their requests."""
-        with self._flush_lock:
-            deadline = time.monotonic() + timeout
-            self._flushed.clear()
-            self._control_write.sendall(b"f")
-            if not self._flushed.wait(max(0, deadline - time.monotonic())):
-                raise TimeoutError("timed out waiting for the bridge to accept connections")
-            for finished in self._flush_handlers:
-                if not finished.wait(max(0, deadline - time.monotonic())):
-                    raise TimeoutError("timed out waiting for the bridge to record a connection")
-            with self._lock:
-                return list(self.requests)
-
     def _answer(self, connection, line):
         parsed = jsonvalue.try_loads(line)
         request = parsed[0] if parsed is not None else None
@@ -137,17 +146,8 @@ class Bridge:
             pass
         connection.close()
 
-    def stop(self):
-        self._control_write.sendall(b"s")
-        self._thread.join()
-        self._server.close()
-        self._control_read.close()
-        self._control_write.close()
-        with self._lock:
-            held, self._held = self._held, []
-        for connection in held:
-            try:
-                connection.shutdown(socket.SHUT_RDWR)
-            except OSError:
-                pass
-            connection.close()
+
+def _contains(request, match):
+    return isinstance(request, dict) and all(
+        key in request and jsonvalue.same(request[key], value) for key, value in match.items()
+    )

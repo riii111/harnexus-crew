@@ -12,173 +12,6 @@ from pathlib import Path
 from harness import jsonvalue
 from harness.binaries import require_binary
 
-LINE_TIMEOUT_SECONDS = 20
-
-
-def frame(line):
-    return jsonvalue.dumps({"v": 1, **line}) + "\n"
-
-
-HELLO = frame({"type": "hello", "mode": "write", "versions": [1]})
-
-
-READY = frame({"type": "ready", "bindings": [], "conflicts": []})
-
-
-def review_records(head):
-    return [
-        {
-            "type": "assistant",
-            "uuid": f"a-{head}",
-            "message": {"content": [{"type": "tool_use", "id": head, "name": "Bash", "input": {}}]},
-        },
-        {
-            "type": "user",
-            "uuid": f"u-{head}",
-            "message": {
-                "content": [
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": head,
-                        "content": jsonvalue.dumps(
-                            {"status": "completed", "reviewer": "R1", "head": head, "answer": f"ok {head}"}
-                        ),
-                        "is_error": False,
-                    }
-                ]
-            },
-        },
-    ]
-
-
-def records_frame(event_id, phase, items):
-    return frame(
-        {
-            "type": "event",
-            "event": "session_records",
-            "eventId": event_id,
-            "sessionId": "session_one",
-            "parentThreadId": "parent",
-            "phase": phase,
-            "linkedAt": None,
-            "records": items,
-        }
-    )
-
-
-class Adapter:
-    """A running adapter: its lines are collected as they arrive, one whole line at a time."""
-
-    def __init__(self, root):
-        self.process = subprocess.Popen(
-            [require_binary("HARNEXUS_CREW_NATIVE"), "adapter", "serve", "--id", "test"],
-            env={
-                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-                "HOME": str(Path(root) / "home"),
-                "XDG_STATE_HOME": str(Path(root) / "state"),
-            },
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        self.lines = []
-        self.rest = b""
-        self.unreadable_line = None
-        self._errors = []
-        self._lock = threading.Lock()
-        self._readers = [
-            threading.Thread(target=self._read_lines, daemon=True),
-            threading.Thread(target=self._read_errors, daemon=True),
-        ]
-        for reader in self._readers:
-            reader.start()
-
-    def _read_lines(self):
-        while True:
-            chunk = self.process.stdout.read1(65536)
-            if chunk == b"":
-                return
-            with self._lock:
-                self.rest += chunk
-                while True:
-                    end = self.rest.find(b"\n")
-                    if end == -1:
-                        break
-                    text = self.rest[:end]
-                    self.rest = self.rest[end + 1 :]
-                    parsed = jsonvalue.try_loads(text.decode("utf-8", errors="replace"))
-                    if parsed is None:
-                        self.unreadable_line = text
-                    else:
-                        self.lines.append(parsed[0])
-
-    def _read_errors(self):
-        self._errors.append(self.process.stderr.read())
-
-    def send(self, text):
-        self.process.stdin.write(text.encode("utf-8"))
-        self.process.stdin.flush()
-
-    def close_input(self):
-        self.process.stdin.close()
-
-    def count(self):
-        with self._lock:
-            return len(self.lines)
-
-    def snapshot(self):
-        with self._lock:
-            return list(self.lines)
-
-    def wait_for(self, count):
-        started = time.monotonic()
-        while self.count() < count:
-            if time.monotonic() - started > LINE_TIMEOUT_SECONDS:
-                raise TimeoutError(f"only {self.count()} of {count} lines arrived")
-            time.sleep(0.002)
-
-    def wait_exit_code(self, timeout=None):
-        try:
-            return self.process.wait(timeout)
-        except subprocess.TimeoutExpired:
-            return None
-
-    def finish(self):
-        """Waits for the adapter to end and returns (code, stderr, unterminated output, unreadable line)."""
-        code = self.process.wait()
-        for reader in self._readers:
-            reader.join()
-        self.process.stdout.close()
-        self.process.stderr.close()
-        return code, b"".join(self._errors).decode("utf-8", errors="replace"), self.rest, self.unreadable_line
-
-    def dispose(self):
-        """Stops an adapter a test left running, and closes its pipes."""
-        if self.process.poll() is None:
-            self.process.kill()
-        self.process.wait()
-        for reader in self._readers:
-            reader.join()
-        for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
-            if not stream.closed:
-                try:
-                    stream.close()
-                except OSError:
-                    pass
-
-    def kill(self):
-        self.process.kill()
-
-
-def count_open_fds(pid):
-    # The adapter finishes writing its records after the last line it prints, so a count taken at once can catch a file still open.
-    time.sleep(0.3)
-    proc = Path(f"/proc/{pid}/fd")
-    if proc.is_dir():
-        return len(list(proc.iterdir()))
-    listed = subprocess.run(["lsof", "-p", str(pid)], capture_output=True)
-    return len([line for line in listed.stdout.decode("utf-8", errors="replace").split("\n") if line])
-
 
 class NativeAdapterProcess(unittest.TestCase):
     def setUp(self):
@@ -186,12 +19,6 @@ class NativeAdapterProcess(unittest.TestCase):
         (Path(self.root) / "home").mkdir()
         self.adapters = []
         self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
-
-    def spawn(self):
-        adapter = Adapter(self.root)
-        self.adapters.append(adapter)
-        self.addCleanup(adapter.dispose)
-        return adapter
 
     def test_writes_each_of_many_answers_given_at_once_as_one_whole_line(self):
         adapter, (_, _, rest, unreadable_line) = self.close_after_many_requests()
@@ -281,6 +108,180 @@ class NativeAdapterProcess(unittest.TestCase):
 
     def observe_directory(self):
         return Path(self.root) / "state" / "harnexus-crew" / "cloud-observe"
+
+    def spawn(self):
+        adapter = Adapter(self.root)
+        self.adapters.append(adapter)
+        self.addCleanup(adapter.dispose)
+        return adapter
+
+
+def review_records(head):
+    return [
+        {
+            "type": "assistant",
+            "uuid": f"a-{head}",
+            "message": {"content": [{"type": "tool_use", "id": head, "name": "Bash", "input": {}}]},
+        },
+        {
+            "type": "user",
+            "uuid": f"u-{head}",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": head,
+                        "content": jsonvalue.dumps(
+                            {"status": "completed", "reviewer": "R1", "head": head, "answer": f"ok {head}"}
+                        ),
+                        "is_error": False,
+                    }
+                ]
+            },
+        },
+    ]
+
+
+def records_frame(event_id, phase, items):
+    return frame(
+        {
+            "type": "event",
+            "event": "session_records",
+            "eventId": event_id,
+            "sessionId": "session_one",
+            "parentThreadId": "parent",
+            "phase": phase,
+            "linkedAt": None,
+            "records": items,
+        }
+    )
+
+
+def count_open_fds(pid):
+    # The adapter finishes writing its records after the last line it prints, so a count taken at once can catch a file still open.
+    time.sleep(0.3)
+    proc = Path(f"/proc/{pid}/fd")
+    if proc.is_dir():
+        return len(list(proc.iterdir()))
+    listed = subprocess.run(["lsof", "-p", str(pid)], capture_output=True)
+    return len([line for line in listed.stdout.decode("utf-8", errors="replace").split("\n") if line])
+
+
+def frame(line):
+    return jsonvalue.dumps({"v": 1, **line}) + "\n"
+
+
+class Adapter:
+    """A running adapter: its lines are collected as they arrive, one whole line at a time."""
+
+    def __init__(self, root):
+        self.process = subprocess.Popen(
+            [require_binary("HARNEXUS_CREW_NATIVE"), "adapter", "serve", "--id", "test"],
+            env={
+                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+                "HOME": str(Path(root) / "home"),
+                "XDG_STATE_HOME": str(Path(root) / "state"),
+            },
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.lines = []
+        self.rest = b""
+        self.unreadable_line = None
+        self._errors = []
+        self._lock = threading.Lock()
+        self._readers = [
+            threading.Thread(target=self._read_lines, daemon=True),
+            threading.Thread(target=self._read_errors, daemon=True),
+        ]
+        for reader in self._readers:
+            reader.start()
+
+    def send(self, text):
+        self.process.stdin.write(text.encode("utf-8"))
+        self.process.stdin.flush()
+
+    def close_input(self):
+        self.process.stdin.close()
+
+    def count(self):
+        with self._lock:
+            return len(self.lines)
+
+    def snapshot(self):
+        with self._lock:
+            return list(self.lines)
+
+    def wait_for(self, count):
+        started = time.monotonic()
+        while self.count() < count:
+            if time.monotonic() - started > LINE_TIMEOUT_SECONDS:
+                raise TimeoutError(f"only {self.count()} of {count} lines arrived")
+            time.sleep(0.002)
+
+    def wait_exit_code(self, timeout=None):
+        try:
+            return self.process.wait(timeout)
+        except subprocess.TimeoutExpired:
+            return None
+
+    def finish(self):
+        """Waits for the adapter to end and returns (code, stderr, unterminated output, unreadable line)."""
+        code = self.process.wait()
+        for reader in self._readers:
+            reader.join()
+        self.process.stdout.close()
+        self.process.stderr.close()
+        return code, b"".join(self._errors).decode("utf-8", errors="replace"), self.rest, self.unreadable_line
+
+    def dispose(self):
+        """Stops an adapter a test left running, and closes its pipes."""
+        if self.process.poll() is None:
+            self.process.kill()
+        self.process.wait()
+        for reader in self._readers:
+            reader.join()
+        for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
+            if not stream.closed:
+                try:
+                    stream.close()
+                except OSError:
+                    pass
+
+    def kill(self):
+        self.process.kill()
+
+    def _read_lines(self):
+        while True:
+            chunk = self.process.stdout.read1(65536)
+            if chunk == b"":
+                return
+            with self._lock:
+                self.rest += chunk
+                while True:
+                    end = self.rest.find(b"\n")
+                    if end == -1:
+                        break
+                    text = self.rest[:end]
+                    self.rest = self.rest[end + 1 :]
+                    parsed = jsonvalue.try_loads(text.decode("utf-8", errors="replace"))
+                    if parsed is None:
+                        self.unreadable_line = text
+                    else:
+                        self.lines.append(parsed[0])
+
+    def _read_errors(self):
+        self._errors.append(self.process.stderr.read())
+
+
+HELLO = frame({"type": "hello", "mode": "write", "versions": [1]})
+
+
+READY = frame({"type": "ready", "bindings": [], "conflicts": []})
+
+
+LINE_TIMEOUT_SECONDS = 20
 
 
 MANY_REQUESTS = 400

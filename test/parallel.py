@@ -15,29 +15,6 @@ HERE = Path(__file__).resolve().parent
 SHARED_BUILD_MODULE = "test_install"
 
 
-def test_ids(suite):
-    for test in suite:
-        if isinstance(test, unittest.TestSuite):
-            yield from test_ids(test)
-        else:
-            yield test.id()
-
-
-def deal(ids, count):
-    # Tests of one module sit next to each other in discovery order, so dealing them out in turn spreads the slow modules over every process.
-    return [ids[k::count] for k in range(count) if ids[k::count]]
-
-
-def run_shard(ids, options):
-    ran = subprocess.run(
-        [sys.executable, "-m", "unittest", *options, *ids],
-        cwd=HERE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    return ran.returncode, ran.stdout.decode("utf-8", errors="replace")
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-j", "--processes", type=int, default=3)
@@ -67,6 +44,29 @@ def main():
     failed = [number for number, (status, _) in enumerate(results, 1) if status != 0]
     print(f"{len(ids)} tests in {len(results)} processes: " + (f"process {', '.join(map(str, failed))} failed" if failed else "all passed"))
     return 1 if failed else 0
+
+
+def run_shard(ids, options):
+    ran = subprocess.run(
+        [sys.executable, "-m", "unittest", *options, *ids],
+        cwd=HERE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    return ran.returncode, ran.stdout.decode("utf-8", errors="replace")
+
+
+def test_ids(suite):
+    for test in suite:
+        if isinstance(test, unittest.TestSuite):
+            yield from test_ids(test)
+        else:
+            yield test.id()
+
+
+def deal(ids, count):
+    # Tests of one module sit next to each other in discovery order, so dealing them out in turn spreads the slow modules over every process.
+    return [ids[k::count] for k in range(count) if ids[k::count]]
 
 
 if __name__ == "__main__":

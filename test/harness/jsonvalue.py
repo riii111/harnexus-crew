@@ -3,8 +3,6 @@
 import json
 import re
 
-_LONE_SURROGATE = re.compile("[\ud800-\udfff]")
-
 
 def loads(text):
     return json.loads(text)
@@ -16,6 +14,9 @@ def try_loads(text):
         return (json.loads(text),)
     except ValueError:
         return None
+
+
+_LONE_SURROGATE = re.compile("[\ud800-\udfff]")
 
 
 def dumps(value):

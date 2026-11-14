@@ -23,15 +23,6 @@ class _Output:
         self._thread = threading.Thread(target=self._pump, args=(stream,), daemon=True)
         self._thread.start()
 
-    def _pump(self, stream):
-        while True:
-            chunk = stream.read1(65536)
-            if chunk == b"":
-                return
-            with self._lock:
-                self.chunks.append(chunk)
-                self.lines += chunk.count(b"\n")
-
     def wait_lines(self, wanted, what):
         started = time.monotonic()
         while True:
@@ -45,6 +36,15 @@ class _Output:
     def finish(self):
         self._thread.join(RUN_TIMEOUT_SECONDS)
         return b"".join(self.chunks).decode("utf-8", errors="replace")
+
+    def _pump(self, stream):
+        while True:
+            chunk = stream.read1(65536)
+            if chunk == b"":
+                return
+            with self._lock:
+                self.chunks.append(chunk)
+                self.lines += chunk.count(b"\n")
 
 
 class Running:
@@ -101,13 +101,6 @@ class Running:
         return returned, None, out, err
 
 
-def start_bridge(case, sandbox):
-    if case.bridge is None:
-        return None
-    steps = jsonvalue.loads(sandbox.expand(jsonvalue.dumps(case.bridge)))
-    return Bridge(sandbox.bridge_socket, steps)
-
-
 def observe(argv, case):
     """Returns (observation, root) for the CLI started as `argv` plus the case's arguments."""
     sandbox = create_sandbox(case)
@@ -138,3 +131,10 @@ def observe(argv, case):
         if bridge:
             bridge.stop()
         sandbox.cleanup()
+
+
+def start_bridge(case, sandbox):
+    if case.bridge is None:
+        return None
+    steps = jsonvalue.loads(sandbox.expand(jsonvalue.dumps(case.bridge)))
+    return Bridge(sandbox.bridge_socket, steps)

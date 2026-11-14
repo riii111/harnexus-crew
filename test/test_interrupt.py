@@ -11,29 +11,6 @@ from pathlib import Path
 from harness.binaries import require_binary
 from harness.rig import wait_for
 
-# A non-interactive shell makes a background job ignore SIGINT, so only the CLI's cleanup can end the sleeping grandchild.
-PR_WAKE = """#!/bin/sh
-echo $$ > "$PIDS/leader"
-sleep 300 &
-echo $! > "$PIDS/grandchild"
-wait
-"""
-
-
-def read_pid(path):
-    try:
-        return int(Path(path).read_text().strip())
-    except (FileNotFoundError, ValueError):
-        return None
-
-
-def wait_until_gone(pid):
-    for _ in range(300):
-        if not is_running(pid):
-            return True
-        time.sleep(0.01)
-    return False
-
 
 class InterruptTest(unittest.TestCase):
     def test_sigint_to_the_cli_alone_leaves_no_process_of_the_command_it_was_waiting_for(self):
@@ -87,12 +64,36 @@ class InterruptTest(unittest.TestCase):
                             pass
 
 
+def read_pid(path):
+    try:
+        return int(Path(path).read_text().strip())
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def wait_until_gone(pid):
+    for _ in range(300):
+        if not is_running(pid):
+            return True
+        time.sleep(0.01)
+    return False
+
+
 def is_running(pid):
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
     return True
+
+
+# A non-interactive shell makes a background job ignore SIGINT, so only the CLI's cleanup can end the sleeping grandchild.
+PR_WAKE = """#!/bin/sh
+echo $$ > "$PIDS/leader"
+sleep 300 &
+echo $! > "$PIDS/grandchild"
+wait
+"""
 
 
 if __name__ == "__main__":
