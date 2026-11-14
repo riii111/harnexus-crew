@@ -1,133 +1,4 @@
 ///|
-/// A file system of a few paths: `/fx/doc.md` is a file, the others directories, and `/fx/link` is a symlink to the first worktree.
-fn probe() -> FileProbe {
-  let dirs = [
-    "/fx", "/fx/wt", "/fx/wt/ab12", "/fx/wt/ab12/repo", "/fx/wt/ab12/other", "/fx/wt/loose",
-    "/fx/outside",
-  ]
-  let resolved = fn(path : String) {
-    let absolute = @path.resolve(cwd="/cwd", [path])
-    if absolute == "/fx/link" {
-      "/fx/wt/ab12/repo"
-    } else {
-      absolute
-    }
-  }
-  {
-    path_exists: path => {
-      let real = resolved(path)
-      dirs.contains(real) || real == "/fx/doc.md"
-    },
-    is_directory: path => dirs.contains(resolved(path)),
-    resolve_real_path_or_self: path => resolved(path),
-  }
-}
-
-///|
-fn parse_json(text : String) -> Json raise {
-  @jsonio.parse(text)
-}
-
-///|
-async fn launch(text : String) -> String {
-  try {
-    let request = LaunchRequest::from_json(parse_json(text), probe())
-    "ok " + request.to_json().stringify()
-  } catch {
-    @failure.TaskFailed(message) => "refused: " + message
-    _ => "not JSON"
-  }
-}
-
-///|
-/// Answers each git query from a script keyed by its arguments and records every command line.
-struct Script {
-  answers : Map[String, String]
-  seen : Array[Array[String]]
-}
-
-///|
-fn Script::new(answers : Map[String, String]) -> Script {
-  { answers, seen: [], }
-}
-
-///|
-fn Script::runner(self : Script) -> @git.GitRunner {
-  {
-    run: (argv, _) => {
-      self.seen.push(argv)
-      let tail = query_of(argv)
-      match self.answers.get(tail) {
-        Some(out) => { status: 0, stdout: out + "\n", stderr: "", }
-        None => { status: 128, stdout: "", stderr: "fatal: unknown \{tail}\n", }
-      }
-    },
-  }
-}
-
-///|
-const REVIEW : String = "{\"taskId\":\"T-1\",\"workerAI\":\"Codex\",\"projectId\":\"p\",\"checkout\":\"/fx/wt/ab12/repo\",\"baseBranch\":\"main\",\"documentRefs\":[\"https://example.com/t\"]}"
-
-///|
-async fn review(text : String, scope : ReviewScope, script : Script) -> String {
-  try {
-    let git = @git.Git::new(script.runner(), @testkit.env_of([("HOME", "/h")]))
-    let request = ReviewRequest::from_json(
-      parse_json(text),
-      scope,
-      probe(),
-      git,
-    )
-    "ok " + Json::object(request.members()).stringify()
-  } catch {
-    @failure.TaskFailed(message) => "refused: " + message
-    _ => "not JSON"
-  }
-}
-
-///|
-fn toplevel(checkout : String) -> Script {
-  Script::new({ "rev-parse --show-toplevel": checkout })
-}
-
-///|
-async fn run_candidate(
-  script : Script,
-  previous : Map[String, Json]?,
-  update_base : Bool,
-) -> String {
-  try {
-    let git = @git.Git::new(script.runner(), @testkit.env_of([("HOME", "/h")]))
-    let request = ReviewRequest::from_json(
-      parse_json(REVIEW),
-      Worktrees("/fx/wt"),
-      probe(),
-      git,
-    )
-    let found = request.resolve_candidate(previous, update_base, git)
-    "ok base=\{found.base} head=\{found.head}"
-  } catch {
-    @failure.TaskFailed(message) => "refused: " + message
-    _ => "not JSON"
-  }
-}
-
-///|
-fn candidate_script(extra : Map[String, String]) -> Script {
-  let answers = {
-    "rev-parse --show-toplevel": "/fx/wt/ab12/repo",
-    "rev-parse HEAD": "h1",
-    "rev-parse --symbolic-full-name --verify --end-of-options main": "refs/heads/main",
-    "rev-parse --verify refs/heads/main^{commit}": "b1",
-    "merge-base b1 h1": "b1",
-  }
-  for key, value in extra {
-    answers[key] = value
-  }
-  Script::new(answers)
-}
-
-///|
 async test "a launch request keeps the members it was given, null included" {
   inspect(
     launch(
@@ -695,13 +566,48 @@ async test "a thread variable with whitespace is refused as unconfirmed" {
 }
 
 ///|
-fn query_of(argv : Array[String]) -> String {
-  argv[9:].to_owned().join(" ")
+/// Answers each git query from a script keyed by its arguments and records every command line.
+struct Script {
+  answers : Map[String, String]
+  seen : Array[Array[String]]
+}
+
+///|
+fn Script::new(answers : Map[String, String]) -> Script {
+  { answers, seen: [], }
+}
+
+///|
+fn Script::runner(self : Script) -> @git.GitRunner {
+  {
+    run: (argv, _) => {
+      self.seen.push(argv)
+      let tail = query_of(argv)
+      match self.answers.get(tail) {
+        Some(out) => { status: 0, stdout: out + "\n", stderr: "", }
+        None => { status: 128, stdout: "", stderr: "fatal: unknown \{tail}\n", }
+      }
+    },
+  }
 }
 
 ///|
 fn Script::queries(self : Script) -> Array[String] {
   self.seen.map(query_of)
+}
+
+///|
+const REVIEW : String = "{\"taskId\":\"T-1\",\"workerAI\":\"Codex\",\"projectId\":\"p\",\"checkout\":\"/fx/wt/ab12/repo\",\"baseBranch\":\"main\",\"documentRefs\":[\"https://example.com/t\"]}"
+
+///|
+async fn launch(text : String) -> String {
+  try {
+    let request = LaunchRequest::from_json(parse_json(text), probe())
+    "ok " + request.to_json().stringify()
+  } catch {
+    @failure.TaskFailed(message) => "refused: " + message
+    _ => "not JSON"
+  }
 }
 
 ///|
@@ -719,6 +625,28 @@ fn launch_text(
 }
 
 ///|
+async fn review(text : String, scope : ReviewScope, script : Script) -> String {
+  try {
+    let git = @git.Git::new(script.runner(), @testkit.env_of([("HOME", "/h")]))
+    let request = ReviewRequest::from_json(
+      parse_json(text),
+      scope,
+      probe(),
+      git,
+    )
+    "ok " + Json::object(request.members()).stringify()
+  } catch {
+    @failure.TaskFailed(message) => "refused: " + message
+    _ => "not JSON"
+  }
+}
+
+///|
+fn toplevel(checkout : String) -> Script {
+  Script::new({ "rev-parse --show-toplevel": checkout })
+}
+
+///|
 fn accepted_review(
   checkout~ : String = "/fx/wt/ab12/repo",
   pr_url~ : String = "null",
@@ -731,6 +659,43 @@ fn accepted_review(
 ///|
 fn with_worker_chat(value : String) -> String {
   REVIEW.replace_all(old="}", new=",\"workerChatId\":\{value}}")
+}
+
+///|
+async fn run_candidate(
+  script : Script,
+  previous : Map[String, Json]?,
+  update_base : Bool,
+) -> String {
+  try {
+    let git = @git.Git::new(script.runner(), @testkit.env_of([("HOME", "/h")]))
+    let request = ReviewRequest::from_json(
+      parse_json(REVIEW),
+      Worktrees("/fx/wt"),
+      probe(),
+      git,
+    )
+    let found = request.resolve_candidate(previous, update_base, git)
+    "ok base=\{found.base} head=\{found.head}"
+  } catch {
+    @failure.TaskFailed(message) => "refused: " + message
+    _ => "not JSON"
+  }
+}
+
+///|
+fn candidate_script(extra : Map[String, String]) -> Script {
+  let answers = {
+    "rev-parse --show-toplevel": "/fx/wt/ab12/repo",
+    "rev-parse HEAD": "h1",
+    "rev-parse --symbolic-full-name --verify --end-of-options main": "refs/heads/main",
+    "rev-parse --verify refs/heads/main^{commit}": "b1",
+    "merge-base b1 h1": "b1",
+  }
+  for key, value in extra {
+    answers[key] = value
+  }
+  Script::new(answers)
 }
 
 ///|
@@ -771,4 +736,39 @@ fn fields_text(fields : Map[String, String]) -> String {
     entries.push("\{name}=\{value}")
   }
   entries.join("|")
+}
+
+///|
+/// A file system of a few paths: `/fx/doc.md` is a file, the others directories, and `/fx/link` is a symlink to the first worktree.
+fn probe() -> FileProbe {
+  let dirs = [
+    "/fx", "/fx/wt", "/fx/wt/ab12", "/fx/wt/ab12/repo", "/fx/wt/ab12/other", "/fx/wt/loose",
+    "/fx/outside",
+  ]
+  let resolved = fn(path : String) {
+    let absolute = @path.resolve(cwd="/cwd", [path])
+    if absolute == "/fx/link" {
+      "/fx/wt/ab12/repo"
+    } else {
+      absolute
+    }
+  }
+  {
+    path_exists: path => {
+      let real = resolved(path)
+      dirs.contains(real) || real == "/fx/doc.md"
+    },
+    is_directory: path => dirs.contains(resolved(path)),
+    resolve_real_path_or_self: path => resolved(path),
+  }
+}
+
+///|
+fn parse_json(text : String) -> Json raise {
+  @jsonio.parse(text)
+}
+
+///|
+fn query_of(argv : Array[String]) -> String {
+  argv[9:].to_owned().join(" ")
 }

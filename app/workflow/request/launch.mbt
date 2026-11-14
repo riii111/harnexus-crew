@@ -72,16 +72,3 @@ fn parse_completion_target(
       )
   }
 }
-
-///|
-fn add_optional(
-  members : Map[String, Json],
-  key : String,
-  value : OptionalText,
-) -> Unit {
-  match value {
-    Absent => ()
-    Null => members[key] = Json::null()
-    Text(text) => members[key] = Json::string(text)
-  }
-}

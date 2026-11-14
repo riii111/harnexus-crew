@@ -29,14 +29,6 @@ priv struct Session {
 }
 
 ///|
-fn ports_of(host : @host.Host) -> Ports {
-  {
-    call: host.call,
-    save: (path, data, exclusive) => @store.save_json(path, data, exclusive~),
-  }
-}
-
-///|
 fn Session::open(
   directory : String,
   ports : Ports,

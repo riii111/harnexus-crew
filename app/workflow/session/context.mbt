@@ -28,3 +28,11 @@ fn Context::of_env(
     pr_wake: args => @prwake.call(env, args),
   }
 }
+
+///|
+fn ports_of(host : @host.Host) -> Ports {
+  {
+    call: host.call,
+    save: (path, data, exclusive) => @store.save_json(path, data, exclusive~),
+  }
+}
