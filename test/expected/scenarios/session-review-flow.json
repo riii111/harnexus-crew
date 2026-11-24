@@ -11,11 +11,11 @@
    "stdout": {
     "tool": "create_thread",
     "threadId": "r1",
-    "model": "gpt-6.1-sol",
-    "effort": "medium",
+    "model": "gpt-6.2-sol",
+    "effort": "high",
     "expected": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "state": "<ROOT>/state/harnexus-crew/review/{{key:0}}/state.json"
    },
@@ -47,12 +47,12 @@
     "prUrl": null,
     "pendingHead": null,
     "requested": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "actual": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "pending": null,
     "pendingThreadId": null,
@@ -84,8 +84,8 @@
      }
     },
     "title": "Review TR1",
-    "model": "gpt-6.1-sol",
-    "thinking": "medium"
+    "model": "gpt-6.2-sol",
+    "thinking": "high"
    }
   },
   {
@@ -141,12 +141,12 @@
    },
    "settings": {
     "requested": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "actual": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     }
    }
   },

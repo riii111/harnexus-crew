@@ -23,12 +23,12 @@
         "outcome": "model_mismatch",
         "threadId": "w1",
         "expected": {
-          "model": "claude-sonnet-5-5",
-          "effort": "high"
+          "model": "gpt-6.1-terra",
+          "effort": "xhigh"
         },
         "actual": {
           "model": "other",
-          "effort": "high"
+          "effort": "xhigh"
         }
       }
     }

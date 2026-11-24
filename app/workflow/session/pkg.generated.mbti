@@ -11,6 +11,8 @@ import {
 // Values
 pub fn check_kept(@json.Json, @json.Json, Array[String]) -> Unit raise @failure.TaskFailed
 
+pub fn check_model_settings(@environment.Env) -> Unit raise @failure.TaskFailed
+
 pub async fn launch(@workflow.LaunchInput, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed
 
 pub async fn name(@workflow.NameInput, @environment.Env, which~ : (String) -> String?) -> @json.Json raise @failure.TaskFailed

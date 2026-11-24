@@ -115,24 +115,13 @@ async fn review_in(
   } else {
     let project = (ctx.review_project)(worker)
 
-    let thinking = match @text.nonempty(args.thinking) {
-      Some(thinking) => Some(thinking)
-      None => ctx.host.thinking.map(thinking => thinking.reviewer)
-    }
-
     sent["target"] = Json::object({
       "type": Json::string("project"),
       "projectId": Json::string(project),
       "environment": Json::object({ "type": Json::string("local") }),
     })
     sent["title"] = Json::string(thread_title("Review", data))
-    sent["model"] = Json::string(
-      @text.nonempty(args.model).unwrap_or("gpt-6.1-sol"),
-    )
-
-    if thinking is Some(thinking) {
-      sent["thinking"] = Json::string(thinking)
-    }
+    apply_model_settings(ctx, sent, ReviewerModel, args.model, args.thinking)
 
     "create_thread"
   }

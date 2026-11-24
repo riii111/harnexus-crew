@@ -36,6 +36,11 @@ PR monitoring requires [pr-wake](https://github.com/riii111/pr-wake) on `PATH`.
 | `harnexus-crew cloud --prompt-file request.md` | Start a Claude Cloud session in the app. |
 | `harnexus-crew watch --link <PR URL>`          | Link PR monitoring to the current chat.  |
 
+For new local threads, set `worker` and `reviewer` defaults in `~/.config/harnexus/models.json` (under `$XDG_CONFIG_HOME` when set).
+Each role accepts `model` and `thinking` strings. Omitted settings use the built-in defaults, and command-line options take precedence.
+Changes apply on the next launch or first review. Re-reviews keep the current settings unless a command-line option changes them.
+Run `harnexus-crew check` to validate the model settings and prompt templates.
+
 ## T3 Code
 
 `launch`, `review`, `state` and `resolve` also work in T3 Code through its `t3` CLI.

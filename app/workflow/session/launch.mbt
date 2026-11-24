@@ -51,23 +51,12 @@ async fn launch_in(
   let fields = request.build_worker_fields(ctx.probe)
   let prompt = (ctx.prompt)(Worker, fields)
 
-  let thinking = match @text.nonempty(args.thinking) {
-    Some(thinking) => Some(thinking)
-    None => ctx.host.thinking.map(thinking => thinking.worker)
-  }
-
   let sent : Map[String, Json] = {
     "prompt": Json::string(prompt),
     "target": Json::object(target),
     "title": Json::string(thread_title("Impl", data)),
-    "model": Json::string(
-      @text.nonempty(args.model).unwrap_or("claude-sonnet-5-5"),
-    ),
   }
-
-  if thinking is Some(thinking) {
-    sent["thinking"] = Json::string(thinking)
-  }
+  apply_model_settings(ctx, sent, WorkerModel, args.model, args.thinking)
 
   let caller = @request.read_caller_id(ctx.env)
   session.send(caller, "create_thread", sent, [

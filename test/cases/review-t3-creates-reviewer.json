@@ -34,7 +34,7 @@
   ],
   "commands": {
     "t3": {
-      "stdout": "{\"threadId\":\"t3-r1\",\"thread\":{\"model\":\"gpt-6.1-sol\"}}\n"
+      "stdout": "{\"threadId\":\"t3-r1\",\"thread\":{\"model\":\"gpt-6.2-sol\"}}\n"
     }
   }
 }

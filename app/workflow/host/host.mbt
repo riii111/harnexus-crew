@@ -1,11 +1,4 @@
 ///|
-/// The thinking a worker and a reviewer get when none is asked for.
-pub struct DefaultThinking {
-  worker : String
-  reviewer : String
-}
-
-///|
 /// What differs between the apps a worker and its reviewer run in; everything else a task does is the same in both.
 pub struct Host {
   /// The variable naming the thread a command runs in.
@@ -16,8 +9,7 @@ pub struct Host {
   review_project : async (String) -> String raise @failure.TaskFailed
   /// The folder whose <id>/<name> folders are worker worktrees.
   worktrees : String
-  /// None when the app cannot be told a thinking.
-  thinking : DefaultThinking?
+  supports_thinking : Bool
   /// Which reply template a reviewer follows to hand its result to the worker, by the worker's AI.
   reply_to : (String) -> String
   /// Whether name --pr can rename the worker's thread to show its PR.
@@ -40,7 +32,7 @@ fn codex_host(env : @environment.Env, app : @environment.App) -> Host {
     call: (caller, tool, args) => @bridge.call_app(env, caller, tool, args),
     review_project: caller => find_codex_review_project(env, caller),
     worktrees: env.worktrees(app),
-    thinking: Some({ worker: "high", reviewer: "medium", }),
+    supports_thinking: true,
     reply_to: worker_ai => worker_ai,
     renames_threads: true,
   }
@@ -59,7 +51,7 @@ fn t3_host(
     review_project: _ => resolve_review_home(env),
     // T3 Code keeps a worktree at <repository name>/<branch> under its own folder.
     worktrees: env.worktrees(app),
-    thinking: None,
+    supports_thinking: false,
     // A reviewer in T3 Code answers through T3 Code's own thread tools, whichever AI the worker is.
     reply_to: _ => "T3",
     // The t3 CLI cannot rename a thread.

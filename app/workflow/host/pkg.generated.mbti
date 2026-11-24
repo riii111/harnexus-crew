@@ -41,17 +41,12 @@ pub(all) struct CloudReview {
   answer : String
 }
 
-pub struct DefaultThinking {
-  worker : String
-  reviewer : String
-}
-
 pub struct Host {
   thread_variable : String
   call : async (String, String, Map[String, @json.Json]) -> @bridge.CallAnswer noraise
   review_project : async (String) -> String raise @failure.TaskFailed
   worktrees : String
-  thinking : DefaultThinking?
+  supports_thinking : Bool
   reply_to : (String) -> String
   renames_threads : Bool
 }
