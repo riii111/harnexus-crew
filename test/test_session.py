@@ -17,7 +17,11 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                 answer("create_thread", {"outcome": "done", "threadId": "w2"}),
             ]),
         }
-        fields["files"][MODEL_CONFIG] = '{"worker":{"model":"configured-worker","thinking":"medium"}}'
+        fields["files"][MODEL_CONFIG] = jsonvalue.dumps({
+            "worker": {"model": "configured-worker", "thinking": "medium"},
+            "skills": {"dispatch": {"model": "dispatch-model", "thinking": "high"}},
+            "clients": {"claude": {"thinking": "medium"}},
+        })
 
         def body(rig):
             first = rig.run(LAUNCH)

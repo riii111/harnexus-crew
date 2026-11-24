@@ -40,9 +40,14 @@ fn read_models(env : @environment.Env) -> TaskModels raise @failure.TaskFailed {
     @failure.fail("\{path} must contain an object")
   }
 
-  for key, _ in roles {
-    if key != "worker" && key != "reviewer" {
-      @failure.fail("\{path}: unknown role \"\{key}\"")
+  for key, value in roles {
+    match key {
+      "worker" | "reviewer" => ()
+      "skills" | "clients" =>
+        if !(value is Object(_)) {
+          @failure.fail("\{path}: \{key} must be an object")
+        }
+      _ => @failure.fail("\{path}: unknown field \"\{key}\"")
     }
   }
 
@@ -97,12 +102,14 @@ fn apply_model_settings(
   thinking : String?,
 ) -> Unit raise @failure.TaskFailed {
   let models = read_models(ctx.env)
+
   let settings = match role {
     WorkerModel => models.worker
     ReviewerModel => models.reviewer
   }
 
   sent["model"] = Json::string(@text.nonempty(model).unwrap_or(settings.model))
+
   match @text.nonempty(thinking) {
     Some(value) => sent["thinking"] = Json::string(value)
     None if ctx.host.supports_thinking =>

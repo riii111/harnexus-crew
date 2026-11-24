@@ -38,6 +38,7 @@ PR monitoring requires [pr-wake](https://github.com/riii111/pr-wake) on `PATH`.
 
 For new local threads, set `worker` and `reviewer` defaults in `~/.config/harnexus/models.json` (under `$XDG_CONFIG_HOME` when set).
 Each role accepts `model` and `thinking` strings. Omitted settings use the built-in defaults, and command-line options take precedence.
+The same file can carry `skills` and `clients` objects for other consumers.
 Changes apply on the next launch or first review. Re-reviews keep the current settings unless a command-line option changes them.
 Run `harnexus-crew check` to validate the model settings and prompt templates.
 
