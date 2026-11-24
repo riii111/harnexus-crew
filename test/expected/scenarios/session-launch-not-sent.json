@@ -24,11 +24,11 @@
    "stdout": {
     "tool": "create_thread",
     "threadId": "w2",
-    "model": "claude-sonnet-5-5",
-    "effort": "high",
+    "model": "gpt-6.1-terra",
+    "effort": "xhigh",
     "expected": {
-     "model": "claude-sonnet-5-5",
-     "effort": "high"
+     "model": "gpt-6.1-terra",
+     "effort": "xhigh"
     },
     "state": "<ROOT>/state/harnexus-crew/launch/{{key:0}}/state.json"
    },
@@ -50,8 +50,8 @@
      }
     },
     "title": "Impl TR1",
-    "model": "claude-sonnet-5-5",
-    "thinking": "high"
+    "model": "gpt-6.1-terra",
+    "thinking": "xhigh"
    }
   },
   {
@@ -68,8 +68,8 @@
      }
     },
     "title": "Impl TR1",
-    "model": "claude-sonnet-5-5",
-    "thinking": "high"
+    "model": "gpt-6.1-terra",
+    "thinking": "xhigh"
    }
   }
  ],
@@ -95,12 +95,12 @@
     "tool": "create_thread",
     "prompt": "タスクID: TR1\n参照文書のパス・URL:\n- https://example.com/task\n進めてよい範囲: draft_pr\n\n[$task-worker](<ROOT>/skills/task-worker/SKILL.md)\n",
     "expected": {
-     "model": "claude-sonnet-5-5",
-     "effort": "high"
+     "model": "gpt-6.1-terra",
+     "effort": "xhigh"
     },
     "actual": {
-     "model": "claude-sonnet-5-5",
-     "effort": "high"
+     "model": "gpt-6.1-terra",
+     "effort": "xhigh"
     },
     "workspace": {
      "type": "project",
@@ -112,8 +112,8 @@
     "answer": {
      "outcome": "done",
      "threadId": "w2",
-     "model": "claude-sonnet-5-5",
-     "effort": "high"
+     "model": "gpt-6.1-terra",
+     "effort": "xhigh"
     }
    }
   },

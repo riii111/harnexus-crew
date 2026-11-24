@@ -9,6 +9,64 @@ from harness.rig import candidate_repository, codes, observed, read_recorded, wa
 
 
 class SessionCommands(ScenarioAsserts, unittest.TestCase):
+    def test_launch_reads_worker_model_settings_and_prefers_explicit_options(self):
+        fields = {
+            "name": "session-launch-model-settings",
+            **launch_fields([
+                answer("create_thread", {"outcome": "done", "threadId": "w1"}),
+                answer("create_thread", {"outcome": "done", "threadId": "w2"}),
+            ]),
+        }
+        fields["files"][MODEL_CONFIG] = jsonvalue.dumps({
+            "worker": {"model": "configured-worker", "thinking": "medium"},
+            "skills": {"dispatch": {"model": "dispatch-model", "thinking": "high"}},
+            "clients": {"claude": {"thinking": "medium"}},
+        })
+
+        def body(rig):
+            first = rig.run(LAUNCH)
+            rig.write_work("launch.json", jsonvalue.dumps({**LAUNCH_REQUEST, "taskId": "TR2"}))
+            second = rig.run([*LAUNCH, "--model", "explicit-worker", "--thinking", "low"])
+            return [first, second]
+
+        seen = observed(with_rig(fields, body))
+
+        self.assertEqual([0, 0], codes(seen["result"]))
+        self.assertMatches(
+            [request["arguments"] for request in seen["requests"]],
+            [{"model": "configured-worker", "thinking": "medium"}, {"model": "explicit-worker", "thinking": "low"}],
+        )
+
+    def test_review_reads_model_settings_when_it_starts_the_reviewer(self):
+        fields = {
+            "name": "session-review-model-settings",
+            **review_fields([
+                LIST,
+                answer("create_thread", {"outcome": "done", "threadId": "r1"}),
+                answer("send_message_to_thread", {"outcome": "done", "threadId": "r1"}),
+            ]),
+        }
+        fields["files"][MODEL_CONFIG] = '{"reviewer":{"model":"configured-reviewer"}}'
+
+        def body(rig):
+            first = rig.run(REVIEW)
+            rig.write_work(f"../{MODEL_CONFIG}", '{"reviewer":{"model":"updated-reviewer","thinking":"low"}}')
+            rig.commit("test: candidate 2", REPO_PATH)
+            return [first, rig.run(REVIEW)]
+
+        seen = observed(with_rig(fields, body))
+
+        self.assertEqual([0, 0], codes(seen["result"]))
+        self.assertMatches(seen["requests"][1]["arguments"], {"model": "configured-reviewer", "thinking": "high"})
+        self.assertEqual({"threadId", "prompt"}, seen["requests"][2]["arguments"].keys())
+
+    def test_check_reports_an_invalid_model_setting(self):
+        fields = {"name": "check-invalid-model-setting", "files": {MODEL_CONFIG: '{"worker":{"thinking":7}}'}}
+        result = with_rig(fields, lambda rig: rig.run(["check"])).result
+
+        self.assertEqual(1, result["code"])
+        self.assertIn("models.json: worker.thinking must be a non-empty string", result["stderr"])
+
     def test_launch_keeps_one_worker_per_task_and_name_titles_and_watches_its_pull_request(self):
         native = self.run_scenario(
             "session-launch-flow",
@@ -17,7 +75,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                     [
                         answer(
                             "create_thread",
-                            {"outcome": "done", "threadId": "w1", "model": "claude-sonnet-5-5", "effort": "high"},
+                            {"outcome": "done", "threadId": "w1", "model": "gpt-6.1-terra", "effort": "xhigh"},
                         ),
                         answer("name_thread", {"outcome": "done"}),
                     ]
@@ -73,7 +131,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                     answer("create_thread", {"outcome": "unknown", "error": "lost"}),
                     answer(
                         "create_thread",
-                        {"outcome": "done", "threadId": "w2", "model": "claude-sonnet-5-5", "effort": "high"},
+                        {"outcome": "done", "threadId": "w2", "model": "gpt-6.1-terra", "effort": "xhigh"},
                     ),
                 ]
             ),
@@ -106,7 +164,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                     LIST,
                     answer(
                         "create_thread",
-                        {"outcome": "done", "threadId": "r1", "model": "gpt-6.1-sol", "effort": "medium"},
+                        {"outcome": "done", "threadId": "r1", "model": "gpt-6.2-sol", "effort": "high"},
                     ),
                     answer("send_message_to_thread", {"outcome": "done", "threadId": "r1"}),
                 ]
@@ -201,14 +259,14 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                         {
                             "outcome": "model_mismatch",
                             "threadId": "r1",
-                            "expected": {"model": "gpt-6.1-sol", "effort": "medium"},
-                            "actual": {"model": "other", "effort": "medium"},
+                            "expected": {"model": "gpt-6.2-sol", "effort": "high"},
+                            "actual": {"model": "other", "effort": "high"},
                         },
                     ),
                     LIST,
                     answer(
                         "create_thread",
-                        {"outcome": "done", "threadId": "r2", "model": "gpt-6.1-sol", "effort": "medium"},
+                        {"outcome": "done", "threadId": "r2", "model": "gpt-6.2-sol", "effort": "high"},
                     ),
                 ]
             ),
@@ -271,7 +329,7 @@ class SessionCommands(ScenarioAsserts, unittest.TestCase):
                 [
                     answer(
                         "create_thread",
-                        {"outcome": "done", "threadId": "w1", "model": "claude-sonnet-5-5", "effort": "high"},
+                        {"outcome": "done", "threadId": "w1", "model": "gpt-6.1-terra", "effort": "xhigh"},
                     ),
                 ]
             ),
@@ -339,6 +397,7 @@ def answer(tool, reply):
 
 
 SKILLS = {"skills": "test/fixtures/task-skills"}
+MODEL_CONFIG = "config/harnexus/models.json"
 CONFIG = {
     "config/harnexus/task.json": jsonvalue.dumps(
         {

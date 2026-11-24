@@ -14,13 +14,8 @@ test "the Codex App host can rename threads" {
 }
 
 ///|
-test "the Codex App host defaults to high thinking for the worker and medium for the reviewer" {
-  assert_eq(
-    codex_app_host().thinking.map(thinking => {
-      (thinking.worker, thinking.reviewer)
-    }),
-    Some(("high", "medium")),
-  )
+test "the Codex App host accepts a thinking level" {
+  assert_true(codex_app_host().supports_thinking)
 }
 
 ///|
@@ -55,11 +50,8 @@ test "the T3 Code host cannot rename threads" {
 }
 
 ///|
-test "the T3 Code host has no default thinking" {
-  assert_eq(
-    t3_code_host().thinking.map(thinking => (thinking.worker, thinking.reviewer)),
-    None,
-  )
+test "the T3 Code host does not accept a thinking level" {
+  assert_false(t3_code_host().supports_thinking)
 }
 
 ///|

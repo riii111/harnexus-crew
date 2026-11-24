@@ -64,8 +64,8 @@
         "outcome": "model_mismatch",
         "threadId": "r1",
         "expected": {
-          "model": "gpt-6.1-sol",
-          "effort": "medium"
+          "model": "gpt-6.2-sol",
+          "effort": "high"
         },
         "actual": {
           "model": "other",

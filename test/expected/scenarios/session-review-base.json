@@ -42,8 +42,8 @@
      }
     },
     "title": "Review TR1",
-    "model": "gpt-6.1-sol",
-    "thinking": "medium"
+    "model": "gpt-6.2-sol",
+    "thinking": "high"
    }
   },
   {
@@ -99,8 +99,8 @@
    },
    "settings": {
     "requested": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "actual": {
      "model": null,

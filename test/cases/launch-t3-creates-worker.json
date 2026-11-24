@@ -14,7 +14,7 @@
   },
   "commands": {
     "t3": {
-      "stdout": "{\"threadId\":\"t3-w1\",\"thread\":{\"model\":\"claude-sonnet-5-5\"}}\n"
+      "stdout": "{\"threadId\":\"t3-w1\",\"thread\":{\"model\":\"gpt-6.1-terra\"}}\n"
     }
   }
 }

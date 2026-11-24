@@ -13,7 +13,10 @@ async fn run_command(command : @args.Command, env : @environment.Env) -> Json {
     Resolve(args) => @session.resolve(args, env, which~)
     Name(args) => @session.name(args, env, which~)
     Watch(args) => @watch.watch(args, env, which~)
-    Check => @prompt.check_templates(env)
+    Check => {
+      @session.check_model_settings(env)
+      @prompt.check_templates(env)
+    }
     Cloud(args) => @cloud.open_chat(args, env)
   }
 }

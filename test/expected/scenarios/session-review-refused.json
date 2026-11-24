@@ -9,12 +9,12 @@
   {
    "code": 1,
    "stdout": "",
-   "stderr": "harnexus-crew: thread r1 refused its first turn: asked for model other instead of gpt-6.1-sol; fix the model, then resolve --not-sent\n"
+   "stderr": "harnexus-crew: thread r1 refused its first turn: asked for model other instead of gpt-6.2-sol; fix the model, then resolve --not-sent\n"
   },
   {
    "code": 1,
    "stdout": "",
-   "stderr": "harnexus-crew: thread r1 refused its first turn: asked for model other instead of gpt-6.1-sol; fix the model, then resolve --not-sent\n"
+   "stderr": "harnexus-crew: thread r1 refused its first turn: asked for model other instead of gpt-6.2-sol; fix the model, then resolve --not-sent\n"
   },
   {
    "code": 1,
@@ -63,11 +63,11 @@
    "stdout": {
     "tool": "create_thread",
     "threadId": "r2",
-    "model": "gpt-6.1-sol",
-    "effort": "medium",
+    "model": "gpt-6.2-sol",
+    "effort": "high",
     "expected": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "state": "<ROOT>/state/harnexus-crew/review/{{key:0}}/state.json"
    },
@@ -95,8 +95,8 @@
      }
     },
     "title": "Review TR1",
-    "model": "gpt-6.1-sol",
-    "thinking": "medium"
+    "model": "gpt-6.2-sol",
+    "thinking": "high"
    }
   },
   {
@@ -119,8 +119,8 @@
      }
     },
     "title": "Review TR1",
-    "model": "gpt-6.1-sol",
-    "thinking": "medium"
+    "model": "gpt-6.2-sol",
+    "thinking": "high"
    }
   }
  ],
@@ -152,29 +152,29 @@
     "tool": "create_thread",
     "prompt": "[$ai-code-review](<ROOT>/skills/ai-code-review/SKILL.md)\nタスクID: TR1\n参照文書のパス・URL:\n- https://example.com/task\nworkerの担当AI: Codex\nworkerのチャットID: w1\nworkerの作業ディレクトリ: <ROOT>/home/.codex/worktrees/ab12/repo\nレビュー対象のコミット範囲: af314261c610837f3606d61aa2dff1981debda94...a6bc63c9fd9d736a274586bb4a3989bc27297649\nPRのURL: null\n\n[レビュー時の確認事項](<ROOT>/skills/task-review-cycle/SKILL.md#レビュー時の確認事項)と[返却方法](<ROOT>/skills/task-review-cycle/references/reply-Codex.md)に従ってください。\n",
     "expected": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "actual": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "workspace": "<ROOT>/home/.codex/worktrees/ab12/repo",
     "answer": {
      "outcome": "done",
      "threadId": "r2",
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     }
    },
    "settings": {
     "requested": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "actual": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     }
    }
   },
@@ -192,8 +192,8 @@
       }
      },
      "title": "Review TR1",
-     "model": "gpt-6.1-sol",
-     "thinking": "medium"
+     "model": "gpt-6.2-sol",
+     "thinking": "high"
     },
     "candidate": {
      "taskId": "TR1",
@@ -215,21 +215,21 @@
      "outcome": "model_mismatch",
      "threadId": "r1",
      "expected": {
-      "model": "gpt-6.1-sol",
-      "effort": "medium"
+      "model": "gpt-6.2-sol",
+      "effort": "high"
      },
      "actual": {
       "model": "other",
-      "effort": "medium"
+      "effort": "high"
      }
     },
     "expected": {
-     "model": "gpt-6.1-sol",
-     "effort": "medium"
+     "model": "gpt-6.2-sol",
+     "effort": "high"
     },
     "actual": {
      "model": "other",
-     "effort": "medium"
+     "effort": "high"
     }
    }
   ],

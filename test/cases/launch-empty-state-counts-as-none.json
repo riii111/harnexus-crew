@@ -23,8 +23,8 @@
         "version": 1,
         "outcome": "done",
         "threadId": "w1",
-        "model": "claude-sonnet-5-5",
-        "effort": "high"
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh"
       }
     }
   ]

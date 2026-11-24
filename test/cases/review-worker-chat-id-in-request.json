@@ -63,8 +63,8 @@
         "version": 1,
         "outcome": "done",
         "threadId": "r1",
-        "model": "gpt-6.1-sol",
-        "effort": "medium"
+        "model": "gpt-6.2-sol",
+        "effort": "high"
       }
     }
   ]
