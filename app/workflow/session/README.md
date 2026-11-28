@@ -14,7 +14,7 @@ Cloudでのレビュー（Codex CLI）と `cloud` コマンドは含まず、`re
 | `Ports`、`ports_of(host)`               | Appの呼び出しと状態の保存                         |
 
 `which` は `cli/registry.mbt` の分岐が `@which.in_env(env)` を渡す。
-`review` の `cloud` は、`HARNEXUS_EXECUTION_ENV` などが Claude Code のCloudと宣言する場合だけ呼ばれ、それ以外のCloudは `review` の拒否になる。
+`review` の `cloud` は、`HARNEXUS_EXECUTION_ENV` などが Claude Code または Codex のCloudと宣言する場合に呼ばれ、ホスト不明のCloudは `review` の拒否になる。
 
 ## セッションの記録
 
