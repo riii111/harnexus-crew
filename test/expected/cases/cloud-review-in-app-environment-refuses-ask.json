@@ -3,7 +3,7 @@
  "exitCode": 1,
  "signal": null,
  "stdout": "",
- "stderr": "harnexus-crew: --ask applies to review only in a Claude Code cloud session\n",
+ "stderr": "harnexus-crew: --ask applies to review only in a cloud session\n",
  "requests": [],
  "commands": [],
  "files": {
