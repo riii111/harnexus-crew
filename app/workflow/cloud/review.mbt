@@ -42,6 +42,7 @@ async fn review_in(
       } else {
         "CLAUDE_CODE_SESSION_ID"
       }
+
       request.with_worker_chat_id(
         ctx.env.get_nonempty(thread_variable).unwrap_or("cloud"),
       )
