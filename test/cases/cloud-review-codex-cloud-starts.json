@@ -1,24 +1,44 @@
 {
-  "name": "cloud-review-explicit-cloud-codex-is-refused",
+  "name": "cloud-review-codex-cloud-starts",
   "kind": "command",
-  "argv": ["review", "--request", "review.json"],
+  "argv": [
+    "review",
+    "--request",
+    "review.json"
+  ],
   "env": {
-    "CLAUDE_CODE_REMOTE": "true",
+    "CLAUDE_CODE_REMOTE": "",
     "CLAUDE_CODE_SESSION_ID": "worker-session",
-    "HARNEXUS_EXECUTION_ENV": "cloud",
-    "CODEX_ENVIRONMENT_ID": "env-1"
+    "CODEX_ENVIRONMENT_ID": "env-1",
+    "CODEX_THREAD_ID": "codex-worker"
   },
   "seed": {
     "skills": "test/fixtures/task-skills"
   },
   "files": {
     "config/harnexus/task.json": "{\"templates\":{\"reviewer\":\"{{root}}/skills/task-review-cycle/references/reviewer.md\"}}",
-    "work/review.json": "{\"taskId\":\"example\",\"workerAI\":\"Claude\",\"checkout\":\"{{home}}/repo\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null}"
+    "work/review.json": "{\"taskId\":\"example\",\"workerAI\":\"Codex\",\"checkout\":\"{{home}}/repo\",\"baseBranch\":\"base\",\"documentRefs\":[\"https://example.com/task\"],\"prUrl\":null}"
   },
   "git": [
-    ["init", "-q", "{{home}}/repo"],
-    ["-C", "{{home}}/repo", "commit", "--allow-empty", "-qm", "test: initial"],
-    ["-C", "{{home}}/repo", "branch", "base"],
+    [
+      "init",
+      "-q",
+      "{{home}}/repo"
+    ],
+    [
+      "-C",
+      "{{home}}/repo",
+      "commit",
+      "--allow-empty",
+      "-qm",
+      "test: initial"
+    ],
+    [
+      "-C",
+      "{{home}}/repo",
+      "branch",
+      "base"
+    ],
     [
       "-C",
       "{{home}}/repo",

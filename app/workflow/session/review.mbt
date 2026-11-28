@@ -1,6 +1,6 @@
 ///|
 /// Sends a worker's checkout to its reviewer, in a thread of its own the first time and to the same reviewer after.
-/// `cloud` reviews when the worker runs in a Claude Code cloud session, which has no thread in an app.
+/// Cloud reviews run in a separate Codex CLI session and return their result to the worker.
 pub async fn review(
   args : @workflow.ReviewInput,
   env : @environment.Env,
@@ -38,7 +38,9 @@ async fn review_in(
   cloud : async (@workflow.ReviewInput) -> Json raise @failure.TaskFailed,
 ) -> Json raise @failure.TaskFailed {
   if @environment.parse_declared_environment(ctx.env)
-    is Some({ environment: Cloud, runner: InCloud(Some(ClaudeCloud)), }) {
+    is Some(
+      { environment: Cloud, runner: InCloud(Some(ClaudeCloud | CodexCloud)), }
+    ) {
     return cloud(args)
   }
 
@@ -46,13 +48,11 @@ async fn review_in(
 
   // In the app the reviewer is a chat of its own, which is asked there.
   if args.ask is Some(_) {
-    @failure.fail("--ask applies to review only in a Claude Code cloud session")
+    @failure.fail("--ask applies to review only in a cloud session")
   }
 
   if args.discard_pending {
-    @failure.fail(
-      "--recover applies to review only in a Claude Code cloud session",
-    )
+    @failure.fail("--recover applies to review only in a cloud session")
   }
 
   let request = read_review_request(ctx, args.request)

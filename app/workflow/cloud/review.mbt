@@ -19,7 +19,7 @@ fn Context::of_env(env : @environment.Env) -> Context {
 }
 
 ///|
-/// Reviews in a Claude Code cloud session with a Codex CLI run beside the worker, answering with its result instead of a chat in the app.
+/// Reviews in a cloud session with a separate Codex CLI, returning its result to the worker.
 /// With `ask`, passes that message to the same reviewer instead.
 pub async fn review(
   args : @workflow.ReviewInput,
@@ -35,10 +35,17 @@ async fn review_in(
 ) -> Json raise @failure.TaskFailed {
   let request = read_request(ctx, args.request)
   let request = match request.worker_chat_id {
-    None =>
+    None => {
+      let thread_variable = if @environment.parse_declared_environment(ctx.env)
+        is Some({ runner: InCloud(Some(CodexCloud)), .. }) {
+        "CODEX_THREAD_ID"
+      } else {
+        "CLAUDE_CODE_SESSION_ID"
+      }
       request.with_worker_chat_id(
-        ctx.env.get_nonempty("CLAUDE_CODE_SESSION_ID").unwrap_or("cloud"),
+        ctx.env.get_nonempty(thread_variable).unwrap_or("cloud"),
       )
+    }
     Some(_) => request
   }
 

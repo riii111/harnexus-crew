@@ -1,17 +1,17 @@
 # Cloudレビューと `cloud`
 
-Claude CodeのCloudセッションでの `review` と、`cloud` コマンド。
+Claude Code・CodexのCloudセッションでの `review` と、`cloud` コマンド。
 セッションの共通の検査 `check_kept` は `session` を使い、App・T3 Codeの `review` は含まない。
 
 公開する関数は `review(args, env)` と `open_chat(args, env)`。
 
 `review` は `session::review` の `cloud` 引数へ渡す。
-実行環境がClaude CodeのCloudと宣言されたときだけ呼ばれ、それ以外のCloudは `session` が拒否する。
+実行環境がClaude CodeまたはCodexのCloudと宣言されたときに呼ばれる。
 
 ## Cloudレビュー
 
 同じマシンのCodex CLI（`codex exec --json`）をレビュアーとして動かし、その答えをコマンドの結果にする。
-App側のようにチャットを作らず、`workerChatId` の既定はClaude Codeのセッション（`CLAUDE_CODE_SESSION_ID`、空なら `cloud`）になる。
+App側のようにチャットを作らず、`workerChatId` の既定はCodex Cloudでは `CODEX_THREAD_ID`、Claude Code Cloudでは `CLAUDE_CODE_SESSION_ID` で、取得できなければ `cloud` になる。
 `projectId` は使わない。
 
 セッションは `<state root>/cloud-review/<sha256(キー)の先頭16桁>/` に置く。
